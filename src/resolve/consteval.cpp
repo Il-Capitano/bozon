@@ -40,14 +40,14 @@ bool is_special_array_type(ast::typespec_view type)
 
 	switch (type_kind)
 	{
-	case ast::type_info::int8_:
-	case ast::type_info::int16_:
-	case ast::type_info::int32_:
-	case ast::type_info::int64_:
-	case ast::type_info::uint8_:
-	case ast::type_info::uint16_:
-	case ast::type_info::uint32_:
-	case ast::type_info::uint64_:
+	case ast::type_info::i8_:
+	case ast::type_info::i16_:
+	case ast::type_info::i32_:
+	case ast::type_info::i64_:
+	case ast::type_info::u8_:
+	case ast::type_info::u16_:
+	case ast::type_info::u32_:
+	case ast::type_info::u64_:
 	case ast::type_info::float32_:
 	case ast::type_info::float64_:
 		return true;
@@ -1918,13 +1918,13 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			auto const uint_val = value.get_uint();
 			switch (param_kind)
 			{
-			case ast::type_info::uint8_:
+			case ast::type_info::u8_:
 				return ast::constant_value(uint64_t(uint8_t(~uint_val)));
-			case ast::type_info::uint16_:
+			case ast::type_info::u16_:
 				return ast::constant_value(uint64_t(uint16_t(~uint_val)));
-			case ast::type_info::uint32_:
+			case ast::type_info::u32_:
 				return ast::constant_value(uint64_t(uint32_t(~uint_val)));
-			case ast::type_info::uint64_:
+			case ast::type_info::u64_:
 				return ast::constant_value(~uint_val);
 			default:
 				bz_unreachable;
@@ -2017,15 +2017,15 @@ static ast::constant_value get_default_constructed_value(
 			: ast::type_info::aggregate;
 		switch (elem_builtin_kind)
 		{
-		case ast::type_info::int8_:
-		case ast::type_info::int16_:
-		case ast::type_info::int32_:
-		case ast::type_info::int64_:
+		case ast::type_info::i8_:
+		case ast::type_info::i16_:
+		case ast::type_info::i32_:
+		case ast::type_info::i64_:
 			return context.add_constant_sint_array(ast::arena_vector<int64_t>(size, 0));
-		case ast::type_info::uint8_:
-		case ast::type_info::uint16_:
-		case ast::type_info::uint32_:
-		case ast::type_info::uint64_:
+		case ast::type_info::u8_:
+		case ast::type_info::u16_:
+		case ast::type_info::u32_:
+		case ast::type_info::u64_:
 			return context.add_constant_uint_array(ast::arena_vector<uint64_t>(size, 0));
 		case ast::type_info::float32_:
 			return context.add_constant_float32_array(ast::arena_vector<float32_t>(size, 0.0f));
@@ -2053,15 +2053,15 @@ static ast::constant_value get_default_constructed_value(
 				{
 					switch (base_t.info->kind)
 					{
-					case ast::type_info::int8_:
-					case ast::type_info::int16_:
-					case ast::type_info::int32_:
-					case ast::type_info::int64_:
+					case ast::type_info::i8_:
+					case ast::type_info::i16_:
+					case ast::type_info::i32_:
+					case ast::type_info::i64_:
 						return ast::constant_value(int64_t());
-					case ast::type_info::uint8_:
-					case ast::type_info::uint16_:
-					case ast::type_info::uint32_:
-					case ast::type_info::uint64_:
+					case ast::type_info::u8_:
+					case ast::type_info::u16_:
+					case ast::type_info::u32_:
+					case ast::type_info::u64_:
 						return ast::constant_value(uint64_t());
 					case ast::type_info::float32_:
 						return ast::constant_value(float32_t());
@@ -2167,10 +2167,10 @@ static ast::constant_value evaluate_cast(
 
 	switch (dest_kind)
 	{
-	case ast::type_info::int8_:
-	case ast::type_info::int16_:
-	case ast::type_info::int32_:
-	case ast::type_info::int64_:
+	case ast::type_info::i8_:
+	case ast::type_info::i16_:
+	case ast::type_info::i32_:
+	case ast::type_info::i64_:
 	{
 		switch (value.kind())
 		{
@@ -2180,10 +2180,10 @@ static ast::constant_value evaluate_cast(
 			using T = std::tuple<bz::u8string_view, int64_t, int64_t, int64_t>;
 			auto const int_val = value.get_sint();
 			auto const [type_name, min_val, max_val, result] =
-				dest_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::min(), std::numeric_limits<int8_t> ::max(), static_cast<int8_t> (int_val) } :
-				dest_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max(), static_cast<int16_t>(int_val) } :
-				dest_kind == ast::type_info::int32_ ? T{ "int32", std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max(), static_cast<int32_t>(int_val) } :
-				T{ "int64", std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max(), static_cast<int64_t>(int_val) };
+				dest_kind == ast::type_info::i8_  ? T{ "i8",  std::numeric_limits<int8_t> ::min(), std::numeric_limits<int8_t> ::max(), static_cast<int8_t> (int_val) } :
+				dest_kind == ast::type_info::i16_ ? T{ "i16", std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max(), static_cast<int16_t>(int_val) } :
+				dest_kind == ast::type_info::i32_ ? T{ "i32", std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max(), static_cast<int32_t>(int_val) } :
+				T{ "i64", std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max(), static_cast<int64_t>(int_val) };
 			if (paren_level < 2 && (int_val < min_val || int_val > max_val))
 			{
 				context.report_parenthesis_suppressed_warning(
@@ -2199,10 +2199,10 @@ static ast::constant_value evaluate_cast(
 			using T = std::tuple<bz::u8string_view, int64_t, int64_t>;
 			auto const int_val = value.get_uint();
 			auto const [type_name, max_val, result] =
-				dest_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::max(), static_cast<int8_t> (int_val) } :
-				dest_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::max(), static_cast<int16_t>(int_val) } :
-				dest_kind == ast::type_info::int32_ ? T{ "int32", std::numeric_limits<int32_t>::max(), static_cast<int32_t>(int_val) } :
-				T{ "int64", std::numeric_limits<int64_t>::max(), static_cast<int64_t>(int_val) };
+				dest_kind == ast::type_info::i8_  ? T{ "i8",  std::numeric_limits<int8_t> ::max(), static_cast<int8_t> (int_val) } :
+				dest_kind == ast::type_info::i16_ ? T{ "i16", std::numeric_limits<int16_t>::max(), static_cast<int16_t>(int_val) } :
+				dest_kind == ast::type_info::i32_ ? T{ "i32", std::numeric_limits<int32_t>::max(), static_cast<int32_t>(int_val) } :
+				T{ "i64", std::numeric_limits<int64_t>::max(), static_cast<int64_t>(int_val) };
 			if (paren_level < 2 && int_val > static_cast<uint64_t>(max_val))
 			{
 				context.report_parenthesis_suppressed_warning(
@@ -2217,9 +2217,9 @@ static ast::constant_value evaluate_cast(
 		{
 			auto const float_val = value.get_float32();
 			auto const result =
-				dest_kind == ast::type_info::int8_  ? static_cast<int8_t> (float_val) :
-				dest_kind == ast::type_info::int16_ ? static_cast<int16_t>(float_val) :
-				dest_kind == ast::type_info::int32_ ? static_cast<int32_t>(float_val) :
+				dest_kind == ast::type_info::i8_  ? static_cast<int8_t> (float_val) :
+				dest_kind == ast::type_info::i16_ ? static_cast<int16_t>(float_val) :
+				dest_kind == ast::type_info::i32_ ? static_cast<int32_t>(float_val) :
 				static_cast<int64_t>(float_val);
 			return ast::constant_value(result);
 		}
@@ -2227,9 +2227,9 @@ static ast::constant_value evaluate_cast(
 		{
 			auto const float_val = value.get_float64();
 			auto const result =
-				dest_kind == ast::type_info::int8_  ? static_cast<int8_t> (float_val) :
-				dest_kind == ast::type_info::int16_ ? static_cast<int16_t>(float_val) :
-				dest_kind == ast::type_info::int32_ ? static_cast<int32_t>(float_val) :
+				dest_kind == ast::type_info::i8_  ? static_cast<int8_t> (float_val) :
+				dest_kind == ast::type_info::i16_ ? static_cast<int16_t>(float_val) :
+				dest_kind == ast::type_info::i32_ ? static_cast<int32_t>(float_val) :
 				static_cast<int64_t>(float_val);
 			return ast::constant_value(result);
 		}
@@ -2243,10 +2243,10 @@ static ast::constant_value evaluate_cast(
 		}
 	}
 
-	case ast::type_info::uint8_:
-	case ast::type_info::uint16_:
-	case ast::type_info::uint32_:
-	case ast::type_info::uint64_:
+	case ast::type_info::u8_:
+	case ast::type_info::u16_:
+	case ast::type_info::u32_:
+	case ast::type_info::u64_:
 	{
 		switch (value.kind())
 		{
@@ -2256,10 +2256,10 @@ static ast::constant_value evaluate_cast(
 			using T = std::tuple<bz::u8string_view, uint64_t, uint64_t>;
 			auto const int_val = value.get_sint();
 			auto const [type_name, max_val, result] =
-				dest_kind == ast::type_info::uint8_  ? T{ "uint8",  std::numeric_limits<uint8_t> ::max(), static_cast<uint8_t> (int_val) } :
-				dest_kind == ast::type_info::uint16_ ? T{ "uint16", std::numeric_limits<uint16_t>::max(), static_cast<uint16_t>(int_val) } :
-				dest_kind == ast::type_info::uint32_ ? T{ "uint32", std::numeric_limits<uint32_t>::max(), static_cast<uint32_t>(int_val) } :
-				T{ "uint64", std::numeric_limits<uint64_t>::max(), static_cast<uint64_t>(int_val) };
+				dest_kind == ast::type_info::u8_  ? T{ "u8",  std::numeric_limits<uint8_t> ::max(), static_cast<uint8_t> (int_val) } :
+				dest_kind == ast::type_info::u16_ ? T{ "u16", std::numeric_limits<uint16_t>::max(), static_cast<uint16_t>(int_val) } :
+				dest_kind == ast::type_info::u32_ ? T{ "u32", std::numeric_limits<uint32_t>::max(), static_cast<uint32_t>(int_val) } :
+				T{ "u64", std::numeric_limits<uint64_t>::max(), static_cast<uint64_t>(int_val) };
 			if (paren_level < 2 && (int_val < 0 || static_cast<uint64_t>(int_val) > max_val))
 			{
 				context.report_parenthesis_suppressed_warning(
@@ -2275,10 +2275,10 @@ static ast::constant_value evaluate_cast(
 			using T = std::tuple<bz::u8string_view, uint64_t, uint64_t>;
 			auto const int_val = value.get_uint();
 			auto const [type_name, max_val, result] =
-				dest_kind == ast::type_info::uint8_  ? T{ "uint8",  std::numeric_limits<uint8_t> ::max(), static_cast<uint8_t> (int_val) } :
-				dest_kind == ast::type_info::uint16_ ? T{ "uint16", std::numeric_limits<uint16_t>::max(), static_cast<uint16_t>(int_val) } :
-				dest_kind == ast::type_info::uint32_ ? T{ "uint32", std::numeric_limits<uint32_t>::max(), static_cast<uint32_t>(int_val) } :
-				T{ "uint64", std::numeric_limits<uint64_t>::max(), static_cast<uint64_t>(int_val) };
+				dest_kind == ast::type_info::u8_  ? T{ "u8",  std::numeric_limits<uint8_t> ::max(), static_cast<uint8_t> (int_val) } :
+				dest_kind == ast::type_info::u16_ ? T{ "u16", std::numeric_limits<uint16_t>::max(), static_cast<uint16_t>(int_val) } :
+				dest_kind == ast::type_info::u32_ ? T{ "u32", std::numeric_limits<uint32_t>::max(), static_cast<uint32_t>(int_val) } :
+				T{ "u64", std::numeric_limits<uint64_t>::max(), static_cast<uint64_t>(int_val) };
 			if (paren_level < 2 && int_val > max_val)
 			{
 				context.report_parenthesis_suppressed_warning(
@@ -2293,9 +2293,9 @@ static ast::constant_value evaluate_cast(
 		{
 			auto const float_val = value.get_float32();
 			auto const result =
-				dest_kind == ast::type_info::uint8_  ? static_cast<uint8_t> (float_val) :
-				dest_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(float_val) :
-				dest_kind == ast::type_info::uint32_ ? static_cast<uint32_t>(float_val) :
+				dest_kind == ast::type_info::u8_  ? static_cast<uint8_t> (float_val) :
+				dest_kind == ast::type_info::u16_ ? static_cast<uint16_t>(float_val) :
+				dest_kind == ast::type_info::u32_ ? static_cast<uint32_t>(float_val) :
 				static_cast<uint64_t>(float_val);
 			return ast::constant_value(result);
 		}
@@ -2303,9 +2303,9 @@ static ast::constant_value evaluate_cast(
 		{
 			auto const float_val = value.get_float64();
 			auto const result =
-				dest_kind == ast::type_info::uint8_  ? static_cast<uint8_t> (float_val) :
-				dest_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(float_val) :
-				dest_kind == ast::type_info::uint32_ ? static_cast<uint32_t>(float_val) :
+				dest_kind == ast::type_info::u8_  ? static_cast<uint8_t> (float_val) :
+				dest_kind == ast::type_info::u16_ ? static_cast<uint16_t>(float_val) :
+				dest_kind == ast::type_info::u32_ ? static_cast<uint32_t>(float_val) :
 				static_cast<uint64_t>(float_val);
 			return ast::constant_value(result);
 		}
@@ -2478,10 +2478,10 @@ static ast::constant_value consteval_guaranteed_special_array_value(
 
 	switch (type_kind)
 	{
-	case ast::type_info::int8_:
-	case ast::type_info::int16_:
-	case ast::type_info::int32_:
-	case ast::type_info::int64_:
+	case ast::type_info::i8_:
+	case ast::type_info::i16_:
+	case ast::type_info::i32_:
+	case ast::type_info::i64_:
 	{
 		auto sint_array = ast::arena_vector<int64_t>();
 		sint_array.reserve(size);
@@ -2505,10 +2505,10 @@ static ast::constant_value consteval_guaranteed_special_array_value(
 			return ast::constant_value();
 		}
 	}
-	case ast::type_info::uint8_:
-	case ast::type_info::uint16_:
-	case ast::type_info::uint32_:
-	case ast::type_info::uint64_:
+	case ast::type_info::u8_:
+	case ast::type_info::u16_:
+	case ast::type_info::u32_:
+	case ast::type_info::u64_:
 	{
 		auto uint_array = ast::arena_vector<uint64_t>();
 		uint_array.reserve(size);
@@ -2597,10 +2597,10 @@ static ast::constant_value get_special_array_value(
 
 	switch (type_kind)
 	{
-	case ast::type_info::int8_:
-	case ast::type_info::int16_:
-	case ast::type_info::int32_:
-	case ast::type_info::int64_:
+	case ast::type_info::i8_:
+	case ast::type_info::i16_:
+	case ast::type_info::i32_:
+	case ast::type_info::i64_:
 	{
 		auto sint_array = ast::arena_vector<int64_t>();
 		sint_array.reserve(size);
@@ -2620,10 +2620,10 @@ static ast::constant_value get_special_array_value(
 		}
 		return context.add_constant_sint_array(std::move(sint_array));
 	}
-	case ast::type_info::uint8_:
-	case ast::type_info::uint16_:
-	case ast::type_info::uint32_:
-	case ast::type_info::uint64_:
+	case ast::type_info::u8_:
+	case ast::type_info::u16_:
+	case ast::type_info::u32_:
+	case ast::type_info::u64_:
 	{
 		auto uint_array = ast::arena_vector<uint64_t>();
 		uint_array.reserve(size);

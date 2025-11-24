@@ -919,7 +919,7 @@ static void execute_neg_i8_check(instructions::neg_i8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '-({})' with type 'int8' results in {}", value, value)
+			bz::format("overflow in expression '-({})' with type 'i8' results in {}", value, value)
 		);
 	}
 }
@@ -932,7 +932,7 @@ static void execute_neg_i16_check(instructions::neg_i16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '-({})' with type 'int16' results in {}", value, value)
+			bz::format("overflow in expression '-({})' with type 'i16' results in {}", value, value)
 		);
 	}
 }
@@ -945,7 +945,7 @@ static void execute_neg_i32_check(instructions::neg_i32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '-({})' with type 'int32' results in {}", value, value)
+			bz::format("overflow in expression '-({})' with type 'i32' results in {}", value, value)
 		);
 	}
 }
@@ -958,7 +958,7 @@ static void execute_neg_i64_check(instructions::neg_i64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '-({})' with type 'int64' results in {}", value, value)
+			bz::format("overflow in expression '-({})' with type 'i64' results in {}", value, value)
 		);
 	}
 }
@@ -1034,7 +1034,7 @@ static void execute_add_i8_check(instructions::add_i8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'int8' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'i8' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1049,7 +1049,7 @@ static void execute_add_i16_check(instructions::add_i16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'int16' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'i16' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1064,7 +1064,7 @@ static void execute_add_i32_check(instructions::add_i32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'int32' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'i32' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1079,7 +1079,7 @@ static void execute_add_i64_check(instructions::add_i64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'int64' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'i64' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1092,7 +1092,7 @@ static void execute_add_u8_check(instructions::add_u8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'uint8' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'u8' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1105,7 +1105,7 @@ static void execute_add_u16_check(instructions::add_u16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'uint16' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'u16' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1118,7 +1118,7 @@ static void execute_add_u32_check(instructions::add_u32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'uint32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'u32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1131,7 +1131,7 @@ static void execute_add_u64_check(instructions::add_u64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'uint64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'u64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1228,7 +1228,7 @@ static void execute_sub_i8_check(instructions::sub_i8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'int8' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'i8' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1243,7 +1243,7 @@ static void execute_sub_i16_check(instructions::sub_i16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'int16' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'i16' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1258,7 +1258,7 @@ static void execute_sub_i32_check(instructions::sub_i32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'int32' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'i32' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1273,7 +1273,7 @@ static void execute_sub_i64_check(instructions::sub_i64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'int64' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'i64' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1286,7 +1286,7 @@ static void execute_sub_u8_check(instructions::sub_u8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'uint8' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'u8' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1299,7 +1299,7 @@ static void execute_sub_u16_check(instructions::sub_u16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'uint16' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'u16' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1312,7 +1312,7 @@ static void execute_sub_u32_check(instructions::sub_u32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'uint32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'u32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1325,7 +1325,7 @@ static void execute_sub_u64_check(instructions::sub_u64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'uint64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'u64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1435,7 +1435,7 @@ static void execute_mul_i8_check(instructions::mul_i8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'int8' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'i8' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1450,7 +1450,7 @@ static void execute_mul_i16_check(instructions::mul_i16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'int16' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'i16' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1465,7 +1465,7 @@ static void execute_mul_i32_check(instructions::mul_i32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'int32' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'i32' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1480,7 +1480,7 @@ static void execute_mul_i64_check(instructions::mul_i64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'int64' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'i64' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1493,7 +1493,7 @@ static void execute_mul_u8_check(instructions::mul_u8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'uint8' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'u8' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1506,7 +1506,7 @@ static void execute_mul_u16_check(instructions::mul_u16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'uint16' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'u16' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1519,7 +1519,7 @@ static void execute_mul_u32_check(instructions::mul_u32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'uint32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'u32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1532,7 +1532,7 @@ static void execute_mul_u64_check(instructions::mul_u64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'uint64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'u64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1572,7 +1572,7 @@ static uint8_t execute_div_i8(instructions::div_i8 const &inst, uint8_t lhs, uin
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'int8'", ilhs, irhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'i8'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -1595,7 +1595,7 @@ static uint16_t execute_div_i16(instructions::div_i16 const &inst, uint16_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'int16'", ilhs, irhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'i16'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -1618,7 +1618,7 @@ static uint32_t execute_div_i32(instructions::div_i32 const &inst, uint32_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'int32'", ilhs, irhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'i32'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -1641,7 +1641,7 @@ static uint64_t execute_div_i64(instructions::div_i64 const &inst, uint64_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'int64'", ilhs, irhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'i64'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -1661,7 +1661,7 @@ static uint8_t execute_div_u8(instructions::div_u8 const &inst, uint8_t lhs, uin
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'uint8'", lhs, rhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'u8'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -1677,7 +1677,7 @@ static uint16_t execute_div_u16(instructions::div_u16 const &inst, uint16_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'uint16'", lhs, rhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'u16'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -1693,7 +1693,7 @@ static uint32_t execute_div_u32(instructions::div_u32 const &inst, uint32_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'uint32'", lhs, rhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'u32'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -1709,7 +1709,7 @@ static uint64_t execute_div_u64(instructions::div_u64 const &inst, uint64_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'uint64'", lhs, rhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'u64'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -1744,7 +1744,7 @@ static void execute_div_i8_check(instructions::div_i8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} / {}' with type 'int8' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} / {}' with type 'i8' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1764,7 +1764,7 @@ static void execute_div_i16_check(instructions::div_i16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} / {}' with type 'int16' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} / {}' with type 'i16' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1784,7 +1784,7 @@ static void execute_div_i32_check(instructions::div_i32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} / {}' with type 'int32' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} / {}' with type 'i32' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1804,7 +1804,7 @@ static void execute_div_i64_check(instructions::div_i64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} / {}' with type 'int64' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} / {}' with type 'i64' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1860,7 +1860,7 @@ static uint8_t execute_rem_i8(instructions::rem_i8 const &inst, uint8_t lhs, uin
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'int8'", ilhs, irhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'i8'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -1883,7 +1883,7 @@ static uint16_t execute_rem_i16(instructions::rem_i16 const &inst, uint16_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'int16'", ilhs, irhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'i16'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -1906,7 +1906,7 @@ static uint32_t execute_rem_i32(instructions::rem_i32 const &inst, uint32_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'int32'", ilhs, irhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'i32'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -1929,7 +1929,7 @@ static uint64_t execute_rem_i64(instructions::rem_i64 const &inst, uint64_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'int64'", ilhs, irhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'i64'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -1949,7 +1949,7 @@ static uint8_t execute_rem_u8(instructions::rem_u8 const &inst, uint8_t lhs, uin
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'uint8'", lhs, rhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'u8'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -1965,7 +1965,7 @@ static uint16_t execute_rem_u16(instructions::rem_u16 const &inst, uint16_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'uint16'", lhs, rhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'u16'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -1981,7 +1981,7 @@ static uint32_t execute_rem_u32(instructions::rem_u32 const &inst, uint32_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'uint32'", lhs, rhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'u32'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -1997,7 +1997,7 @@ static uint64_t execute_rem_u64(instructions::rem_u64 const &inst, uint64_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'uint64'", lhs, rhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'u64'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -2112,12 +2112,12 @@ static uint8_t execute_shl_i8_signed(instructions::shl_i8_signed const &inst, ui
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint8'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u8'", irhs));
 		return 0;
 	}
 	else if (irhs >= 8)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u8'", irhs));
 		return 0;
 	}
 	return lhs << uint8_t(rhs);
@@ -2128,12 +2128,12 @@ static uint16_t execute_shl_i16_signed(instructions::shl_i16_signed const &inst,
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint16'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u16'", irhs));
 		return 0;
 	}
 	else if (irhs >= 16)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u16'", irhs));
 		return 0;
 	}
 	return lhs << uint16_t(rhs);
@@ -2144,12 +2144,12 @@ static uint32_t execute_shl_i32_signed(instructions::shl_i32_signed const &inst,
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint32'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u32'", irhs));
 		return 0;
 	}
 	else if (irhs >= 32)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u32'", irhs));
 		return 0;
 	}
 	return lhs << uint32_t(rhs);
@@ -2160,12 +2160,12 @@ static uint64_t execute_shl_i64_signed(instructions::shl_i64_signed const &inst,
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint64'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u64'", irhs));
 		return 0;
 	}
 	else if (irhs >= 64)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u64'", irhs));
 		return 0;
 	}
 	return lhs << uint64_t(rhs);
@@ -2175,7 +2175,7 @@ static uint8_t execute_shl_i8_unsigned(instructions::shl_i8_unsigned const &inst
 {
 	if (rhs >= 8)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u8'", rhs));
 		return 0;
 	}
 	return lhs << uint8_t(rhs);
@@ -2185,7 +2185,7 @@ static uint16_t execute_shl_i16_unsigned(instructions::shl_i16_unsigned const &i
 {
 	if (rhs >= 16)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u16'", rhs));
 		return 0;
 	}
 	return lhs << uint16_t(rhs);
@@ -2195,7 +2195,7 @@ static uint32_t execute_shl_i32_unsigned(instructions::shl_i32_unsigned const &i
 {
 	if (rhs >= 32)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u32'", rhs));
 		return 0;
 	}
 	return lhs << uint32_t(rhs);
@@ -2205,7 +2205,7 @@ static uint64_t execute_shl_i64_unsigned(instructions::shl_i64_unsigned const &i
 {
 	if (rhs >= 64)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u64'", rhs));
 		return 0;
 	}
 	return lhs << uint64_t(rhs);
@@ -2216,12 +2216,12 @@ static uint8_t execute_shr_i8_signed(instructions::shr_i8_signed const &inst, ui
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint8'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u8'", irhs));
 		return 0;
 	}
 	else if (irhs >= 8)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u8'", irhs));
 		return 0;
 	}
 	return lhs >> uint8_t(rhs);
@@ -2232,12 +2232,12 @@ static uint16_t execute_shr_i16_signed(instructions::shr_i16_signed const &inst,
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint16'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u16'", irhs));
 		return 0;
 	}
 	else if (irhs >= 16)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u16'", irhs));
 		return 0;
 	}
 	return lhs >> uint16_t(rhs);
@@ -2248,12 +2248,12 @@ static uint32_t execute_shr_i32_signed(instructions::shr_i32_signed const &inst,
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint32'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u32'", irhs));
 		return 0;
 	}
 	else if (irhs >= 32)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u32'", irhs));
 		return 0;
 	}
 	return lhs >> uint32_t(rhs);
@@ -2264,12 +2264,12 @@ static uint64_t execute_shr_i64_signed(instructions::shr_i64_signed const &inst,
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint64'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u64'", irhs));
 		return 0;
 	}
 	else if (irhs >= 64)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u64'", irhs));
 		return 0;
 	}
 	return lhs >> uint64_t(rhs);
@@ -2279,7 +2279,7 @@ static uint8_t execute_shr_i8_unsigned(instructions::shr_i8_unsigned const &inst
 {
 	if (rhs >= 8)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u8'", rhs));
 		return 0;
 	}
 	return lhs >> uint8_t(rhs);
@@ -2289,7 +2289,7 @@ static uint16_t execute_shr_i16_unsigned(instructions::shr_i16_unsigned const &i
 {
 	if (rhs >= 16)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u16'", rhs));
 		return 0;
 	}
 	return lhs >> uint16_t(rhs);
@@ -2299,7 +2299,7 @@ static uint32_t execute_shr_i32_unsigned(instructions::shr_i32_unsigned const &i
 {
 	if (rhs >= 32)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u32'", rhs));
 		return 0;
 	}
 	return lhs >> uint32_t(rhs);
@@ -2309,7 +2309,7 @@ static uint64_t execute_shr_i64_unsigned(instructions::shr_i64_unsigned const &i
 {
 	if (rhs >= 64)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u64'", rhs));
 		return 0;
 	}
 	return lhs >> uint64_t(rhs);
@@ -2443,7 +2443,7 @@ static void execute_abs_i8_check(instructions::abs_i8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("calling 'abs' with {} of type 'int8' results in {}", value, value)
+			bz::format("calling 'abs' with {} of type 'i8' results in {}", value, value)
 		);
 	}
 }
@@ -2456,7 +2456,7 @@ static void execute_abs_i16_check(instructions::abs_i16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("calling 'abs' with {} of type 'int16' results in {}", value, value)
+			bz::format("calling 'abs' with {} of type 'i16' results in {}", value, value)
 		);
 	}
 }
@@ -2469,7 +2469,7 @@ static void execute_abs_i32_check(instructions::abs_i32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("calling 'abs' with {} of type 'int32' results in {}", value, value)
+			bz::format("calling 'abs' with {} of type 'i32' results in {}", value, value)
 		);
 	}
 }
@@ -2482,7 +2482,7 @@ static void execute_abs_i64_check(instructions::abs_i64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("calling 'abs' with {} of type 'int64' results in {}", value, value)
+			bz::format("calling 'abs' with {} of type 'i64' results in {}", value, value)
 		);
 	}
 }
@@ -3844,7 +3844,7 @@ static uint8_t execute_ashr_u8(instructions::ashr_u8 const &inst, uint8_t n, uin
 {
 	if (amount >= 8)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", amount));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u8'", amount));
 		return (n & 0x80) != 0 ? ~uint8_t(0) : 0;
 	}
 	return static_cast<uint8_t>(static_cast<int8_t>(n) >> amount);
@@ -3854,7 +3854,7 @@ static uint16_t execute_ashr_u16(instructions::ashr_u16 const &inst, uint16_t n,
 {
 	if (amount >= 16)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", amount));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u16'", amount));
 		return (n & 0x8000) != 0 ? ~uint16_t(0) : 0;
 	}
 	return static_cast<uint16_t>(static_cast<int16_t>(n) >> amount);
@@ -3864,7 +3864,7 @@ static uint32_t execute_ashr_u32(instructions::ashr_u32 const &inst, uint32_t n,
 {
 	if (amount >= 32)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", amount));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u32'", amount));
 		return (n & 0x8000'0000) != 0 ? ~uint32_t(0) : 0;
 	}
 	return static_cast<uint32_t>(static_cast<int32_t>(n) >> amount);
@@ -3874,7 +3874,7 @@ static uint64_t execute_ashr_u64(instructions::ashr_u64 const &inst, uint64_t n,
 {
 	if (amount >= 64)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", amount));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u64'", amount));
 		return (n & 0x8000'0000'0000'0000) != 0 ? ~uint64_t(0) : 0;
 	}
 	return static_cast<uint64_t>(static_cast<int64_t>(n) >> amount);

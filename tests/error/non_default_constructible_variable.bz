@@ -1,5 +1,5 @@
-// error: variable type '*int32' is not default constructible and must be initialized
+// error: variable type '*i32' is not default constructible and must be initialized
 function test()
 {
-	mut _: *int32;
+	mut _: *i32;
 }

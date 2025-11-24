@@ -1,5 +1,5 @@
-// error: non-parameter variable cannot have a move reference type 'move int32'
+// error: non-parameter variable cannot have a move reference type 'move i32'
 function test()
 {
-	let _: move int32 = 0i32;
+	let _: move i32 = 0i32;
 }

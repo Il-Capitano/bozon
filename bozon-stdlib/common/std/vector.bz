@@ -130,27 +130,27 @@ export struct vector<T: typename>
 		return __builtin_slice_from_mut_ptrs(self._data_begin, self._data_end);
 	}
 
-	@overload_priority(1) export operator [] (self: &_self_t, i: uint64) -> &value_type
+	@overload_priority(1) export operator [] (self: &_self_t, i: u64) -> &value_type
 	{
 		assert(i < self.size());
 		return *(self._data_begin + i);
 	}
 
-	@overload_priority(1) export operator [] (self: &mut _self_t, i: uint64) -> &mut value_type
+	@overload_priority(1) export operator [] (self: &mut _self_t, i: u64) -> &mut value_type
 	{
 		assert(i < self.size());
 		return *(self._data_begin + i);
 	}
 
-	export operator [] (self: &_self_t, i: int64) -> &value_type
+	export operator [] (self: &_self_t, i: i64) -> &value_type
 	{
-		assert(i >= 0 && i as uint64 < self.size());
+		assert(i >= 0 && i as u64 < self.size());
 		return *(self._data_begin + i);
 	}
 
-	export operator [] (self: &mut _self_t, i: int64) -> &mut value_type
+	export operator [] (self: &mut _self_t, i: i64) -> &mut value_type
 	{
-		assert(i >= 0 && i as uint64 < self.size());
+		assert(i >= 0 && i as u64 < self.size());
 		return *(self._data_begin + i);
 	}
 

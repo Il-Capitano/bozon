@@ -1,4 +1,4 @@
-// error: invalid pointer arithmetic operation with type '*mut int32' and offset -1
+// error: invalid pointer arithmetic operation with type '*mut i32' and offset -1
 // note: while evaluating expression at compile time
 // note: address points to the element at index 0 in this allocation of size 1
 // note: allocation was made while evaluating expression at compile time
@@ -6,7 +6,7 @@
 function test()
 {
 	(consteval {
-		let p = __builtin_comptime_malloc(int32, 1);
+		let p = __builtin_comptime_malloc(i32, 1);
 		defer __builtin_comptime_free(p);
 		p - 1;
 	});

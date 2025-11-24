@@ -564,14 +564,14 @@ enclosing_scope_t type_info::get_enclosing_scope(void) const noexcept
 	return this->scope.get_global().parent;
 }
 
-static_assert(type_info::int8_    ==  0);
-static_assert(type_info::int16_   ==  1);
-static_assert(type_info::int32_   ==  2);
-static_assert(type_info::int64_   ==  3);
-static_assert(type_info::uint8_   ==  4);
-static_assert(type_info::uint16_  ==  5);
-static_assert(type_info::uint32_  ==  6);
-static_assert(type_info::uint64_  ==  7);
+static_assert(type_info::i8_      ==  0);
+static_assert(type_info::i16_     ==  1);
+static_assert(type_info::i32_     ==  2);
+static_assert(type_info::i64_     ==  3);
+static_assert(type_info::u8_      ==  4);
+static_assert(type_info::u16_     ==  5);
+static_assert(type_info::u32_     ==  6);
+static_assert(type_info::u64_     ==  7);
 static_assert(type_info::float32_ ==  8);
 static_assert(type_info::float64_ ==  9);
 static_assert(type_info::char_    == 10);

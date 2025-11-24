@@ -43,7 +43,7 @@ struct _IO_wide_data;
 struct __mbstate_t
 {
 	.__count: int;
-	.__value: /* union type */[1: int32];
+	.__value: /* union type */[1: i32];
 }
 export type FILE = _IO_FILE;
 export type fpos_t = __fpos_t;

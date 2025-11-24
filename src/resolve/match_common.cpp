@@ -46,21 +46,21 @@ bool is_integer_implicitly_convertible(uint8_t dest_kind, ast::literal_kind kind
 	auto const dest_max_value = [&]() -> uint64_t {
 		switch (dest_kind)
 		{
-		case ast::type_info::int8_:
+		case ast::type_info::i8_:
 			return static_cast<uint64_t>(std::numeric_limits<int8_t>::max());
-		case ast::type_info::int16_:
+		case ast::type_info::i16_:
 			return static_cast<uint64_t>(std::numeric_limits<int16_t>::max());
-		case ast::type_info::int32_:
+		case ast::type_info::i32_:
 			return static_cast<uint64_t>(std::numeric_limits<int32_t>::max());
-		case ast::type_info::int64_:
+		case ast::type_info::i64_:
 			return static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
-		case ast::type_info::uint8_:
+		case ast::type_info::u8_:
 			return static_cast<uint64_t>(std::numeric_limits<uint8_t>::max());
-		case ast::type_info::uint16_:
+		case ast::type_info::u16_:
 			return static_cast<uint64_t>(std::numeric_limits<uint16_t>::max());
-		case ast::type_info::uint32_:
+		case ast::type_info::u32_:
 			return static_cast<uint64_t>(std::numeric_limits<uint32_t>::max());
-		case ast::type_info::uint64_:
+		case ast::type_info::u64_:
 			return static_cast<uint64_t>(std::numeric_limits<uint64_t>::max());
 		default:
 			bz_unreachable;
@@ -90,42 +90,42 @@ bool is_integer_implicitly_convertible(uint8_t dest_kind, ast::literal_kind kind
 	auto const [dest_min_value, dest_max_value] = [&]() -> std::pair<int64_t, int64_t> {
 		switch (dest_kind)
 		{
-		case ast::type_info::int8_:
+		case ast::type_info::i8_:
 			return {
 				static_cast<int64_t>(std::numeric_limits<int8_t>::min()),
 				static_cast<int64_t>(std::numeric_limits<int8_t>::max())
 			};
-		case ast::type_info::int16_:
+		case ast::type_info::i16_:
 			return {
 				static_cast<int64_t>(std::numeric_limits<int16_t>::min()),
 				static_cast<int64_t>(std::numeric_limits<int16_t>::max())
 			};
-		case ast::type_info::int32_:
+		case ast::type_info::i32_:
 			return {
 				static_cast<int64_t>(std::numeric_limits<int32_t>::min()),
 				static_cast<int64_t>(std::numeric_limits<int32_t>::max())
 			};
-		case ast::type_info::int64_:
+		case ast::type_info::i64_:
 			return {
 				static_cast<int64_t>(std::numeric_limits<int64_t>::min()),
 				static_cast<int64_t>(std::numeric_limits<int64_t>::max())
 			};
-		case ast::type_info::uint8_:
+		case ast::type_info::u8_:
 			return {
 				static_cast<int64_t>(std::numeric_limits<uint8_t>::min()),
 				static_cast<int64_t>(std::numeric_limits<uint8_t>::max())
 			};
-		case ast::type_info::uint16_:
+		case ast::type_info::u16_:
 			return {
 				static_cast<int64_t>(std::numeric_limits<uint16_t>::min()),
 				static_cast<int64_t>(std::numeric_limits<uint16_t>::max())
 			};
-		case ast::type_info::uint32_:
+		case ast::type_info::u32_:
 			return {
 				static_cast<int64_t>(std::numeric_limits<uint32_t>::min()),
 				static_cast<int64_t>(std::numeric_limits<uint32_t>::max())
 			};
-		case ast::type_info::uint64_:
+		case ast::type_info::u64_:
 			return {
 				static_cast<int64_t>(std::numeric_limits<uint64_t>::min()),
 				static_cast<int64_t>(std::numeric_limits<int64_t>::max()) // avoid overflow

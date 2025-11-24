@@ -14,15 +14,15 @@ export struct path
 
 export struct path_iterator
 {
-	._it: ?*uint8;
-	._path_end: ?*uint8;
+	._it: ?*u8;
+	._path_end: ?*u8;
 }
 
 export operator * (it: path_iterator) -> str
 {
 	mut end = it._it;
 	let path_end = it._path_end;
-	while (end != path_end && *end != '/' as uint32)
+	while (end != path_end && *end != '/' as u32)
 	{
 		++end;
 	}
@@ -31,7 +31,7 @@ export operator * (it: path_iterator) -> str
 
 export operator ++ (it: &mut path_iterator) -> &mut path_iterator
 {
-	while (it._it != it._path_end && *it._it != '/' as uint8)
+	while (it._it != it._path_end && *it._it != '/' as u8)
 	{
 		++it._it;
 	}

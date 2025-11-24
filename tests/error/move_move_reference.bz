@@ -1,5 +1,5 @@
 // error: operator move cannot be applied to a reference
-function test(i: move int32)
+function test(i: move i32)
 {
 	move i;
 }

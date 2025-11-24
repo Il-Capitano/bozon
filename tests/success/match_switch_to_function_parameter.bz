@@ -1,4 +1,4 @@
-function foo(: #auto) -> int32
+function foo(: #auto) -> i32
 {
 	return 0;
 }

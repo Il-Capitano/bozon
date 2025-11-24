@@ -1,11 +1,11 @@
-// error: invalid memory access of an object of type 'int32'
+// error: invalid memory access of an object of type 'i32'
 // note: while evaluating expression at compile time
 // note: lifetime of the stack object has already ended
 // error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {
-		mut p: ?*int32 = null;
+		mut p: ?*i32 = null;
 		defer *p;
 
 		let i = 0;

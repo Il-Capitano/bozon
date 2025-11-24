@@ -1,9 +1,9 @@
-// error: unable to match value of type 'mut *mut *mut int32' to '*mut *int32'
-// note: mismatched mutability of types 'mut int32' and 'int32'
+// error: unable to match value of type 'mut *mut *mut i32' to '*mut *i32'
+// note: mismatched mutability of types 'mut i32' and 'i32'
 function test()
 {
 	mut i = 0;
-	mut pi: *mut int32 = &i;
-	mut ppi: *mut *mut int32 = &pi;
-	let _: *mut *int32 = ppi;
+	mut pi: *mut i32 = &i;
+	mut ppi: *mut *mut i32 = &pi;
+	let _: *mut *i32 = ppi;
 }

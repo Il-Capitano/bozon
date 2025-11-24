@@ -1,7 +1,7 @@
 function test()
 {
 	(consteval {
-		let t = [int32, int32]();
+		let t = [i32, i32]();
 		&t[0] + 1 - 1;
 	});
 }

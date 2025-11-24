@@ -1,4 +1,4 @@
-// error: invalid pointer arithmetic operation with type '*int32' and offset 2
+// error: invalid pointer arithmetic operation with type '*i32' and offset 2
 // note: while evaluating expression at compile time
 // note: address points to this stack object
 // error: failed to evaluate expression at compile time

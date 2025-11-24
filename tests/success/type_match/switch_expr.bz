@@ -1,11 +1,11 @@
-function test(val: int32)
+function test(val: i32)
 {
 	let i = switch (val) {
 		0, 1, 2 => 0,
 		3, 4, 5 => 1,
 		else => 2,
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let i = switch (val) {
 		0, 1, 2 => "a",
@@ -14,58 +14,58 @@ function test(val: int32)
 	};
 	static_assert(typeof i == str);
 
-	let i: int64 = switch (val) {
+	let i: i64 = switch (val) {
 		0, 1, 2 => 0i64,
 		3, 4, 5 => 1i16,
 		else => 2,
 	};
-	static_assert(typeof i == int64);
+	static_assert(typeof i == i64);
 
 	let i = switch (val) {
 		0, 1, 2 => unreachable,
 		3, 4, 5 => 1,
 		else => 2,
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let i = switch (val) {
 		0, 1, 2 => 0,
 		3, 4, 5 => unreachable,
 		else => 2,
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let i = switch (val) {
 		0, 1, 2 => 0,
 		3, 4, 5 => 1,
 		else => unreachable,
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let i = switch (val) {
 		0, 1, 2 => 0,
 		3, 4, 5 => unreachable,
 		else => unreachable,
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let i = switch (val) {
 		0, 1, 2 => unreachable,
 		3, 4, 5 => 1,
 		else => unreachable,
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let i = switch (val) {
 		0, 1, 2 => unreachable,
 		3, 4, 5 => unreachable,
 		else => 2,
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let &i = switch (val) {
 		0, 1, 2 => i,
 		else => unreachable,
 	};
-	static_assert(typeof i == &int32);
+	static_assert(typeof i == &i32);
 }

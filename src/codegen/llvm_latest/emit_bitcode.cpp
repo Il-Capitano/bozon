@@ -1422,13 +1422,13 @@ static val_ptr emit_builtin_binary_divide(
 			auto const min_value = [&]() {
 				switch (lhs_kind)
 				{
-				case ast::type_info::int8_:
+				case ast::type_info::i8_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int8_t>::min());
-				case ast::type_info::int16_:
+				case ast::type_info::i16_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int16_t>::min());
-				case ast::type_info::int32_:
+				case ast::type_info::i32_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int32_t>::min());
-				case ast::type_info::int64_:
+				case ast::type_info::i64_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int64_t>::min());
 				default:
 					bz_unreachable;
@@ -1492,13 +1492,13 @@ static val_ptr emit_builtin_binary_divide_eq(
 			auto const min_value = [&]() {
 				switch (lhs_kind)
 				{
-				case ast::type_info::int8_:
+				case ast::type_info::i8_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int8_t>::min());
-				case ast::type_info::int16_:
+				case ast::type_info::i16_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int16_t>::min());
-				case ast::type_info::int32_:
+				case ast::type_info::i32_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int32_t>::min());
-				case ast::type_info::int64_:
+				case ast::type_info::i64_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int64_t>::min());
 				default:
 					bz_unreachable;
@@ -1561,13 +1561,13 @@ static val_ptr emit_builtin_binary_modulo(
 			auto const min_value = [&]() {
 				switch (lhs_kind)
 				{
-				case ast::type_info::int8_:
+				case ast::type_info::i8_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int8_t>::min());
-				case ast::type_info::int16_:
+				case ast::type_info::i16_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int16_t>::min());
-				case ast::type_info::int32_:
+				case ast::type_info::i32_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int32_t>::min());
-				case ast::type_info::int64_:
+				case ast::type_info::i64_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int64_t>::min());
 				default:
 					bz_unreachable;
@@ -1628,13 +1628,13 @@ static val_ptr emit_builtin_binary_modulo_eq(
 			auto const min_value = [&]() {
 				switch (lhs_kind)
 				{
-				case ast::type_info::int8_:
+				case ast::type_info::i8_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int8_t>::min());
-				case ast::type_info::int16_:
+				case ast::type_info::i16_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int16_t>::min());
-				case ast::type_info::int32_:
+				case ast::type_info::i32_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int32_t>::min());
-				case ast::type_info::int64_:
+				case ast::type_info::i64_:
 					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int64_t>::min());
 				default:
 					bz_unreachable;
@@ -8002,14 +8002,14 @@ void emit_global_type_symbol(ast::type_info const &info, bitcode_context &contex
 
 	switch (info.kind)
 	{
-	case ast::type_info::int8_:
-	case ast::type_info::int16_:
-	case ast::type_info::int32_:
-	case ast::type_info::int64_:
-	case ast::type_info::uint8_:
-	case ast::type_info::uint16_:
-	case ast::type_info::uint32_:
-	case ast::type_info::uint64_:
+	case ast::type_info::i8_:
+	case ast::type_info::i16_:
+	case ast::type_info::i32_:
+	case ast::type_info::i64_:
+	case ast::type_info::u8_:
+	case ast::type_info::u16_:
+	case ast::type_info::u32_:
+	case ast::type_info::u64_:
 	case ast::type_info::float32_:
 	case ast::type_info::float64_:
 	case ast::type_info::char_:
@@ -8043,14 +8043,14 @@ void emit_global_type(ast::type_info const &info, bitcode_context &context)
 
 	switch (info.kind)
 	{
-	case ast::type_info::int8_:
-	case ast::type_info::int16_:
-	case ast::type_info::int32_:
-	case ast::type_info::int64_:
-	case ast::type_info::uint8_:
-	case ast::type_info::uint16_:
-	case ast::type_info::uint32_:
-	case ast::type_info::uint64_:
+	case ast::type_info::i8_:
+	case ast::type_info::i16_:
+	case ast::type_info::i32_:
+	case ast::type_info::i64_:
+	case ast::type_info::u8_:
+	case ast::type_info::u16_:
+	case ast::type_info::u32_:
+	case ast::type_info::u64_:
 	case ast::type_info::float32_:
 	case ast::type_info::float64_:
 	case ast::type_info::char_:

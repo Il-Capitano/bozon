@@ -225,8 +225,8 @@ std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::syste
 	}
 	else
 	{
-		// here, we don't care about how big the remaining types are, it's always going to be int64
-		// clang does the same thing, e.g [int16, int16, int64] would become int64, int64 when
+		// here, we don't care about how big the remaining types are, it's always going to be i64
+		// clang does the same thing, e.g [i16, i16, i64] would become i64, i64 when
 		// passing them as arguments
 		result.first = llvm::IntegerType::getInt64Ty(context);
 	}

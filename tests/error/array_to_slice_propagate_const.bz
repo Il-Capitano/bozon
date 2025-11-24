@@ -1,9 +1,9 @@
-// error: unable to match type '*mut int32' to '*int32'
-// note: mismatched mutability of types 'mut int32' and 'int32'
-// note: while matching expression of type 'mut [3: *mut int32]' to '[: mut *int32]'
+// error: unable to match type '*mut i32' to '*i32'
+// note: mismatched mutability of types 'mut i32' and 'i32'
+// note: while matching expression of type 'mut [3: *mut i32]' to '[: mut *i32]'
 function main()
 {
 	mut i = 0;
-	mut p_arr: [3: *mut int32] = [ &i, &i, &i ];
-	let _: [: mut *int32] = p_arr;
+	mut p_arr: [3: *mut i32] = [ &i, &i, &i ];
+	let _: [: mut *i32] = p_arr;
 }

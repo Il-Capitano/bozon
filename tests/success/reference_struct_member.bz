@@ -1,6 +1,6 @@
 struct S
 {
-	.r: &mut int32;
+	.r: &mut i32;
 }
 
 function test()

@@ -1,9 +1,9 @@
-function foo(#val) -> int32
+function foo(#val) -> i32
 {
 	return 0;
 }
 
-function bar(i: int32) -> int32
+function bar(i: i32) -> i32
 {
 	return foo(switch (i) {
 		0 => [ 0, 0.0, "zero" ],

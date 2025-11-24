@@ -1,4 +1,4 @@
-function move_func(: move int32);
+function move_func(: move i32);
 
 struct generic_type_t<T: typename>
 {
@@ -7,7 +7,7 @@ struct generic_type_t<T: typename>
 
 struct generic_value_t<N: usize>
 {
-	.value: [N: int32];
+	.value: [N: i32];
 }
 
 enum E
@@ -17,30 +17,30 @@ enum E
 
 function test()
 {
-	let i: int32 = 0;
-	let mi: mut int32 = 0;
+	let i: i32 = 0;
+	let mi: mut i32 = 0;
 
-	let ri: &int32 = i;
-	let rmi: &mut int32 = mi;
+	let ri: &i32 = i;
+	let rmi: &mut i32 = mi;
 
-	mut pi: *int32 = &i;
-	mut pmi: *mut int32 = &mi;
-	mut ppi: **int32 = &pi;
-	mut ppmi: **mut int32 = &pmi;
-	mut pmpi: *mut *int32 = &pi;
-	mut pmpmi: *mut *mut int32 = &pmi;
+	mut pi: *i32 = &i;
+	mut pmi: *mut i32 = &mi;
+	mut ppi: **i32 = &pi;
+	mut ppmi: **mut i32 = &pmi;
+	mut pmpi: *mut *i32 = &pi;
+	mut pmpmi: *mut *mut i32 = &pmi;
 
 
 	// lvalue reference
-	let _: &int32 = i;
-	let _: &int32 = mi;
-	let _: &mut int32 = mi;
-	let _: &int32 = ri;
-	let _: &int32 = rmi;
-	let _: &mut int32 = rmi;
-	let _: &*int32 = pmi;
-	let _: &*mut int32 = pmi;
-	let _: &mut *mut int32 = pmi;
+	let _: &i32 = i;
+	let _: &i32 = mi;
+	let _: &mut i32 = mi;
+	let _: &i32 = ri;
+	let _: &i32 = rmi;
+	let _: &mut i32 = rmi;
+	let _: &*i32 = pmi;
+	let _: &*mut i32 = pmi;
+	let _: &mut *mut i32 = pmi;
 
 	// move reference
 	move_func(0i32);
@@ -50,68 +50,68 @@ function test()
 	move_func(move j);
 
 	// auto reference
-	let _: #int32 = i;
-	static_assert(typeof _ == &int32);
-	let _: #int32 = mi;
-	static_assert(typeof _ == &int32);
-	let _: #mut int32 = mi;
-	static_assert(typeof _ == &mut int32);
+	let _: #i32 = i;
+	static_assert(typeof _ == &i32);
+	let _: #i32 = mi;
+	static_assert(typeof _ == &i32);
+	let _: #mut i32 = mi;
+	static_assert(typeof _ == &mut i32);
 
-	let _: #int32 = 0;
-	static_assert(typeof _ == int32);
-	let _: #mut int32 = 0;
-	static_assert(typeof _ == mut int32);
+	let _: #i32 = 0;
+	static_assert(typeof _ == i32);
+	let _: #mut i32 = 0;
+	static_assert(typeof _ == mut i32);
 
-	let _: #int32 = 0i8;
-	static_assert(typeof _ == int32);
-	let _: #mut int32 = 0i8;
-	static_assert(typeof _ == mut int32);
+	let _: #i32 = 0i8;
+	static_assert(typeof _ == i32);
+	let _: #mut i32 = 0i8;
+	static_assert(typeof _ == mut i32);
 
 	let j = 0;
-	let _: #int32 = move j;
-	static_assert(typeof _ == int32);
+	let _: #i32 = move j;
+	static_assert(typeof _ == i32);
 	let j = 0;
-	let _: #mut int32 = move j;
-	static_assert(typeof _ == mut int32);
+	let _: #mut i32 = move j;
+	static_assert(typeof _ == mut i32);
 
 	// auto reference-mut
-	let _: ##int32 = i;
-	static_assert(typeof _ == &int32);
-	let _: ##int32 = mi;
-	static_assert(typeof _ == &mut int32);
+	let _: ##i32 = i;
+	static_assert(typeof _ == &i32);
+	let _: ##i32 = mi;
+	static_assert(typeof _ == &mut i32);
 
-	let _: ##int32 = 0;
-	static_assert(typeof _ == int32);
+	let _: ##i32 = 0;
+	static_assert(typeof _ == i32);
 
-	let _: ##int32 = 0i8;
-	static_assert(typeof _ == int32);
+	let _: ##i32 = 0i8;
+	static_assert(typeof _ == i32);
 
 	let j = 0;
-	let _: ##int32 = move j;
-	static_assert(typeof _ == int32);
+	let _: ##i32 = move j;
+	static_assert(typeof _ == i32);
 	mut j = 0;
-	let _: ##int32 = move j;
-	static_assert(typeof _ == int32);
+	let _: ##i32 = move j;
+	static_assert(typeof _ == i32);
 
 	// auto
 	let _: auto = 0i32;
-	static_assert(typeof _ == int32);
+	static_assert(typeof _ == i32);
 	let _: auto = 'a';
 	static_assert(typeof _ == char);
-	let _: auto = [int32, float64, str, char]();
-	static_assert(typeof _ == [int32, float64, str, char]);
+	let _: auto = [i32, float64, str, char]();
+	static_assert(typeof _ == [i32, float64, str, char]);
 	let _: auto = [5: char]();
 	static_assert(typeof _ == [5: char]);
 
 	// generic base type deduction
-	let _: generic_type_t = generic_type_t<int32>();
-	static_assert(typeof _ == generic_type_t<int32>);
+	let _: generic_type_t = generic_type_t<i32>();
+	static_assert(typeof _ == generic_type_t<i32>);
 	let _: generic_type_t = generic_type_t<float64>();
 	static_assert(typeof _ == generic_type_t<float64>);
 	let _: generic_type_t = generic_type_t<str>();
 	static_assert(typeof _ == generic_type_t<str>);
-	let _: generic_type_t = generic_type_t<[int32, char]>();
-	static_assert(typeof _ == generic_type_t<[int32, char]>);
+	let _: generic_type_t = generic_type_t<[i32, char]>();
+	static_assert(typeof _ == generic_type_t<[i32, char]>);
 
 	let _: generic_value_t = generic_value_t<10>();
 	static_assert(typeof _ == generic_value_t<10>);
@@ -134,65 +134,65 @@ function test()
 	let _: *mut void = pmpi;
 	let _: *mut void = *pmpmi;
 	let _: *mut void = *ppmi;
-	let _: *int32 = pmi;
-	let _: *int32 = pi;
-	let _: *int32 = *ppmi;
-	let _: *int32 = *pmpmi;
-	let _: *int32 = *ppi;
-	let _: *mut int32 = pmi;
-	let _: *mut int32 = *pmpmi;
-	let _: *mut int32 = *ppmi;
-	let _: *mut *int32 = pmpi;
-	let _: **mut int32 = pmpmi;
-	let _: **mut int32 = ppmi;
-	let _: **int32 = pmpmi;
-	let _: **int32 = pmpi;
-	let _: **int32 = ppmi;
-	let _: **int32 = ppi;
+	let _: *i32 = pmi;
+	let _: *i32 = pi;
+	let _: *i32 = *ppmi;
+	let _: *i32 = *pmpmi;
+	let _: *i32 = *ppi;
+	let _: *mut i32 = pmi;
+	let _: *mut i32 = *pmpmi;
+	let _: *mut i32 = *ppmi;
+	let _: *mut *i32 = pmpi;
+	let _: **mut i32 = pmpmi;
+	let _: **mut i32 = ppmi;
+	let _: **i32 = pmpmi;
+	let _: **i32 = pmpi;
+	let _: **i32 = ppmi;
+	let _: **i32 = ppi;
 
 	// slice
-	let _: [: int32] = [: int32]();
-	let _: [: int32] = [: mut int32]();
-	let _: [: mut int32] = [: mut int32]();
-	let _: [: mut *mut int32] = [: mut *mut int32]();
-	let _: [: mut *int32] = [: mut *int32]();
-	let _: [: *int32] = [: mut *int32]();
-	let _: [: *int32] = [: mut *mut int32]();
+	let _: [: i32] = [: i32]();
+	let _: [: i32] = [: mut i32]();
+	let _: [: mut i32] = [: mut i32]();
+	let _: [: mut *mut i32] = [: mut *mut i32]();
+	let _: [: mut *i32] = [: mut *i32]();
+	let _: [: *i32] = [: mut *i32]();
+	let _: [: *i32] = [: mut *mut i32]();
 
 	// array
-	let _: [4: int32] = [4: int32]();
-	let _: [??: int32] = [3: int32]();
-	static_assert(typeof _ == [3: int32]);
+	let _: [4: i32] = [4: i32]();
+	let _: [??: i32] = [3: i32]();
+	static_assert(typeof _ == [3: i32]);
 
 	// tuple
-	let _: [int32, float64, str] = [int32, float64, str]();
-	let _: [int32, float64, ...str] = [int32, float64, str]();
-	let _: [int32, float64, ...str] = [int32, float64]();
-	let _: [int32, float64, ...str] = [int32, float64, str, str]();
+	let _: [i32, float64, str] = [i32, float64, str]();
+	let _: [i32, float64, ...str] = [i32, float64, str]();
+	let _: [i32, float64, ...str] = [i32, float64]();
+	let _: [i32, float64, ...str] = [i32, float64, str, str]();
 
 	// array to slice
-	mut arr = [4: int32]();
-	let carr = [4: int32]();
-	mut parr: [4: *mut int32] = [ &arr[0], &arr[1], &arr[2], &arr[3] ];
-	let _: [: mut int32] = arr;
-	let _: [: int32] = arr;
-	let _: [: int32] = carr;
-	let _: [: *mut int32] = parr;
-	let _: [: *int32] = parr;
+	mut arr = [4: i32]();
+	let carr = [4: i32]();
+	mut parr: [4: *mut i32] = [ &arr[0], &arr[1], &arr[2], &arr[3] ];
+	let _: [: mut i32] = arr;
+	let _: [: i32] = arr;
+	let _: [: i32] = carr;
+	let _: [: *mut i32] = parr;
+	let _: [: *i32] = parr;
 
 	// equal types
-	let _: int32 = 0i32;
-	let _: int64 = 0i64;
-	let _: uint16 = 0u16;
+	let _: i32 = 0i32;
+	let _: i64 = 0i64;
+	let _: u16 = 0u16;
 	let _: generic_value_t<3> = generic_value_t<3>();
 
 	// implicit conversions
-	let _: int8 = 0;
-	let _: uint8 = 0;
-	let _: int64 = 0i16;
-	let _: uint64 = 0u32;
-	let _: ?int32 = null;
-	let _: ?*int32 = null;
+	let _: i8 = 0;
+	let _: u8 = 0;
+	let _: i64 = 0i16;
+	let _: u64 = 0u32;
+	let _: ?i32 = null;
+	let _: ?*i32 = null;
 
 	let _: E = .a;
 	let _: E = .b;

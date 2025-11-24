@@ -1,6 +1,6 @@
 function test()
 {
 	(consteval {
-		let [..._] = [10: int32]();
+		let [..._] = [10: i32]();
 	});
 }

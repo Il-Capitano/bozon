@@ -5,5 +5,5 @@ function test1(T: *mut *typename);
 
 function test()
 {
-	test1(**mut int32);
+	test1(**mut i32);
 }

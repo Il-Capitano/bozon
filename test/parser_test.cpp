@@ -161,29 +161,29 @@ xx_compiles(                                                                    
 
 	x_err("");
 
-	declare_var("a", "mut int32", "");
+	declare_var("a", "mut i32", "");
 	x("a");
 	x_err("this_doesnt_exist");
 
-	x_const_expr("42", ast::type_info::int32_, ast::constant_value_kind::sint, 42);
+	x_const_expr("42", ast::type_info::i32_, ast::constant_value_kind::sint, 42);
 	auto const min_int64_val = static_cast<int64_t>(std::numeric_limits<int32_t>::max()) + 1;
 	auto const min_int64_str = bz::format("{}", min_int64_val);
-	x_const_expr(min_int64_str, ast::type_info::int64_, ast::constant_value_kind::sint, min_int64_val);
+	x_const_expr(min_int64_str, ast::type_info::i64_, ast::constant_value_kind::sint, min_int64_val);
 	auto const min_uint64_val = static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1;
 	auto const min_uint64_str = bz::format("{}", min_uint64_val);
-	x_const_expr(min_uint64_str, ast::type_info::uint64_, ast::constant_value_kind::uint, min_uint64_val);
+	x_const_expr(min_uint64_str, ast::type_info::u64_, ast::constant_value_kind::uint, min_uint64_val);
 	x_err("999999999999999999999999999");
 
 	x_err("32i123456");
 
-	x_const_expr("42i8",  ast::type_info::int8_,  ast::constant_value_kind::sint, 42);
-	x_const_expr("42i16", ast::type_info::int16_, ast::constant_value_kind::sint, 42);
-	x_const_expr("42i32", ast::type_info::int32_, ast::constant_value_kind::sint, 42);
-	x_const_expr("42i64", ast::type_info::int64_, ast::constant_value_kind::sint, 42);
-	x_const_expr("42u8",  ast::type_info::uint8_,  ast::constant_value_kind::uint, 42);
-	x_const_expr("42u16", ast::type_info::uint16_, ast::constant_value_kind::uint, 42);
-	x_const_expr("42u32", ast::type_info::uint32_, ast::constant_value_kind::uint, 42);
-	x_const_expr("42u64", ast::type_info::uint64_, ast::constant_value_kind::uint, 42);
+	x_const_expr("42i8",  ast::type_info::i8_,  ast::constant_value_kind::sint, 42);
+	x_const_expr("42i16", ast::type_info::i16_, ast::constant_value_kind::sint, 42);
+	x_const_expr("42i32", ast::type_info::i32_, ast::constant_value_kind::sint, 42);
+	x_const_expr("42i64", ast::type_info::i64_, ast::constant_value_kind::sint, 42);
+	x_const_expr("42u8",  ast::type_info::u8_,  ast::constant_value_kind::uint, 42);
+	x_const_expr("42u16", ast::type_info::u16_, ast::constant_value_kind::uint, 42);
+	x_const_expr("42u32", ast::type_info::u32_, ast::constant_value_kind::uint, 42);
+	x_const_expr("42u64", ast::type_info::u64_, ast::constant_value_kind::uint, 42);
 	x_err("128i8");
 
 	x_const_expr("1.5", ast::type_info::float64_, ast::constant_value_kind::float64, 1.5);
@@ -192,22 +192,22 @@ xx_compiles(                                                                    
 	x_const_expr("1.5f32", ast::type_info::float32_, ast::constant_value_kind::float32, 1.5f);
 	x_const_expr("1.5f64", ast::type_info::float64_, ast::constant_value_kind::float64, 1.5);
 
-	x_const_expr("0x42", ast::type_info::uint32_, ast::constant_value_kind::uint, 0x42);
-	x_const_expr("0x1234'5678'90ab'cdef", ast::type_info::uint64_, ast::constant_value_kind::uint, 0x1234'5678'90ab'cdef);
+	x_const_expr("0x42", ast::type_info::u32_, ast::constant_value_kind::uint, 0x42);
+	x_const_expr("0x1234'5678'90ab'cdef", ast::type_info::u64_, ast::constant_value_kind::uint, 0x1234'5678'90ab'cdef);
 	x_err("0x1'1234'5678'90ab'cdef");
-	x_const_expr("0x42i8", ast::type_info::int8_, ast::constant_value_kind::sint, 0x42);
+	x_const_expr("0x42i8", ast::type_info::i8_, ast::constant_value_kind::sint, 0x42);
 	x_err("0xffi8");
 	x_err("0x1'ffff'ffff'ffff'ffff");
 
-	x_const_expr("0o42", ast::type_info::uint32_, ast::constant_value_kind::uint, (4 * 8 + 2));
+	x_const_expr("0o42", ast::type_info::u32_, ast::constant_value_kind::uint, (4 * 8 + 2));
 	auto const min_uint64_oct_str = bz::format("0o{:o}", uint64_t(1) << 32);
-	x_const_expr(min_uint64_oct_str, ast::type_info::uint64_, ast::constant_value_kind::uint, static_cast<uint64_t>(1ull << 32));
-	x_const_expr("0o42i8", ast::type_info::int8_, ast::constant_value_kind::sint, (4 * 8 + 2));
+	x_const_expr(min_uint64_oct_str, ast::type_info::u64_, ast::constant_value_kind::uint, static_cast<uint64_t>(1ull << 32));
+	x_const_expr("0o42i8", ast::type_info::i8_, ast::constant_value_kind::sint, (4 * 8 + 2));
 	x_err("0o200i8");
 
-	x_const_expr("0b1010'0101", ast::type_info::uint32_, ast::constant_value_kind::uint, 0b1010'0101);
-	x_const_expr("0b'1'0000'0000'0000'0000'0000'0000'0000'0000", ast::type_info::uint64_, ast::constant_value_kind::uint, 1ull << 32);
-	x_const_expr("0b0110'0101'i8", ast::type_info::int8_, ast::constant_value_kind::sint, 0b0110'0101);
+	x_const_expr("0b1010'0101", ast::type_info::u32_, ast::constant_value_kind::uint, 0b1010'0101);
+	x_const_expr("0b'1'0000'0000'0000'0000'0000'0000'0000'0000", ast::type_info::u64_, ast::constant_value_kind::uint, 1ull << 32);
+	x_const_expr("0b0110'0101'i8", ast::type_info::i8_, ast::constant_value_kind::sint, 0b0110'0101);
 	x_err("0b1000'0000'i8");
 	x_err("0b'1''0000'0000''0000'0000''0000'0000''0000'0000''''0000'0000''0000'0000''0000'0000''0000'0000");
 
@@ -235,26 +235,26 @@ xx_compiles(                                                                    
 	x_err("(0 0)");
 	x_err("()");
 
-	x_const_expr("+42", ast::type_info::int32_, ast::constant_value_kind::sint, 42);
+	x_const_expr("+42", ast::type_info::i32_, ast::constant_value_kind::sint, 42);
 	x_err("+ 'a'");
 
-	x_const_expr("-42", ast::type_info::int32_, ast::constant_value_kind::sint, -42);
+	x_const_expr("-42", ast::type_info::i32_, ast::constant_value_kind::sint, -42);
 	x_err("-42u32");
-	x_warn("-(-128 as int8)");
+	x_warn("-(-128 as i8)");
 	auto const max_int64 = std::numeric_limits<int64_t>::max();
 	auto const test_str = bz::format("-(-{}i64 - 1)", max_int64);
 	x_warn(test_str);
-	x_const_expr(test_str, ast::type_info::int64_, ast::constant_value_kind::sint, std::numeric_limits<int64_t>::min());
+	x_const_expr(test_str, ast::type_info::i64_, ast::constant_value_kind::sint, std::numeric_limits<int64_t>::min());
 
-	declare_var("a", "mut int32", "");
+	declare_var("a", "mut i32", "");
 	x("++a");
-	declare_var("p", "mut *int32", "&a");
+	declare_var("p", "mut *i32", "&a");
 	x("++p");
 	declare_var("c", "mut char", "");
 	x("++c");
 	declare_var("b", "mut bool", "");
 	x_err("++b");
-	declare_var("const_a", "int32", "0");
+	declare_var("const_a", "i32", "0");
 	x_err("++const_a");
 	x_err("++0");
 
@@ -265,9 +265,9 @@ xx_compiles(                                                                    
 	x_err("--const_a");
 	x_err("--0");
 
-	x_const_expr("~0u8", ast::type_info::uint8_, ast::constant_value_kind::uint, 255);
-	x_const_expr("~1u32", ast::type_info::uint32_, ast::constant_value_kind::uint, std::numeric_limits<uint32_t>::max() - 1);
-	x_const_expr("~0b1100'0011u8", ast::type_info::uint8_, ast::constant_value_kind::uint, 0b0011'1100u);
+	x_const_expr("~0u8", ast::type_info::u8_, ast::constant_value_kind::uint, 255);
+	x_const_expr("~1u32", ast::type_info::u32_, ast::constant_value_kind::uint, std::numeric_limits<uint32_t>::max() - 1);
+	x_const_expr("~0b1100'0011u8", ast::type_info::u8_, ast::constant_value_kind::uint, 0b0011'1100u);
 	x_const_expr("~false", ast::type_info::bool_, ast::constant_value_kind::boolean, true);
 	x_err("~0i32");
 	x_err("~0");
@@ -285,18 +285,18 @@ xx_compiles(                                                                    
 	x_err("&(a + 1)");
 
 	x("*&a");
-	// x_warn("*(null as *int32)");
+	// x_warn("*(null as *i32)");
 	x_err("*a");
 	x_err("*0");
 
 
 
 
-	x_const_expr("+3", ast::type_info::int32_, ast::constant_value_kind::sint, 3);
+	x_const_expr("+3", ast::type_info::i32_, ast::constant_value_kind::sint, 3);
 	x_const_expr("!!!!!!true", ast::type_info::bool_, ast::constant_value_kind::boolean, true);
-	x_const_expr("(0)", ast::type_info::int32_, ast::constant_value_kind::sint, 0);
+	x_const_expr("(0)", ast::type_info::i32_, ast::constant_value_kind::sint, 0);
 	x_const_expr("((((!true))))", ast::type_info::bool_, ast::constant_value_kind::boolean, false);
-	x_const_expr("+ + - - 42i8", ast::type_info::int8_, ast::constant_value_kind::sint, 42);
+	x_const_expr("+ + - - 42i8", ast::type_info::i8_, ast::constant_value_kind::sint, 42);
 //	x("sizeof 0");
 
 
@@ -383,16 +383,16 @@ xx(                                                                           \
 
 	using pair_t = std::pair<bz::u8string_view, uint32_t>;
 	bz::array signed_vars = {
-		pair_t{ "i8",  ast::type_info::int8_  },
-		pair_t{ "i16", ast::type_info::int16_ },
-		pair_t{ "i32", ast::type_info::int32_ },
-		pair_t{ "i64", ast::type_info::int64_ },
+		pair_t{ "i8_",  ast::type_info::i8_  },
+		pair_t{ "i16_", ast::type_info::i16_ },
+		pair_t{ "i32_", ast::type_info::i32_ },
+		pair_t{ "i64_", ast::type_info::i64_ },
 	};
 	bz::array unsigned_vars = {
-		pair_t{ "u8",  ast::type_info::uint8_  },
-		pair_t{ "u16", ast::type_info::uint16_ },
-		pair_t{ "u32", ast::type_info::uint32_ },
-		pair_t{ "u64", ast::type_info::uint64_ },
+		pair_t{ "u8_",  ast::type_info::u8_  },
+		pair_t{ "u16_", ast::type_info::u16_ },
+		pair_t{ "u32_", ast::type_info::u32_ },
+		pair_t{ "u64_", ast::type_info::u64_ },
 	};
 	bz::array floating_point_vars = {
 		pair_t{ "f32", ast::type_info::float32_ },
@@ -407,20 +407,20 @@ xx(                                                                           \
 	auto local_scope = ast::make_local_scope(parse_ctx.get_current_enclosing_scope(), false);
 	parse_ctx.push_local_scope(&local_scope);
 
-	declare_var("i8",  "mut int8", "");
-	declare_var("i16", "mut int16", "");
-	declare_var("i32", "mut int32", "");
-	declare_var("i64", "mut int64", "");
-	declare_var("u8",  "mut uint8", "");
-	declare_var("u16", "mut uint16", "");
-	declare_var("u32", "mut uint32", "");
-	declare_var("u64", "mut uint64", "");
+	declare_var("i8_",  "mut i8", "");
+	declare_var("i16_", "mut i16", "");
+	declare_var("i32_", "mut i32", "");
+	declare_var("i64_", "mut i64", "");
+	declare_var("u8_",  "mut u8", "");
+	declare_var("u16_", "mut u16", "");
+	declare_var("u32_", "mut u32", "");
+	declare_var("u64_", "mut u64", "");
 	declare_var("f32", "mut float32", "");
 	declare_var("f64", "mut float64", "");
 	declare_var("c", "mut char", "");
 	declare_var("s", "mut str", "");
-	declare_var("p", "mut *int32", "&i32");
-	declare_var("op", "mut ?*int32", "");
+	declare_var("p", "mut *i32", "&i32_");
+	declare_var("op", "mut ?*i32", "");
 
 	x_err("");
 
@@ -534,7 +534,7 @@ do {                                                                            
 	x_ci("-", true, a.second);
 	x_cu("-", true, a.second);
 	x_cf("-", false, 0);
-	x_cc("-", true, ast::type_info::int32_);
+	x_cc("-", true, ast::type_info::i32_);
 
 	x_ii("-=", a.second >= b.second, a.second);
 	x_iu("-=", false, 0);
@@ -1021,22 +1021,22 @@ x_const_expr(str, ast::type_info::bool_, ast::constant_value_kind::boolean, valu
 	x_const_expr("~0u64", ast::constant_value_kind::uint, std::numeric_limits<uint64_t>::max());
 
 /*
-	x_const_expr("42", ast::type_info::int32_, ast::constant_value_kind::sint, 42);
-	x_const_expr("40 + 2", ast::type_info::int32_, ast::constant_value_kind::sint, 42);
-	x_const_expr("40 as uint32", ast::type_info::uint32_, ast::constant_value_kind::uint, 40);
-	x_const_expr("257 as uint8", ast::type_info::uint8_, ast::constant_value_kind::uint, 1);
+	x_const_expr("42", ast::type_info::i32_, ast::constant_value_kind::sint, 42);
+	x_const_expr("40 + 2", ast::type_info::i32_, ast::constant_value_kind::sint, 42);
+	x_const_expr("40 as u32", ast::type_info::u32_, ast::constant_value_kind::uint, 40);
+	x_const_expr("257 as u8", ast::type_info::u8_, ast::constant_value_kind::uint, 1);
 
-	x_const_expr("255u8 + 1u16", ast::type_info::uint16_, ast::constant_value_kind::uint, 256);
-	x_const_expr("500 * 500", ast::type_info::int32_, ast::constant_value_kind::sint, 250'000);
-	x_const_expr("500u32 * 100u8", ast::type_info::uint32_, ast::constant_value_kind::uint, 50'000);
-	x_const_expr("100u8 * 500u32", ast::type_info::uint32_, ast::constant_value_kind::uint, 50'000);
-	x_const_expr("500 / 500", ast::type_info::int32_, ast::constant_value_kind::sint, 1);
-	x_const_expr("500u32 / 100u8", ast::type_info::uint32_, ast::constant_value_kind::uint, 5);
-	x_const_expr("100u8 / 500u32", ast::type_info::uint32_, ast::constant_value_kind::uint, 0);
-	x_const_expr("500 % 500", ast::type_info::int32_, ast::constant_value_kind::sint, 0);
-	x_const_expr("13 % 9", ast::type_info::int32_, ast::constant_value_kind::sint, 4);
-	x_const_expr("500u32 % 100u8", ast::type_info::uint32_, ast::constant_value_kind::uint, 0);
-	x_const_expr("100u8 % 500u32", ast::type_info::uint32_, ast::constant_value_kind::uint, 100);
+	x_const_expr("255u8 + 1u16", ast::type_info::u16_, ast::constant_value_kind::uint, 256);
+	x_const_expr("500 * 500", ast::type_info::i32_, ast::constant_value_kind::sint, 250'000);
+	x_const_expr("500u32 * 100u8", ast::type_info::u32_, ast::constant_value_kind::uint, 50'000);
+	x_const_expr("100u8 * 500u32", ast::type_info::u32_, ast::constant_value_kind::uint, 50'000);
+	x_const_expr("500 / 500", ast::type_info::i32_, ast::constant_value_kind::sint, 1);
+	x_const_expr("500u32 / 100u8", ast::type_info::u32_, ast::constant_value_kind::uint, 5);
+	x_const_expr("100u8 / 500u32", ast::type_info::u32_, ast::constant_value_kind::uint, 0);
+	x_const_expr("500 % 500", ast::type_info::i32_, ast::constant_value_kind::sint, 0);
+	x_const_expr("13 % 9", ast::type_info::i32_, ast::constant_value_kind::sint, 4);
+	x_const_expr("500u32 % 100u8", ast::type_info::u32_, ast::constant_value_kind::uint, 0);
+	x_const_expr("100u8 % 500u32", ast::type_info::u32_, ast::constant_value_kind::uint, 100);
 	x_const_expr_bool("0 == 0", true);
 	x_const_expr_bool("0 == 1", false);
 	x_const_expr_bool("0u8 == 300u16", false);
@@ -1078,28 +1078,28 @@ static bz::optional<bz::u8string> parse_typespec_test(ctx::global_context &globa
 #define x(str, it_pos, kind_) xx(parse_expression_alt, str, it_pos, res.is_typename() && res.get_typename().is<kind_>())
 #define x_err(str, it_pos) xx_err(parse_expression_alt, str, it_pos, res.is_error())
 
-	x("int32", tokens.begin() + 1, ast::ts_base_type);
-	x("int32 a", tokens.begin() + 1, ast::ts_base_type);
+	x("i32", tokens.begin() + 1, ast::ts_base_type);
+	x("i32 a", tokens.begin() + 1, ast::ts_base_type);
 	x("void", tokens.begin() + 1, ast::ts_void);
 
-	x("*int32", tokens.begin() + 2, ast::ts_pointer);
+	x("*i32", tokens.begin() + 2, ast::ts_pointer);
 
-	x("mut int32", tokens.begin() + 2, ast::ts_mut);
+	x("mut i32", tokens.begin() + 2, ast::ts_mut);
 
-	x("&int32", tokens.begin() + 2, ast::ts_lvalue_reference);
+	x("&i32", tokens.begin() + 2, ast::ts_lvalue_reference);
 
 	x("[]", tokens.begin() + 2, ast::ts_tuple);
-	x("[int32, float64, __null_t]", tokens.begin() + 7, ast::ts_tuple);
+	x("[i32, float64, __null_t]", tokens.begin() + 7, ast::ts_tuple);
 
 	// x("function() -> void", tokens.begin() + 5, ast::ts_function);
-	// x("function(int32, int32) -> void", tokens.begin() + 8, ast::ts_function);
+	// x("function(i32, i32) -> void", tokens.begin() + 8, ast::ts_function);
 
 	x_err("", tokens.begin());
 	x_err("foo", tokens.begin() + 1);
 	x_err("*foo", tokens.begin() + 2);
 	// x_err("function()", tokens.begin() + 3);
 	// x_err("function(,) -> void", tokens.begin() + 6);
-	// x_err("function(, int32) -> void", tokens.begin() + 7);
+	// x_err("function(, i32) -> void", tokens.begin() + 7);
 
 	return {};
 

@@ -21,7 +21,7 @@
 import std::utils;
 
 // Returns the number of decimal digits in v, which must not contain more than 9 digits.
-export function decimalLength9(v: uint32) -> uint32
+export function decimalLength9(v: u32) -> u32
 {
 	// Function precondition: v is not a 10-digit number.
 	// (f2s: 9 digits are sufficient for round-tripping.)
@@ -39,7 +39,7 @@ export function decimalLength9(v: uint32) -> uint32
 }
 
 // Returns e == 0 ? 1 : [log_2(5^e)]; requires 0 <= e <= 3528.
-export function log2pow5(e: uint32) -> uint32
+export function log2pow5(e: u32) -> u32
 {
 	// This approximation works up to the point that the multiplication overflows at e = 3529.
 	// If the multiplication were done in 64 bits, it would fail at 5^4004 which is just greater
@@ -50,7 +50,7 @@ export function log2pow5(e: uint32) -> uint32
 }
 
 // Returns e == 0 ? 1 : ceil(log_2(5^e)); requires 0 <= e <= 3528.
-export function pow5bits(e: uint32) -> uint32
+export function pow5bits(e: u32) -> u32
 {
 	// This approximation works up to the point that the multiplication overflows at e = 3529.
 	// If the multiplication were done in 64 bits, it would fail at 5^4004 which is just greater
@@ -61,13 +61,13 @@ export function pow5bits(e: uint32) -> uint32
 }
 
 // Returns e == 0 ? 1 : ceil(log_2(5^e)); requires 0 <= e <= 3528.
-export function ceil_log2pow5(e: uint32) -> uint32
+export function ceil_log2pow5(e: u32) -> u32
 {
 	return log2pow5(e) + 1;
 }
 
 // Returns floor(log_10(2^e)); requires 0 <= e <= 1650.
-export function log10Pow2(e: uint32) -> uint32
+export function log10Pow2(e: u32) -> u32
 {
 	// The first value this approximation fails for is 2^1651 which is just greater than 10^297.
 	std::assert(e >= 0);
@@ -76,7 +76,7 @@ export function log10Pow2(e: uint32) -> uint32
 }
 
 // Returns floor(log_10(5^e)); requires 0 <= e <= 2620.
-export function log10Pow5(e: uint32) -> uint32
+export function log10Pow5(e: u32) -> u32
 {
 	// The first value this approximation fails for is 5^2621 which is just greater than 10^1832.
 	std::assert(e >= 0);
@@ -84,7 +84,7 @@ export function log10Pow5(e: uint32) -> uint32
 	return (e * 732923) >> 20;
 }
 
-export function copy_special_str(result: *mut uint8, sign: bool, exponent: bool, mantissa: bool) -> int32
+export function copy_special_str(result: *mut u8, sign: bool, exponent: bool, mantissa: bool) -> i32
 {
 	if (mantissa)
 	{
@@ -93,7 +93,7 @@ export function copy_special_str(result: *mut uint8, sign: bool, exponent: bool,
 	}
 	if (sign)
 	{
-		*result = '-' as uint8;
+		*result = '-' as u8;
 	}
 	if (exponent)
 	{
@@ -104,14 +104,14 @@ export function copy_special_str(result: *mut uint8, sign: bool, exponent: bool,
 	return if (sign) { 4 } else { 3 };
 }
 
-export function float_to_bits(f: float32) -> uint32
+export function float_to_bits(f: float32) -> u32
 {
-	return std::bit_cast(uint32, f);
+	return std::bit_cast(u32, f);
 }
 
-export function double_to_bits(d: float64) -> uint64
+export function double_to_bits(d: float64) -> u64
 {
-	return std::bit_cast(uint64, d);
+	return std::bit_cast(u64, d);
 }
 
 
@@ -120,7 +120,7 @@ export function double_to_bits(d: float64) -> uint64
 //
 
 // writes nan, inf or 0.0 to output with sign
-export function copy_short_special_str(mut result: *mut uint8, sign: bool, exponent: bool, mantissa: bool) -> *mut uint8
+export function copy_short_special_str(mut result: *mut u8, sign: bool, exponent: bool, mantissa: bool) -> *mut u8
 {
 	if (mantissa)
 	{
@@ -130,7 +130,7 @@ export function copy_short_special_str(mut result: *mut uint8, sign: bool, expon
 
 	if (sign)
 	{
-		*result = '-' as uint8;
+		*result = '-' as u8;
 		++result;
 	}
 	if (exponent)
@@ -145,7 +145,7 @@ export function copy_short_special_str(mut result: *mut uint8, sign: bool, expon
 	}
 }
 
-export function bits_to_double(bits: uint64) -> float64
+export function bits_to_double(bits: u64) -> float64
 {
 	return std::bit_cast(float64, bits);
 }

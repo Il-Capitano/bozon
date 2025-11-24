@@ -1,6 +1,6 @@
-// error: unable to match expression of type '[32: int32]' to mutable array slice type '[: mut int32]'
+// error: unable to match expression of type '[32: i32]' to mutable array slice type '[: mut i32]'
 function test()
 {
-	let arr = [32: int32]();
-	let _: [: mut int32] = arr;
+	let arr = [32: i32]();
+	let _: [: mut i32] = arr;
 }

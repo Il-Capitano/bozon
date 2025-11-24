@@ -37,16 +37,16 @@ consteval FLOAT_BIAS = 127;
 // A floating decimal representing m * 10^e.
 struct floating_decimal_32
 {
-	.mantissa: uint32;
+	.mantissa: u32;
 	// Decimal exponent's range is -45 to 38
 	// inclusive, and can fit in a short if needed.
-	.exponent: int32;
+	.exponent: i32;
 }
 
-function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
+function f2d(ieeeMantissa: u32, ieeeExponent: u32) -> floating_decimal_32
 {
-	mut e2: int32;
-	mut m2: uint32;
+	mut e2: i32;
+	mut m2: u32;
 	if (ieeeExponent == 0)
 	{
 		// We subtract 2 so that the bounds computation has 2 additional bits.
@@ -55,8 +55,8 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 	}
 	else
 	{
-		e2 = ieeeExponent as int32 - FLOAT_BIAS - FLOAT_MANTISSA_BITS - 2;
-		m2 = (1u32 << FLOAT_MANTISSA_BITS as uint32) | ieeeMantissa;
+		e2 = ieeeExponent as i32 - FLOAT_BIAS - FLOAT_MANTISSA_BITS - 2;
+		m2 = (1u32 << FLOAT_MANTISSA_BITS as u32) | ieeeMantissa;
 	}
 	let even = (m2 & 1u32) == 0;
 	let acceptBounds = even;
@@ -65,33 +65,33 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 	let mv = 4 * m2;
 	let mp = 4 * m2 + 2;
 	// Implicit bool -> int conversion. True is 1, false is 0.
-	let mmShift = (ieeeMantissa != 0 || ieeeExponent <= 1) as uint32;
+	let mmShift = (ieeeMantissa != 0 || ieeeExponent <= 1) as u32;
 	let mm = 4 * m2 - 1 - mmShift;
 
 	// Step 3: Convert to a decimal power base using 64-bit arithmetic.
-	mut vr: uint32;
-	mut vp: uint32;
-	mut vm: uint32;
-	mut e10: int32;
+	mut vr: u32;
+	mut vp: u32;
+	mut vm: u32;
+	mut e10: i32;
 	mut vmIsTrailingZeros = false;
 	mut vrIsTrailingZeros = false;
 	mut lastRemovedDigit = 0u8;
 	if (e2 >= 0)
 	{
-		let q = log10Pow2(e2 as uint32);
-		e10 = q as int32;
-		let k = FLOAT_POW5_INV_BITCOUNT + pow5bits(q) as int32 - 1;
-		let i = -e2 + q as int32 + k;
-		vr = mulPow5InvDivPow2(mv, q, i as uint32);
-		vp = mulPow5InvDivPow2(mp, q, i as uint32);
-		vm = mulPow5InvDivPow2(mm, q, i as uint32);
+		let q = log10Pow2(e2 as u32);
+		e10 = q as i32;
+		let k = FLOAT_POW5_INV_BITCOUNT + pow5bits(q) as i32 - 1;
+		let i = -e2 + q as i32 + k;
+		vr = mulPow5InvDivPow2(mv, q, i as u32);
+		vp = mulPow5InvDivPow2(mp, q, i as u32);
+		vm = mulPow5InvDivPow2(mm, q, i as u32);
 		if (q != 0 && (vp - 1) / 10 <= vm / 10)
 		{
 			// We need to know one removed digit even if we are not going to loop below. We could use
 			// q = X - 1 above, except that would require 33 bits for the result, and we've found that
 			// 32-bit arithmetic is faster even on 64-bit machines.
-			let l = FLOAT_POW5_INV_BITCOUNT + pow5bits(q - 1) as int32 - 1;
-			lastRemovedDigit = (mulPow5InvDivPow2(mv, q - 1, (-e2 + q as int32 - 1 + l) as uint32) % 10) as uint8;
+			let l = FLOAT_POW5_INV_BITCOUNT + pow5bits(q - 1) as i32 - 1;
+			lastRemovedDigit = (mulPow5InvDivPow2(mv, q - 1, (-e2 + q as i32 - 1 + l) as u32) % 10) as u8;
 		}
 		if (q <= 9)
 		{
@@ -107,24 +107,24 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 			}
 			else
 			{
-				vp -= multipleOfPowerOf5_32(mp, q) as uint32;
+				vp -= multipleOfPowerOf5_32(mp, q) as u32;
 			}
 		}
 	}
 	else
 	{
-		let q = log10Pow5(-e2 as uint32);
-		e10 = q as int32 + e2;
-		let i = -e2 - q as int32;
-		let k = pow5bits(i as uint32) as int32 - FLOAT_POW5_BITCOUNT;
-		mut j = q as int32 - k;
-		vr = mulPow5divPow2(mv, i as uint32, j as uint32);
-		vp = mulPow5divPow2(mp, i as uint32, j as uint32);
-		vm = mulPow5divPow2(mm, i as uint32, j as uint32);
+		let q = log10Pow5(-e2 as u32);
+		e10 = q as i32 + e2;
+		let i = -e2 - q as i32;
+		let k = pow5bits(i as u32) as i32 - FLOAT_POW5_BITCOUNT;
+		mut j = q as i32 - k;
+		vr = mulPow5divPow2(mv, i as u32, j as u32);
+		vp = mulPow5divPow2(mp, i as u32, j as u32);
+		vm = mulPow5divPow2(mm, i as u32, j as u32);
 		if (q != 0 && (vp - 1) / 10 <= vm / 10)
 		{
-			j = q as int32 - 1 - (pow5bits((i + 1) as uint32) as int32 - FLOAT_POW5_BITCOUNT);
-			lastRemovedDigit = (mulPow5divPow2(mv, (i + 1) as uint32, j as uint32) % 10) as uint8;
+			j = q as i32 - 1 - (pow5bits((i + 1) as u32) as i32 - FLOAT_POW5_BITCOUNT);
+			lastRemovedDigit = (mulPow5divPow2(mv, (i + 1) as u32, j as u32) % 10) as u8;
 		}
 		if (q <= 1)
 		{
@@ -150,7 +150,7 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 
 	// Step 4: Find the shortest decimal representation in the interval of valid representations.
 	mut removed = 0i32;
-	mut output: uint32;
+	mut output: u32;
 	if (vmIsTrailingZeros || vrIsTrailingZeros)
 	{
 		// General case, which happens rarely (~4.0%).
@@ -161,7 +161,7 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 			// as vm - (vm / 10) * 10.
 			vmIsTrailingZeros &= vm - (vm / 10) * 10 == 0;
 			vrIsTrailingZeros &= lastRemovedDigit == 0;
-			lastRemovedDigit = (vr % 10) as uint8;
+			lastRemovedDigit = (vr % 10) as u8;
 			vr /= 10;
 			vp /= 10;
 			vm /= 10;
@@ -172,7 +172,7 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 			while (vm % 10 == 0)
 			{
 				vrIsTrailingZeros &= lastRemovedDigit == 0;
-				lastRemovedDigit = (vr % 10) as uint8;
+				lastRemovedDigit = (vr % 10) as u8;
 				vr /= 10;
 				vp /= 10;
 				vm /= 10;
@@ -185,7 +185,7 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 			lastRemovedDigit = 4;
 		}
 		// We need to take vr + 1 if vr is outside bounds or we need to round up.
-		output = vr + ((vr == vm && (!acceptBounds || !vmIsTrailingZeros)) || lastRemovedDigit >= 5) as uint32;
+		output = vr + ((vr == vm && (!acceptBounds || !vmIsTrailingZeros)) || lastRemovedDigit >= 5) as u32;
 	}
 	else
 	{
@@ -194,14 +194,14 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 		// 0: 13.6%, 1: 70.7%, 2: 14.1%, 3: 1.39%, 4: 0.14%, 5+: 0.01%
 		while (vp / 10 > vm / 10)
 		{
-			lastRemovedDigit = (vr % 10) as uint8;
+			lastRemovedDigit = (vr % 10) as u8;
 			vr /= 10;
 			vp /= 10;
 			vm /= 10;
 			++removed;
 		}
 		// We need to take vr + 1 if vr is outside bounds or we need to round up.
-		output = vr + (vr == vm || lastRemovedDigit >= 5) as uint32;
+		output = vr + (vr == vm || lastRemovedDigit >= 5) as u32;
 	}
 	let exp = e10 + removed;
 
@@ -211,13 +211,13 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 	return fd;
 }
 
-function to_chars(v: floating_decimal_32, sign: bool, result: *mut uint8) -> int32
+function to_chars(v: floating_decimal_32, sign: bool, result: *mut u8) -> i32
 {
 	// Step 5: Print the decimal representation.
 	mut index = 0i32;
 	if (sign)
 	{
-		*(result + index) = '-' as uint8;
+		*(result + index) = '-' as u8;
 		++index;
 	}
 
@@ -259,14 +259,14 @@ function to_chars(v: floating_decimal_32, sign: bool, result: *mut uint8) -> int
 	}
 	else
 	{
-		*(result + index) = ('0' + output) as uint8;
+		*(result + index) = ('0' + output) as u8;
 	}
 
 	// Print decimal point if needed.
 	if (olength > 1)
 	{
-		*(result + index + 1) = '.' as uint8;
-		index += olength as int32 + 1;
+		*(result + index + 1) = '.' as u8;
+		index += olength as i32 + 1;
 	}
 	else
 	{
@@ -274,12 +274,12 @@ function to_chars(v: floating_decimal_32, sign: bool, result: *mut uint8) -> int
 	}
 
 	// Print the exponent.
-	*(result + index) = 'E' as uint8;
+	*(result + index) = 'E' as u8;
 	++index;
-	mut exp = v.exponent + olength as int32 - 1;
+	mut exp = v.exponent + olength as i32 - 1;
 	if (exp < 0)
 	{
-		*(result + index) = '-' as uint8;
+		*(result + index) = '-' as u8;
 		++index;
 		exp = -exp;
 	}
@@ -291,25 +291,25 @@ function to_chars(v: floating_decimal_32, sign: bool, result: *mut uint8) -> int
 	}
 	else
 	{
-		*(result + index) = ('0' + exp) as uint8;
+		*(result + index) = ('0' + exp) as u8;
 		++index;
 	}
 
 	return index;
 }
 
-export function f2s_buffered_n(f: float32, result: *mut uint8) -> int32
+export function f2s_buffered_n(f: float32, result: *mut u8) -> i32
 {
 	// Step 1: Decode the floating-point number, and unify normalized and subnormal cases.
 	let bits = float_to_bits(f);
 
 	// Decode bits into sign, mantissa, and exponent.
-	let ieeeSign = ((bits >> (FLOAT_MANTISSA_BITS + FLOAT_EXPONENT_BITS) as uint32) & 1u32) != 0;
-	let ieeeMantissa = bits & ((1u32 << FLOAT_MANTISSA_BITS as uint32) - 1);
-	let ieeeExponent = (bits >> FLOAT_MANTISSA_BITS as uint32) & ((1u32 << FLOAT_EXPONENT_BITS as uint32) - 1);
+	let ieeeSign = ((bits >> (FLOAT_MANTISSA_BITS + FLOAT_EXPONENT_BITS) as u32) & 1u32) != 0;
+	let ieeeMantissa = bits & ((1u32 << FLOAT_MANTISSA_BITS as u32) - 1);
+	let ieeeExponent = (bits >> FLOAT_MANTISSA_BITS as u32) & ((1u32 << FLOAT_EXPONENT_BITS as u32) - 1);
 
 	// Case distinction; exit early for the easy cases.
-	if (ieeeExponent == ((1u32 << FLOAT_EXPONENT_BITS as uint32) - 1) || (ieeeExponent == 0 && ieeeMantissa == 0))
+	if (ieeeExponent == ((1u32 << FLOAT_EXPONENT_BITS as u32) - 1) || (ieeeExponent == 0 && ieeeMantissa == 0))
 	{
 		return copy_special_str(result, ieeeSign, ieeeExponent != 0, ieeeMantissa != 0);
 	}
@@ -318,7 +318,7 @@ export function f2s_buffered_n(f: float32, result: *mut uint8) -> int32
 	return to_chars(v, ieeeSign, result);
 }
 
-export function f2s_buffered(f: float32, result: *mut uint8)
+export function f2s_buffered(f: float32, result: *mut u8)
 {
 	let index = f2s_buffered_n(f, result);
 
@@ -326,14 +326,14 @@ export function f2s_buffered(f: float32, result: *mut uint8)
 	*(result + index) = 0;
 }
 
-export function f2s(f: float32) -> ?*mut uint8
+export function f2s(f: float32) -> ?*mut u8
 {
 	let buffer_alloc = std::libc::malloc(16);
 	if (buffer_alloc == null)
 	{
 		return null;
 	}
-	let result = __builtin_pointer_cast(*mut uint8, buffer_alloc.get_value());
+	let result = __builtin_pointer_cast(*mut u8, buffer_alloc.get_value());
 	f2s_buffered(f, result);
 	return result;
 }
@@ -343,18 +343,18 @@ export function f2s(f: float32) -> ?*mut uint8
 // addition by me
 //
 
-export function f2s_shortest(f: float32, result: *mut uint8) -> *mut uint8
+export function f2s_shortest(f: float32, result: *mut u8) -> *mut u8
 {
 	// Step 1: Decode the floating-point number, and unify normalized and subnormal cases.
 	let bits = float_to_bits(f);
 
 	// Decode bits into sign, mantissa, and exponent.
-	let ieeeSign = ((bits >> (FLOAT_MANTISSA_BITS + FLOAT_EXPONENT_BITS) as uint32) & 1u32) != 0;
-	let ieeeMantissa = bits & ((1u32 << FLOAT_MANTISSA_BITS as uint32) - 1);
-	let ieeeExponent = (bits >> FLOAT_MANTISSA_BITS as uint32) & ((1u32 << FLOAT_EXPONENT_BITS as uint32) - 1);
+	let ieeeSign = ((bits >> (FLOAT_MANTISSA_BITS + FLOAT_EXPONENT_BITS) as u32) & 1u32) != 0;
+	let ieeeMantissa = bits & ((1u32 << FLOAT_MANTISSA_BITS as u32) - 1);
+	let ieeeExponent = (bits >> FLOAT_MANTISSA_BITS as u32) & ((1u32 << FLOAT_EXPONENT_BITS as u32) - 1);
 
 	// Case distinction; exit early for the easy cases.
-	if (ieeeExponent == ((1u32 << FLOAT_EXPONENT_BITS as uint32) - 1) || (ieeeExponent == 0 && ieeeMantissa == 0))
+	if (ieeeExponent == ((1u32 << FLOAT_EXPONENT_BITS as u32) - 1) || (ieeeExponent == 0 && ieeeMantissa == 0))
 	{
 		return copy_short_special_str(result, ieeeSign, ieeeExponent != 0, ieeeMantissa != 0);
 	}
@@ -363,13 +363,13 @@ export function f2s_shortest(f: float32, result: *mut uint8) -> *mut uint8
 	return to_chars_shortest(v, ieeeSign, result);
 }
 
-function to_chars_fixed(v: floating_decimal_32, mut out: *mut uint8) -> *mut uint8
+function to_chars_fixed(v: floating_decimal_32, mut out: *mut u8) -> *mut u8
 {
 	// Step 5: Print the decimal representation.
 	mut output = v.mantissa;
 	let olength = decimalLength9(output);
 
-	let actual_exponent = olength as int32 - 1 + v.exponent;
+	let actual_exponent = olength as i32 - 1 + v.exponent;
 
 	if (actual_exponent < 0)
 	{
@@ -414,32 +414,32 @@ function to_chars_fixed(v: floating_decimal_32, mut out: *mut uint8) -> *mut uin
 	}
 	else
 	{
-		*(out + 1) = ('0' + output) as uint8;
+		*(out + 1) = ('0' + output) as u8;
 	}
 
 	// print trailing zeros
 	if (v.exponent >= 0)
 	{
-		std::trivially_set_values(out + olength + 1, '0' as uint8, v.exponent as usize);
+		std::trivially_set_values(out + olength + 1, '0' as u8, v.exponent as usize);
 	}
 
 	if (actual_exponent >= 0)
 	{
 		std::trivially_copy_overlapping_values(out, out + 1, (actual_exponent + 1) as usize);
 		// Print decimal point
-		*(out + actual_exponent + 1) = '.' as uint8;
+		*(out + actual_exponent + 1) = '.' as u8;
 	}
 	out += olength + 1;
 	if (v.exponent >= 0)
 	{
 		out += v.exponent;
-		*out = '0' as uint8;
+		*out = '0' as u8;
 		++out;
 	}
 	return out;
 }
 
-function to_chars_scientific(v: floating_decimal_32, mut out: *mut uint8) -> *mut uint8
+function to_chars_scientific(v: floating_decimal_32, mut out: *mut u8) -> *mut u8
 {
 	// Step 5: Print the decimal representation.
 	mut output = v.mantissa;
@@ -480,13 +480,13 @@ function to_chars_scientific(v: floating_decimal_32, mut out: *mut uint8) -> *mu
 	}
 	else
 	{
-		*out = ('0' + output) as uint8;
+		*out = ('0' + output) as u8;
 	}
 
 	// Print decimal point if needed.
 	if (olength > 1)
 	{
-		*(out + 1) = '.' as uint8;
+		*(out + 1) = '.' as u8;
 		out += olength + 1;
 	}
 	else
@@ -495,18 +495,18 @@ function to_chars_scientific(v: floating_decimal_32, mut out: *mut uint8) -> *mu
 	}
 
 	// Print the exponent.
-	*out = 'e' as uint8;
+	*out = 'e' as u8;
 	++out;
-	mut exp = v.exponent + olength as int32 - 1;
+	mut exp = v.exponent + olength as i32 - 1;
 	if (exp < 0)
 	{
-		*out = '-' as uint8;
+		*out = '-' as u8;
 		++out;
 		exp = -exp;
 	}
 	else
 	{
-		*out = '+' as uint8;
+		*out = '+' as u8;
 		++out;
 	}
 
@@ -516,15 +516,15 @@ function to_chars_scientific(v: floating_decimal_32, mut out: *mut uint8) -> *mu
 	return out;
 }
 
-function to_chars_shortest(v: floating_decimal_32, sign: bool, mut out: *mut uint8) -> *mut uint8
+function to_chars_shortest(v: floating_decimal_32, sign: bool, mut out: *mut u8) -> *mut u8
 {
 	if (sign)
 	{
-		*out = '-' as uint8;
+		*out = '-' as u8;
 		++out;
 	}
 
-	let olength = decimalLength9(v.mantissa) as int32;
+	let olength = decimalLength9(v.mantissa) as i32;
 	let actual_exponent = olength - 1 + v.exponent;
 
 	if (actual_exponent >= -4 && actual_exponent <= 6)

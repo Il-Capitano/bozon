@@ -1,7 +1,7 @@
 // error: couldn't match the function call to the function
 // note: function argument types are 'typename'
-// note: candidate: 'function test1(val: int32) -> void'
-function test1(val: int32);
+// note: candidate: 'function test1(val: i32) -> void'
+function test1(val: i32);
 
 function test()
 {

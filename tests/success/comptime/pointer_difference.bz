@@ -3,13 +3,13 @@ function assert(b: bool)
 	if (!b) unreachable;
 }
 
-consteval global_arr = [10: int32]();
-consteval [first, second] = [2: int32]();
+consteval global_arr = [10: i32]();
+consteval [first, second] = [2: i32]();
 
 function test()
 {
 	(consteval {
-		let arr = [10: int32]();
+		let arr = [10: i32]();
 		assert(&arr[2] - &arr[0] == 2);
 		assert(&arr[0] - &arr[2] == -2);
 		assert(&global_arr[2] - &global_arr[0] == 2);
@@ -18,7 +18,7 @@ function test()
 		assert(&second - &first == 1);
 		assert(&first - &second == -1);
 
-		let p = __builtin_comptime_malloc(int32, 10);
+		let p = __builtin_comptime_malloc(i32, 10);
 		defer __builtin_comptime_free(p);
 		assert((p + 2) - p == 2);
 		assert(p - (p + 2) == -2);

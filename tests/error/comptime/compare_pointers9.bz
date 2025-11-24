@@ -8,7 +8,7 @@
 function test()
 {
 	(consteval {
-		let p = __builtin_comptime_malloc(int32, 3);
+		let p = __builtin_comptime_malloc(i32, 3);
 		let q = p + 2;
 		__builtin_comptime_free(p);
 

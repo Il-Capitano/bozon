@@ -23,7 +23,7 @@ import f2s_full_table;
 
 import std::utils;
 
-export function pow5factor_32(mut value: uint32) -> uint32
+export function pow5factor_32(mut value: u32) -> u32
 {
 	mut count = 0u32;
 	for (;;)
@@ -42,13 +42,13 @@ export function pow5factor_32(mut value: uint32) -> uint32
 }
 
 // Returns true if value is divisible by 5^p.
-export function multipleOfPowerOf5_32(value: uint32, p: uint32) -> bool
+export function multipleOfPowerOf5_32(value: u32, p: u32) -> bool
 {
 	return pow5factor_32(value) >= p;
 }
 
 // Returns true if value is divisible by 2^p.
-export function multipleOfPowerOf2_32(value: uint32, p: uint32) -> bool
+export function multipleOfPowerOf2_32(value: u32, p: u32) -> bool
 {
 	// __builtin_ctz doesn't appear to be faster here.
 	return (value & ((1u32 << p) - 1)) == 0;
@@ -56,29 +56,29 @@ export function multipleOfPowerOf2_32(value: uint32, p: uint32) -> bool
 
 // It seems to be slightly faster to avoid uint128_t here, although the
 // generated code for uint128_t looks slightly nicer.
-export function mulShift32(m: uint32, factor: uint64, shift: uint32) -> uint32
+export function mulShift32(m: u32, factor: u64, shift: u32) -> u32
 {
 	std::assert(shift > 32);
 
 	// The casts here help MSVC to avoid calls to the __allmul library
 	// function.
-	let factorLo = factor as uint32;
-	let factorHi = (factor >> 32) as uint32;
-	let bits0 = m as uint64 * factorLo;
-	let bits1 = m as uint64 * factorHi;
+	let factorLo = factor as u32;
+	let factorHi = (factor >> 32) as u32;
+	let bits0 = m as u64 * factorLo;
+	let bits1 = m as u64 * factorHi;
 
 	let sum = (bits0 >> 32) + bits1;
 	let shiftedSum = sum >> (shift - 32);
-	std::assert(shiftedSum <= (~0u32) as uint64);
-	return shiftedSum as uint32;
+	std::assert(shiftedSum <= (~0u32) as u64);
+	return shiftedSum as u32;
 }
 
-export function mulPow5InvDivPow2(m: uint32, q: uint32, j: uint32) -> uint32
+export function mulPow5InvDivPow2(m: u32, q: u32, j: u32) -> u32
 {
 	return mulShift32(m, FLOAT_POW5_INV_SPLIT[q], j);
 }
 
-export function mulPow5divPow2(m: uint32, i: uint32, j: uint32) -> uint32
+export function mulPow5divPow2(m: u32, i: u32, j: u32) -> u32
 {
 	return mulShift32(m, FLOAT_POW5_SPLIT[i], j);
 }

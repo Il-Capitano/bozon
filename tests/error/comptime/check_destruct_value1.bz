@@ -1,4 +1,4 @@
-// error: invalid destruction of an object of type 'int32'
+// error: invalid destruction of an object of type 'i32'
 // note: while evaluating expression at compile time
 // note: address points to an object that is not on the heap
 // note: address points to this stack object

@@ -22,39 +22,39 @@ import common;
 
 import std::utils;
 
-export function umul128(a: uint64, b: uint64, productHi: *mut uint64) -> uint64
+export function umul128(a: u64, b: u64, productHi: *mut u64) -> u64
 {
 	// The casts here help MSVC to avoid calls to the __allmul library function.
-	let aLo = a as uint32;
-	let aHi = (a >> 32) as uint32;
-	let bLo = b as uint32;
-	let bHi = (b >> 32) as uint32;
+	let aLo = a as u32;
+	let aHi = (a >> 32) as u32;
+	let bLo = b as u32;
+	let bHi = (b >> 32) as u32;
 
-	let b00 = aLo as uint64 * bLo;
-	let b01 = aLo as uint64 * bHi;
-	let b10 = aHi as uint64 * bLo;
-	let b11 = aHi as uint64 * bHi;
+	let b00 = aLo as u64 * bLo;
+	let b01 = aLo as u64 * bHi;
+	let b10 = aHi as u64 * bLo;
+	let b11 = aHi as u64 * bHi;
 
-	let b00Lo = b00 as uint32;
-	let b00Hi = (b00 >> 32) as uint32;
+	let b00Lo = b00 as u32;
+	let b00Hi = (b00 >> 32) as u32;
 
 	let mid1 = b10 + b00Hi;
-	let mid1Lo = mid1 as uint32;
-	let mid1Hi = (mid1 >> 32) as uint32;
+	let mid1Lo = mid1 as u32;
+	let mid1Hi = (mid1 >> 32) as u32;
 
 	let mid2 = b01 + mid1Lo;
-	let mid2Lo = mid2 as uint32;
-	let mid2Hi = (mid2 >> 32) as uint32;
+	let mid2Lo = mid2 as u32;
+	let mid2Hi = (mid2 >> 32) as u32;
 
 	let pHi = b11 + mid1Hi + mid2Hi;
-	let pLo = (mid2Lo as uint64 << 32) | b00Lo as uint64;
+	let pLo = (mid2Lo as u64 << 32) | b00Lo as u64;
 
 	*productHi = pHi;
 	return pLo;
 }
 
 // Returns the lower 64 bits of (hi*2^64 + lo) >> dist, with 0 < dist < 64.
-export function shiftright128(lo: uint64, hi: uint64, dist: uint32) -> uint64
+export function shiftright128(lo: u64, hi: u64, dist: u32) -> u64
 {
 	// For the __shiftright128 intrinsic, the shift value is always
 	// modulo 64.
@@ -71,37 +71,37 @@ export function shiftright128(lo: uint64, hi: uint64, dist: uint32) -> uint64
 	return if (dist == 0) { lo } else { (hi << (64 - dist)) | (lo >> dist) };
 }
 
-export function div5(x: uint64) -> uint64
+export function div5(x: u64) -> u64
 {
 	return x / 5;
 }
 
-export function div10(x: uint64) -> uint64
+export function div10(x: u64) -> u64
 {
 	return x / 10;
 }
 
-export function div100(x: uint64) -> uint64
+export function div100(x: u64) -> u64
 {
 	return x / 100;
 }
 
-export function div1e8(x: uint64) -> uint64
+export function div1e8(x: u64) -> u64
 {
 	return x / 100000000;
 }
 
-export function div1e9(x: uint64) -> uint64
+export function div1e9(x: u64) -> u64
 {
 	return x / 1000000000;
 }
 
-export function mod1e9(x: uint64) -> uint32
+export function mod1e9(x: u64) -> u32
 {
-	return (x - 1000000000 * div1e9(x)) as uint32;
+	return (x - 1000000000 * div1e9(x)) as u32;
 }
 
-export function pow5Factor(mut value: uint64) -> uint32
+export function pow5Factor(mut value: u64) -> u32
 {
 	let m_inv_5 = 14757395258967641293u64; // 5 * m_inv_5 = 1 (mod 2^64)
 	let n_div_5 = 3689348814741910323u64;  // #{ n | n = 0 (mod 2^64) } = 2^64 / 5
@@ -120,14 +120,14 @@ export function pow5Factor(mut value: uint64) -> uint32
 }
 
 // Returns true if value is divisible by 5^p.
-export function multipleOfPowerOf5(value: uint64, p: uint32) -> bool
+export function multipleOfPowerOf5(value: u64, p: u32) -> bool
 {
 	// I tried a case distinction on p, but there was no performance difference.
 	return pow5Factor(value) >= p;
 }
 
 // Returns true if value is divisible by 2^p.
-export function multipleOfPowerOf2(value: uint64, p: uint32) -> bool
+export function multipleOfPowerOf2(value: u64, p: u32) -> bool
 {
 	std::assert(value != 0);
 	std::assert(p < 64);
@@ -173,12 +173,12 @@ export function multipleOfPowerOf2(value: uint64, p: uint32) -> bool
 //       no internal overflow, but requires extra work since the intermediate
 //       results are not perfectly aligned.
 
-export function mulShift64(m: uint64, mul: *uint64, j: uint32) -> uint64
+export function mulShift64(m: u64, mul: *u64, j: u32) -> u64
 {
 	// m is maximum 55 bits
-	mut high1: uint64;                         // 128
+	mut high1: u64;                            // 128
 	let low1 = umul128(m, *(mul + 1), &high1); // 64
-	mut high0: uint64;                         // 64
+	mut high0: u64;                            // 64
 	umul128(m, *mul, &high0);                  // 0
 	let sum = ((high0 + low1));
 	if (sum < high0)
@@ -190,15 +190,15 @@ export function mulShift64(m: uint64, mul: *uint64, j: uint32) -> uint64
 
 // This is faster if we don't have a 64x64->128-bit multiplication.
 export function mulShiftAll64(
-	mut m: uint64, mul: *uint64, j: uint32,
-	vp: *mut uint64, vm: *mut uint64, mmShift: uint32
-) -> uint64
+	mut m: u64, mul: *u64, j: u32,
+	vp: *mut u64, vm: *mut u64, mmShift: u32
+) -> u64
 {
 	m <<= 1;
 	// m is maximum 55 bits
-	mut tmp: uint64;
+	mut tmp: u64;
 	let lo = umul128(m, *mul, &tmp);
-	mut hi: uint64;
+	mut hi: u64;
 	let mid = ((tmp + umul128(m, *(mul + 1), &hi)));
 	// hi += mid < tmp; // overflow into hi
 	if (mid < tmp)
@@ -207,25 +207,25 @@ export function mulShiftAll64(
 	}
 
 	let lo2 = ((lo + *mul));
-	let mid2 = ((mid + *(mul + 1))) + (lo2 < lo) as uint64;
-	let hi2 = hi + (mid2 < mid) as uint64;
+	let mid2 = ((mid + *(mul + 1))) + (lo2 < lo) as u64;
+	let hi2 = hi + (mid2 < mid) as u64;
 	*vp = shiftright128(mid2, hi2, j - 64 - 1);
 
 	if (mmShift == 1)
 	{
 		let lo3 = ((lo - *mul));
-		let mid3 = ((mid - *(mul + 1))) - (lo3 > lo) as uint64;
-		let hi3 = hi - (mid3 > mid) as uint64;
+		let mid3 = ((mid - *(mul + 1))) - (lo3 > lo) as u64;
+		let hi3 = hi - (mid3 > mid) as u64;
 		*vm = shiftright128(mid3, hi3, j - 64 - 1);
 	}
 	else
 	{
 		let lo3 = ((lo + lo));
-		let mid3 = ((mid + mid)) + (lo3 < lo) as uint64;
-		let hi3 = hi + hi + (mid3 < mid) as uint64;
+		let mid3 = ((mid + mid)) + (lo3 < lo) as u64;
+		let hi3 = hi + hi + (mid3 < mid) as u64;
 		let lo4 = ((lo3 - *mul));
-		let mid4 = ((mid3 - *(mul + 1))) - (lo4 > lo3) as uint64;
-		let hi4 = hi3 - (mid4 > mid3) as uint64;
+		let mid4 = ((mid3 - *(mul + 1))) - (lo4 > lo3) as u64;
+		let hi4 = hi3 - (mid4 > mid3) as u64;
 		*vm = shiftright128(mid4, hi4, j - 64);
 	}
 

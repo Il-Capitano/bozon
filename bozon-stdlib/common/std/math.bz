@@ -188,12 +188,12 @@ export consteval f64_min_denorm: float64 = 5e-324;
 export consteval f32_min       : float32 = 1.1754944e-38f32;
 export consteval f32_min_denorm: float32 = 1e-45f32;
 
-function bits_as_float(n: uint32) -> float32
+function bits_as_float(n: u32) -> float32
 {
 	return __builtin_bit_cast(float32, n);
 }
 
-function bits_as_float(n: uint64) -> float64
+function bits_as_float(n: u64) -> float64
 {
 	return __builtin_bit_cast(float64, n);
 }

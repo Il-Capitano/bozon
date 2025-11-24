@@ -13,12 +13,12 @@ struct other_generic_t<T: typename>
 	}
 }
 
-@symbol_name("get_generic") function get_generic() -> generic_t<int32>
+@symbol_name("get_generic") function get_generic() -> generic_t<i32>
 {
 	unreachable;
 }
 
 function main()
 {
-	let _ = [ other_generic_t<int32> ]();
+	let _ = [ other_generic_t<i32> ]();
 }

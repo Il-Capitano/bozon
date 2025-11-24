@@ -1,6 +1,6 @@
 import resource;
 
-function get_value() -> [int32, str];
+function get_value() -> [i32, str];
 
 function get_resources() -> [complex_resource_t, complex_resource_t]
 {

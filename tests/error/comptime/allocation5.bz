@@ -2,7 +2,7 @@
 // note: while evaluating expression at compile time
 // note: address points to an object from a finished stack frame
 // error: failed to evaluate expression at compile time
-function foo() -> *mut int32
+function foo() -> *mut i32
 {
 	mut i = 0;
 	return &i;

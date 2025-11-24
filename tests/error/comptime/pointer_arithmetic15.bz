@@ -1,11 +1,11 @@
-// error: invalid pointer arithmetic operation with type '*int32' and offset 1
+// error: invalid pointer arithmetic operation with type '*i32' and offset 1
 // note: while evaluating expression at compile time
 // note: address is a one-past-the-end pointer to after the last element in an array of size 5 in this stack object
 // error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {
-		let a = [[5: int32], [5: int32]]();
+		let a = [[5: i32], [5: i32]]();
 		&a[0, 0] + 5 + 1;
 	});
 }

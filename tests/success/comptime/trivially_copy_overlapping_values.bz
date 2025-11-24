@@ -3,7 +3,7 @@ import std::meta::comptime;
 function test()
 {
 	(consteval {
-		let vals = std::meta::malloc(int32, 10);
+		let vals = std::meta::malloc(i32, 10);
 		defer std::meta::free(vals);
 
 		for (let i in 0..8)
@@ -26,7 +26,7 @@ function test()
 	});
 
 	(consteval {
-		let vals = std::meta::malloc(int32, 10);
+		let vals = std::meta::malloc(i32, 10);
 		defer std::meta::free(vals);
 
 		for (let i in 2..10)

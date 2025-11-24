@@ -22,7 +22,7 @@ export function assert(b: bool)
 	if (!b) unreachable;
 }
 
-export function exit(code: int32) -> void
+export function exit(code: i32) -> void
 {
 	std::libc::exit(code);
 }

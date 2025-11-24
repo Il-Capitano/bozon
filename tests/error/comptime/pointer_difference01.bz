@@ -1,8 +1,8 @@
-// error: invalid pointer difference operation with type '*int32'
+// error: invalid pointer difference operation with type '*i32'
 // note: while evaluating expression at compile time
 // note: lhs address points to an object from a finished stack frame
 // error: failed to evaluate expression at compile time
-function foo() -> *int32
+function foo() -> *i32
 {
 	let i = 0;
 	return &i;

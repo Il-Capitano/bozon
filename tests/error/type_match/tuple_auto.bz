@@ -1,5 +1,5 @@
-// error: expression type '[int32, void]' is not instantiable
-// error: variable type '[int32, void]' is not instantiable
+// error: expression type '[i32, void]' is not instantiable
+// error: variable type '[i32, void]' is not instantiable
 function test()
 {
 	let _: auto = [ 1, {} ];

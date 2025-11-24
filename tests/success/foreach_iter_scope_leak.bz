@@ -1,10 +1,10 @@
 function main()
 {
 	let i = 0i32;
-	let arr: [1: uint32] = [ 0 ];
+	let arr: [1: u32] = [ 0 ];
 	for (let i in arr)
 	{
-		static_assert(typeof i == uint32);
+		static_assert(typeof i == u32);
 	}
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 }

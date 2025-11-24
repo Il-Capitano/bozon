@@ -5,5 +5,5 @@ function test(t: &T)
 
 struct T
 {
-	operator [] (self: &T, : uint64);
+	operator [] (self: &T, : u64);
 }

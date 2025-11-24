@@ -1,4 +1,4 @@
-mut global: ?int32 = null;
+mut global: ?i32 = null;
 
 function main() {
 	let &mut global_ref = global;

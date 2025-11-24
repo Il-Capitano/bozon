@@ -10,9 +10,9 @@ function test(_: typename)
 
 	consteval [...elems] = [10: str]();
 	static_assert([ ...elems ][0] == "");
-	consteval [...elems] = [10: int32]();
+	consteval [...elems] = [10: i32]();
 	static_assert([ ...elems ][0] == 0);
-	consteval [...elems] = [10: uint32]();
+	consteval [...elems] = [10: u32]();
 	static_assert([ ...elems ][0] == 0);
 	consteval [...elems] = [10: float32]();
 	static_assert([ ...elems ][0] == 0.0f32);
@@ -21,9 +21,9 @@ function test(_: typename)
 
 	consteval [...elems] = [10, 20: str]();
 	static_assert([ ...elems ][0, 0] == "");
-	consteval [...elems] = [10, 20: int32]();
+	consteval [...elems] = [10, 20: i32]();
 	static_assert([ ...elems ][0, 0] == 0);
-	consteval [...elems] = [10, 20: uint32]();
+	consteval [...elems] = [10, 20: u32]();
 	static_assert([ ...elems ][0, 0] == 0);
 	consteval [...elems] = [10, 20: float32]();
 	static_assert([ ...elems ][0, 0] == 0.0f32);
@@ -33,6 +33,6 @@ function test(_: typename)
 
 function test2()
 {
-	test(int32);
+	test(i32);
 	test(char);
 }

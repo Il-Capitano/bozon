@@ -1,22 +1,22 @@
-function get_tuple() -> [int32, int32]
+function get_tuple() -> [i32, i32]
 {
 	return [ 0, 0 ];
 }
 
-function get_tuple_reference() -> [&int32, &int32]
+function get_tuple_reference() -> [&i32, &i32]
 {
 	consteval i = 0;
 	return [ i, i ];
 }
 
-function get_array() -> [2: int32]
+function get_array() -> [2: i32]
 {
 	return [ 0, 0 ];
 }
 
-function get_array_slice() -> [: int32]
+function get_array_slice() -> [: i32]
 {
-	consteval a: [2: int32] = [ 0, 0 ];
+	consteval a: [2: i32] = [ 0, 0 ];
 	return a;
 }
 

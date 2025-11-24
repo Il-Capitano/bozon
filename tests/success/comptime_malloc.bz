@@ -1,7 +1,7 @@
 function main()
 {
 	(consteval {
-		let p = __builtin_comptime_malloc(int32, 1u);
+		let p = __builtin_comptime_malloc(i32, 1u);
 		__builtin_comptime_free(p);
 	});
 }

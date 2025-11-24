@@ -79,7 +79,7 @@ function is_number(c: char) -> bool
 	return c >= '0' && c <= '9';
 }
 
-function advance_number(it: &mut ?*uint8, end: ?*uint8)
+function advance_number(it: &mut ?*u8, end: ?*u8)
 {
 	while (it != end && {
 		let c = *it as char;
@@ -90,7 +90,7 @@ function advance_number(it: &mut ?*uint8, end: ?*uint8)
 	}
 }
 
-function get_number(it: &mut ?*uint8, end: ?*uint8) -> usize
+function get_number(it: &mut ?*u8, end: ?*u8) -> usize
 {
 	mut result = 0uz;
 	while (it != end && {
@@ -135,7 +135,7 @@ export function get_default_format_spec(fmt_spec: str) -> format_spec
 		result.sign = *it as char;
 		++it; // sign
 	}
-	if (it != end && *it == '0' as uint8)
+	if (it != end && *it == '0' as u8)
 	{
 		result.zero_pad = true;
 		++it;
@@ -144,7 +144,7 @@ export function get_default_format_spec(fmt_spec: str) -> format_spec
 	{
 		result.width = get_number(it, end);
 	}
-	if (it != end && *it == '.' as uint8)
+	if (it != end && *it == '.' as u8)
 	{
 		++it; // '.'
 		result.precision = get_number(it, end);
@@ -161,24 +161,24 @@ export function get_default_format_spec(fmt_spec: str) -> format_spec
 	return result;
 }
 
-consteval function find_next_bracket(mut it: ?*uint8, end: ?*uint8) -> ?*uint8
+consteval function find_next_bracket(mut it: ?*u8, end: ?*u8) -> ?*u8
 {
 	for (; it != end; ++it)
 	{
-		if (*it == '{' as uint8 && (it + 1 == end || *(it + 1) != '{' as uint8))
+		if (*it == '{' as u8 && (it + 1 == end || *(it + 1) != '{' as u8))
 		{
 			return it;
 		}
-		else if (*it == '{' as uint8)
+		else if (*it == '{' as u8)
 		{
 			// next character must be '{' and can't be the end, so we can safely skip it
 			++it;
 		}
-		else if (*it == '}' as uint8 && (it + 1 == end || *(it + 1) != '}' as uint8))
+		else if (*it == '}' as u8 && (it + 1 == end || *(it + 1) != '}' as u8))
 		{
 			return it;
 		}
-		else if (*it == '}' as uint8)
+		else if (*it == '}' as u8)
 		{
 			// next character must be '}' and can't be the end, so we can safely skip it
 			++it;
@@ -188,14 +188,14 @@ consteval function find_next_bracket(mut it: ?*uint8, end: ?*uint8) -> ?*uint8
 	return end;
 }
 
-consteval function string_find(s: str, c: char) -> ?*uint8
+consteval function string_find(s: str, c: char) -> ?*u8
 {
 	assert(c <= '\x7f');
 	mut it = s.begin_ptr();
 	let end = s.end_ptr();
 	for (; it != end; ++it)
 	{
-		if (*it == c as uint8)
+		if (*it == c as u8)
 		{
 			return it;
 		}
@@ -204,8 +204,8 @@ consteval function string_find(s: str, c: char) -> ?*uint8
 }
 
 consteval function check_format_spec_str(
-	mut it: ?*uint8,
-	end: ?*uint8,
+	mut it: ?*u8,
+	end: ?*u8,
 	fmt_str: str,
 	mut current_index: usize,
 	passed_args_count: usize
@@ -214,7 +214,7 @@ consteval function check_format_spec_str(
 	assert(it > fmt_str.begin_ptr());
 	assert(it < fmt_str.end_ptr());
 	let open_bracket_it = it - 1;
-	assert(*open_bracket_it == '{' as uint8);
+	assert(*open_bracket_it == '{' as u8);
 	let is_explicit_index = it != end && is_number(*it as char);
 	if (is_explicit_index)
 	{
@@ -246,7 +246,7 @@ consteval function check_format_spec_str(
 		return current_index + 1;
 	}
 
-	if (*it != ':' as uint8)
+	if (*it != ':' as u8)
 	{
 		let position = __builtin_str_from_ptrs(fmt_str.begin_ptr(), open_bracket_it).length();
 		let message = format_unchecked_fmt(
@@ -278,7 +278,7 @@ consteval function check_format_spec_str(
 		++it; // sign
 	}
 	advance_number(it, end); // [0][width]
-	if (it != end && *it == '.' as uint8)
+	if (it != end && *it == '.' as u8)
 	{
 		++it; // '.'
 		if (it == end || !is_number(*it as char))
@@ -384,7 +384,7 @@ consteval function count_args_in_str(fmt_str: str) -> usize
 		{
 			break;
 		}
-		else if (*next_bracket == '{' as uint8)
+		else if (*next_bracket == '{' as u8)
 		{
 			++result;
 		}
@@ -404,8 +404,8 @@ consteval function remove_escaped_brackets(s: str) -> str
 	for (; it != end; ++it)
 	{
 		if (
-			(*it == '{' as uint8 && it + 1 != end && *(it + 1) == '{' as uint8)
-			|| (*it == '}' as uint8 && it + 1 != end && *(it + 1) == '}' as uint8)
+			(*it == '{' as u8 && it + 1 != end && *(it + 1) == '{' as u8)
+			|| (*it == '}' as u8 && it + 1 != end && *(it + 1) == '}' as u8)
 		)
 		{
 			// escaped '{' or '}'
@@ -442,8 +442,8 @@ consteval function get_fmt_info(fmt_str: str, slices: [: mut str], fmt_specs: [:
 	for (; it != end; ++it)
 	{
 		if (
-			(*it == '{' as uint8 && it + 1 != end && *(it + 1) == '{' as uint8)
-			|| (*it == '}' as uint8 && it + 1 != end && *(it + 1) == '}' as uint8)
+			(*it == '{' as u8 && it + 1 != end && *(it + 1) == '{' as u8)
+			|| (*it == '}' as u8 && it + 1 != end && *(it + 1) == '}' as u8)
 		)
 		{
 			// escaped '{' or '}'
@@ -451,7 +451,7 @@ consteval function get_fmt_info(fmt_str: str, slices: [: mut str], fmt_specs: [:
 			++it;
 			contains_escaped_bracket = true;
 		}
-		else if (*it == '{' as uint8)
+		else if (*it == '{' as u8)
 		{
 			if (contains_escaped_bracket)
 			{
@@ -599,12 +599,12 @@ export function print(fmt_str: consteval str, arg0: #auto, args: ...#auto)
 export function print = print_stdout;
 
 
-function print_uint_to_reverse_buffer(mut it: *uint8, val: uint64, base: consteval uint64) -> *uint8
+function print_uint_to_reverse_buffer(mut it: *u8, val: u64, base: consteval u64) -> *u8
 {
 	if (val == 0)
 	{
 		--it;
-		*it = '0' as uint8;
+		*it = '0' as u8;
 		return it;
 	}
 	while (val != 0)
@@ -614,18 +614,18 @@ function print_uint_to_reverse_buffer(mut it: *uint8, val: uint64, base: constev
 		if (digit_val < 10)
 		{
 			--it;
-			*it = ('0' + digit_val) as uint8;
+			*it = ('0' + digit_val) as u8;
 		}
 		else
 		{
 			--it;
-			*it = ('a' + digit_val - 10) as uint8;
+			*it = ('a' + digit_val - 10) as u8;
 		}
 	}
 	return it;
 }
 
-function decimal_length_u64(n: uint64) -> uint32
+function decimal_length_u64(n: u64) -> u32
 {
 	return if (n < 10u64) { 1 }
 		else if (n < 100u64) { 2 }
@@ -649,7 +649,7 @@ function decimal_length_u64(n: uint64) -> uint32
 		else { 20 };
 }
 
-function print_uint_decimal_to_buffer(mut n: uint64, out: *mut uint8) -> *mut uint8
+function print_uint_decimal_to_buffer(mut n: u64, out: *mut u8) -> *mut u8
 {
 	let output_len = decimal_length_u64(n);
 	mut rev_out = out + output_len;
@@ -681,51 +681,51 @@ function print_uint_decimal_to_buffer(mut n: uint64, out: *mut uint8) -> *mut ui
 	else
 	{
 		rev_out -= 1;
-		*rev_out = ('0' + n) as uint8;
+		*rev_out = ('0' + n) as u8;
 	}
 	return out + output_len;
 }
 
-function print_uint_base_to_buffer(n: uint64, mut out: *mut uint8, base: consteval uint64) -> *mut uint8
+function print_uint_base_to_buffer(n: u64, mut out: *mut u8, base: consteval u64) -> *mut u8
 {
 	if (n == 0)
 	{
-		*out = '0' as uint8;
+		*out = '0' as u8;
 		return out + 1;
 	}
 	static_assert(base == 2 || base == 8);
 	consteval bit_width = if (base == 2) { 1u64 } else { 3u64 };
 	consteval max_output_len = if (base == 2) { 64u64 } else { 22u64 };
-	let output_len = (max_output_len - clz(n) / bit_width) as int32;
+	let output_len = (max_output_len - clz(n) / bit_width) as i32;
 	mut i = output_len;
 	while (i > 0)
 	{
 		--i;
 		consteval mask = base - 1;
-		let c = '0' + ((n >> (i * bit_width as int32)) & mask);
-		*out = c as uint8;
+		let c = '0' + ((n >> (i * bit_width as i32)) & mask);
+		*out = c as u8;
 		++out;
 	}
 	return out;
 }
 
-function print_uint_hex_to_buffer(n: uint64, mut out: *mut uint8) -> *mut uint8
+function print_uint_hex_to_buffer(n: u64, mut out: *mut u8) -> *mut u8
 {
 	if (n == 0)
 	{
-		*out = '0' as uint8;
+		*out = '0' as u8;
 		return out + 1;
 	}
-	let output_len = (16 - clz(n) / 4) as int32;
-	consteval table: [16: uint8] = [
-		'0' as uint8, '1' as uint8,
-		'2' as uint8, '3' as uint8,
-		'4' as uint8, '5' as uint8,
-		'6' as uint8, '7' as uint8,
-		'8' as uint8, '9' as uint8,
-		'a' as uint8, 'b' as uint8,
-		'c' as uint8, 'd' as uint8,
-		'e' as uint8, 'f' as uint8,
+	let output_len = (16 - clz(n) / 4) as i32;
+	consteval table: [16: u8] = [
+		'0' as u8, '1' as u8,
+		'2' as u8, '3' as u8,
+		'4' as u8, '5' as u8,
+		'6' as u8, '7' as u8,
+		'8' as u8, '9' as u8,
+		'a' as u8, 'b' as u8,
+		'c' as u8, 'd' as u8,
+		'e' as u8, 'f' as u8,
 	];
 	mut i = output_len;
 	while (i > 0)
@@ -738,23 +738,23 @@ function print_uint_hex_to_buffer(n: uint64, mut out: *mut uint8) -> *mut uint8
 	return out;
 }
 
-function print_uint_HEX_to_buffer(n: uint64, mut out: *mut uint8) -> *mut uint8
+function print_uint_HEX_to_buffer(n: u64, mut out: *mut u8) -> *mut u8
 {
 	if (n == 0)
 	{
-		*out = '0' as uint8;
+		*out = '0' as u8;
 		return out + 1;
 	}
-	let output_len = (16 - clz(n) / 4) as int32;
-	consteval table: [16: uint8] = [
-		'0' as uint8, '1' as uint8,
-		'2' as uint8, '3' as uint8,
-		'4' as uint8, '5' as uint8,
-		'6' as uint8, '7' as uint8,
-		'8' as uint8, '9' as uint8,
-		'A' as uint8, 'B' as uint8,
-		'C' as uint8, 'D' as uint8,
-		'E' as uint8, 'F' as uint8,
+	let output_len = (16 - clz(n) / 4) as i32;
+	consteval table: [16: u8] = [
+		'0' as u8, '1' as u8,
+		'2' as u8, '3' as u8,
+		'4' as u8, '5' as u8,
+		'6' as u8, '7' as u8,
+		'8' as u8, '9' as u8,
+		'A' as u8, 'B' as u8,
+		'C' as u8, 'D' as u8,
+		'E' as u8, 'F' as u8,
 	];
 	mut i = output_len;
 	while (i > 0)
@@ -770,32 +770,32 @@ function print_uint_HEX_to_buffer(n: uint64, mut out: *mut uint8) -> *mut uint8
 // binary printing has the max number of possible chars
 consteval max_uint_string_length = 64uz;
 
-function get_uint_decimal_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint32]
+function get_uint_decimal_as_string(n: u64) -> [[max_uint_string_length: u8], u32]
 {
-	mut result = [[max_uint_string_length: uint8], uint32]();
+	mut result = [[max_uint_string_length: u8], u32]();
 	let end = print_uint_decimal_to_buffer(n, result[0].begin());
-	result[1] = (end - result[0].begin()) as uint32;
+	result[1] = (end - result[0].begin()) as u32;
 	return result;
 }
 
-function get_uint_base_as_string(n: uint64, base: consteval uint64) -> [[max_uint_string_length: uint8], uint32]
+function get_uint_base_as_string(n: u64, base: consteval u64) -> [[max_uint_string_length: u8], u32]
 {
 	static_assert(base == 2 || base == 8);
-	mut result = [[max_uint_string_length: uint8], uint32]();
+	mut result = [[max_uint_string_length: u8], u32]();
 	let end = print_uint_base_to_buffer(n, result[0].begin(), base);
-	result[1] = (end - result[0].begin()) as uint32;
+	result[1] = (end - result[0].begin()) as u32;
 	return result;
 }
 
-function get_uint_hex_as_string(n: uint64, capital: bool) -> [[max_uint_string_length: uint8], uint32]
+function get_uint_hex_as_string(n: u64, capital: bool) -> [[max_uint_string_length: u8], u32]
 {
-	mut result = [[max_uint_string_length: uint8], uint32]();
+	mut result = [[max_uint_string_length: u8], u32]();
 	let end = if (capital) {
 		print_uint_HEX_to_buffer(n, result[0].begin())
 	} else {
 		print_uint_hex_to_buffer(n, result[0].begin())
 	};
-	result[1] = (end - result[0].begin()) as uint32;
+	result[1] = (end - result[0].begin()) as u32;
 	return result;
 }
 
@@ -958,12 +958,12 @@ function format_number(number_str: str, buffer: &mut format_buffer, mut fmt_spec
 	}
 }
 
-export function format_to(n: uint64, buffer: &mut format_buffer, fmt_spec: str)
+export function format_to(n: u64, buffer: &mut format_buffer, fmt_spec: str)
 {
 	n.format_to(buffer, get_default_format_spec(fmt_spec));
 }
 
-export function format_to(n: uint64, buffer: &mut format_buffer, fmt_spec: format_spec)
+export function format_to(n: u64, buffer: &mut format_buffer, fmt_spec: format_spec)
 {
 	let [result_buffer, size] = switch (fmt_spec.fmt_kind) {
 		'b', 'B' => {
@@ -984,20 +984,20 @@ export function format_to(n: uint64, buffer: &mut format_buffer, fmt_spec: forma
 	format_number(result_str, buffer, fmt_spec, put_sign);
 }
 
-export function format_to(n: int64, buffer: &mut format_buffer, fmt_spec: str)
+export function format_to(n: i64, buffer: &mut format_buffer, fmt_spec: str)
 {
 	n.format_to(buffer, get_default_format_spec(fmt_spec));
 }
 
-export function format_to(n: int64, buffer: &mut format_buffer, mut fmt_spec: format_spec)
+export function format_to(n: i64, buffer: &mut format_buffer, mut fmt_spec: format_spec)
 {
 	let put_sign = n < 0 || fmt_spec.sign == '+' || fmt_spec.sign == ' ';
 	if (n < 0)
 	{
 		fmt_spec.sign = '-';
 	}
-	// -n as uint64 works for uint64_min as well
-	let n = if (n < 0) { -n as uint64 } else { n as uint64 };
+	// -n as u64 works for uint64_min as well
+	let n = if (n < 0) { -n as u64 } else { n as u64 };
 	let [result_buffer, size] = get_uint_decimal_as_string(n);
 	let result_str = __builtin_str_from_ptrs(result_buffer.begin(), result_buffer.begin() + size);
 	format_number(result_str, buffer, fmt_spec, put_sign);
@@ -1129,9 +1129,9 @@ export function format_to(x: float32, buffer: &mut format_buffer, mut fmt_spec: 
 			else
 			{
 				fmt_spec.zero_pad &= isfinite(x);
-				mut result_buffer = [15: uint8]();
+				mut result_buffer = [15: u8]();
 				let end = ryu::f2s_shortest(x, result_buffer.begin());
-				let [result_str, put_sign] = if (result_buffer[0] == '-' as uint8) {
+				let [result_str, put_sign] = if (result_buffer[0] == '-' as u8) {
 					fmt_spec.sign = '-';
 					[ __builtin_str_from_ptrs(result_buffer.begin() + 1, end), true ]
 				} else {
@@ -1253,7 +1253,7 @@ function abs_f64(x: float64) -> float64
 function format_float64_fixed(x: float64, buffer: &mut format_buffer, mut fmt_spec: format_spec)
 {
 	// most results should fit in this buffer
-	mut static_buffer = [32: uint8]();
+	mut static_buffer = [32: u8]();
 	let finite = isfinite(x);
 	fmt_spec.zero_pad &= finite;
 
@@ -1276,17 +1276,17 @@ function format_float64_fixed(x: float64, buffer: &mut format_buffer, mut fmt_sp
 	let result_buffer = if (result_len <= static_buffer.size()) {
 		static_buffer.begin()
 	} else {
-		malloc(uint8, result_len)
+		malloc(u8, result_len)
 	};
 
 	let end = ryu::d2fixed_short(
 		x,
-		fmt_spec.precision as uint32,
+		fmt_spec.precision as u32,
 		result_buffer,
 		fmt_spec.fmt_kind != 'f' && fmt_spec.fmt_kind != 'F'
 	);
 	assert(end <= result_buffer + result_len);
-	let [result_str, put_sign] = if (*result_buffer == '-' as uint8) {
+	let [result_str, put_sign] = if (*result_buffer == '-' as u8) {
 		fmt_spec.sign = '-';
 		[ __builtin_str_from_ptrs(result_buffer + 1, end), true ]
 	} else {
@@ -1306,7 +1306,7 @@ function format_float64_fixed(x: float64, buffer: &mut format_buffer, mut fmt_sp
 function format_float64_exponential(x: float64, buffer: &mut format_buffer, mut fmt_spec: format_spec)
 {
 	// most results should fit in this buffer
-	mut static_buffer = [32: uint8]();
+	mut static_buffer = [32: u8]();
 	let finite = isfinite(x);
 	fmt_spec.zero_pad &= finite;
 	// sign + "X." + precision + e+XXX
@@ -1320,17 +1320,17 @@ function format_float64_exponential(x: float64, buffer: &mut format_buffer, mut 
 	let result_buffer = if (result_len <= static_buffer.size()) {
 		static_buffer.begin()
 	} else {
-		malloc(uint8, result_len)
+		malloc(u8, result_len)
 	};
 
 	let end = ryu::d2exp_short(
 		x,
-		fmt_spec.precision as uint32,
+		fmt_spec.precision as u32,
 		result_buffer, fmt_spec.fmt_kind == 'E' || fmt_spec.fmt_kind == 'G',
 		fmt_spec.fmt_kind != 'e' && fmt_spec.fmt_kind != 'E'
 	);
 	assert(end <= result_buffer + result_len);
-	let [result_str, put_sign] = if (*result_buffer == '-' as uint8) {
+	let [result_str, put_sign] = if (*result_buffer == '-' as u8) {
 		fmt_spec.sign = '-';
 		[ __builtin_str_from_ptrs(result_buffer + 1, end), true ]
 	} else {
@@ -1411,7 +1411,7 @@ function format_float64_generic(x: float64, buffer: &mut format_buffer, mut fmt_
 function format_float64_percentage(x: float64, buffer: &mut format_buffer, mut fmt_spec: format_spec)
 {
 	// most results should fit in this buffer
-	mut static_buffer = [32: uint8]();
+	mut static_buffer = [32: u8]();
 	// we need 2 more digits to get the specified precision in percentage form
 	fmt_spec.precision += 2;
 
@@ -1429,12 +1429,12 @@ function format_float64_percentage(x: float64, buffer: &mut format_buffer, mut f
 	let result_buffer = if (result_len <= static_buffer.size()) {
 		static_buffer.begin()
 	} else {
-		malloc(uint8, result_len)
+		malloc(u8, result_len)
 	};
 
 	mut end = ryu::d2fixed_short(
 		x,
-		fmt_spec.precision as uint32,
+		fmt_spec.precision as u32,
 		result_buffer,
 		false
 	);
@@ -1442,27 +1442,27 @@ function format_float64_percentage(x: float64, buffer: &mut format_buffer, mut f
 	// the beginning of the number could change, e.g. 0.0012 would be transformed to 0.12 and not 000.12
 	let begin = {
 		let dot_it = end - fmt_spec.precision - 1;
-		assert(*dot_it == '.' as uint8);
+		assert(*dot_it == '.' as u8);
 		let tenth_it = dot_it + 1;
 		let hundredth_it = dot_it + 2;
 
 		*dot_it = *tenth_it;
 		*tenth_it = *hundredth_it;
-		*hundredth_it = '.' as uint8;
+		*hundredth_it = '.' as u8;
 
 		if (fmt_spec.precision == 2)
 		{
 			// remove trailing dot
 			--end;
 		}
-		if (leading_digit_count == 1 && *(dot_it - 1) == '0' as uint8) {
-			if (*dot_it == '0' as uint8) {
+		if (leading_digit_count == 1 && *(dot_it - 1) == '0' as u8) {
+			if (*dot_it == '0' as u8) {
 				dot_it + 1
 			} else {
 				dot_it
 			}
 		} else {
-			if (*result_buffer == '-' as uint8) {
+			if (*result_buffer == '-' as u8) {
 				result_buffer + 1
 			} else {
 				result_buffer
@@ -1470,11 +1470,11 @@ function format_float64_percentage(x: float64, buffer: &mut format_buffer, mut f
 		}
 	};
 
-	*end = '%' as uint8;
+	*end = '%' as u8;
 	++end;
 	assert(end <= result_buffer + result_len);
 	let result_str = __builtin_str_from_ptrs(begin, end);
-	let put_sign = if (*result_buffer == '-' as uint8) {
+	let put_sign = if (*result_buffer == '-' as u8) {
 		fmt_spec.sign = '-';
 		true
 	} else {
@@ -1491,9 +1491,9 @@ function format_float64_percentage(x: float64, buffer: &mut format_buffer, mut f
 function format_float64_shortest(x: float64, buffer: &mut format_buffer, mut fmt_spec: format_spec)
 {
 	fmt_spec.zero_pad &= isfinite(x);
-	mut result_buffer = [24: uint8]();
+	mut result_buffer = [24: u8]();
 	let end = ryu::d2s_shortest(x, result_buffer.begin());
-	let [result_str, put_sign] = if (result_buffer[0] == '-' as uint8) {
+	let [result_str, put_sign] = if (result_buffer[0] == '-' as u8) {
 		fmt_spec.sign = '-';
 		[ __builtin_str_from_ptrs(result_buffer.begin() + 1, end), true ]
 	} else {

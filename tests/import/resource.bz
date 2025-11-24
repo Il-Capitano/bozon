@@ -42,11 +42,11 @@ function free(p: ?*mut void)
 
 export struct resource_t
 {
-	.p: *mut int32;
+	.p: *mut i32;
 
 	constructor()
 	{
-		return resource_t[ malloc(int32, 1) ];
+		return resource_t[ malloc(i32, 1) ];
 	}
 
 	destructor(&self)
@@ -56,28 +56,28 @@ export struct resource_t
 
 	constructor(other: &resource_t)
 	{
-		return resource_t[ malloc(int32, 1) ];
+		return resource_t[ malloc(i32, 1) ];
 	}
 }
 
 export struct complex_resource_t
 {
-	.p: *mut int32;
-	.instance_p: *mut int32;
+	.p: *mut i32;
+	.instance_p: *mut i32;
 
 	constructor()
 	{
 		return complex_resource_t[
-			malloc(int32, 1),
-			malloc(int32, 1),
+			malloc(i32, 1),
+			malloc(i32, 1),
 		];
 	}
 
 	constructor(other: &complex_resource_t)
 	{
 		return complex_resource_t[
-			malloc(int32, 1),
-			malloc(int32, 1),
+			malloc(i32, 1),
+			malloc(i32, 1),
 		];
 	}
 
@@ -85,7 +85,7 @@ export struct complex_resource_t
 	{
 		return complex_resource_t[
 			other.p,
-			malloc(int32, 1),
+			malloc(i32, 1),
 		];
 	}
 
