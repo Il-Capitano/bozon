@@ -17,6 +17,7 @@ function free(p: *mut auto)
 function main() -> i32
 {
 	let p = malloc(counting_resource_t);
+	defer free(p);
 	__builtin_inplace_construct(p, counting_resource_t());
 	__builtin_destruct_value(*p);
 
