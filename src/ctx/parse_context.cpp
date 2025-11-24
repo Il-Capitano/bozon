@@ -1539,6 +1539,10 @@ void parse_context::add_function_for_compilation(ast::function_body &func_body) 
 
 static ast::typespec get_function_type(ast::function_body &body)
 {
+	if (body.return_type.is_empty() || body.params.is_any([](auto &p) { return p.get_type().is_empty(); }))
+	{
+		return ast::typespec();
+	}
 	auto const &return_type = body.return_type;
 	auto param_types = body.params.transform([](auto &p) { return p.get_type(); }).collect<ast::arena_vector>();
 	return ast::make_function_typespec(body.src_tokens, std::move(param_types), return_type, body.cc);
@@ -1669,12 +1673,23 @@ static ast::expression make_function_name_expression(
 	}
 	else
 	{
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::function_name, get_function_type(func_decl->body),
-			ast::constant_value(&func_decl->body),
-			ast::make_expr_function_name(std::move(id), func_decl)
-		);
+		auto func_type = get_function_type(func_decl->body);
+		if (func_type.is_empty())
+		{
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_function_name(std::move(id), func_decl)
+			);
+		}
+		else
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::function_name, std::move(func_type),
+				ast::constant_value(&func_decl->body),
+				ast::make_expr_function_name(std::move(id), func_decl)
+			);
+		}
 	}
 }
 
@@ -1687,12 +1702,23 @@ static ast::expression make_function_name_expression(
 	if (alias_decl->aliased_decls.size() == 1 && !alias_decl->aliased_decls[0]->body.is_generic())
 	{
 		auto const decl = alias_decl->aliased_decls[0];
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::function_alias_name, get_function_type(decl->body),
-			ast::constant_value(&decl->body),
-			ast::make_expr_function_alias_name(std::move(id), alias_decl)
-		);
+		auto func_type = get_function_type(decl->body);
+		if (func_type.is_empty())
+		{
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_function_alias_name(std::move(id), alias_decl)
+			);
+		}
+		else
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::function_alias_name, std::move(func_type),
+				ast::constant_value(&decl->body),
+				ast::make_expr_function_alias_name(std::move(id), alias_decl)
+			);
+		}
 	}
 	else
 	{
@@ -2247,10 +2273,12 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 				auto const func_decl = this->get_builtin_function(it->kind);
 				if (func_decl->body.is_export())
 				{
+					auto func_type = get_function_type(func_decl->body);
+					bz_assert(func_type.not_empty());
 					return ast::make_constant_expression(
 						src_tokens,
 						ast::expression_type_kind::function_name,
-						get_function_type(func_decl->body),
+						std::move(func_type),
 						ast::constant_value(&func_decl->body),
 						ast::make_expr_function_name(std::move(id), func_decl)
 					);

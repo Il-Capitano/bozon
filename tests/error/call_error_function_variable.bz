@@ -1,0 +1,8 @@
+// error: undeclared identifier 'bar'
+// error: failed to resolve expression
+// note: while evaluating expression at compile time
+// error: condition for static_assert must be a constant expression
+
+function foo() -> bar {}
+consteval f = foo;
+static_assert({ f(); true });
