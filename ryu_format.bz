@@ -7,39 +7,39 @@ import std::ryu::d2fixed;
 import std::meta::types;
 
 @symbol_name("d2s_short")
-export function d2s_short(x: float64, buffer: *mut uint8) -> *mut uint8
+export function d2s_short(x: f64, buffer: *mut u8) -> *mut u8
 {
 	return std::ryu::d2s_shortest(x, buffer);
 }
 
 @symbol_name("d2exp_short")
-export function d2exp_short(x: float64, precision: uint32, buffer: *mut uint8, capital_e: bool, strip_trailing_zeros: bool) -> *mut uint8
+export function d2exp_short(x: f64, precision: u32, buffer: *mut u8, capital_e: bool, strip_trailing_zeros: bool) -> *mut u8
 {
 	return std::ryu::d2exp_short(x, precision, buffer, capital_e, strip_trailing_zeros);
 }
 
 @symbol_name("d2fixed_short")
-export function d2fixed_short(x: float64, precision: uint32, buffer: *mut uint8, strip_trailing_zeros: bool) -> *mut uint8
+export function d2fixed_short(x: f64, precision: u32, buffer: *mut u8, strip_trailing_zeros: bool) -> *mut u8
 {
 	return std::ryu::d2fixed_short(x, precision, buffer, strip_trailing_zeros);
 }
 
 @symbol_name("f2s_short")
-export function f2s_short(x: float32, buffer: *mut uint8) -> *mut uint8
+export function f2s_short(x: f32, buffer: *mut u8) -> *mut u8
 {
 	return std::ryu::f2s_shortest(x, buffer);
 }
 
-static_assert(std::meta::enum_underlying_type(std::ryu::parse_result) == int32);
+static_assert(std::meta::enum_underlying_type(std::ryu::parse_result) == i32);
 
 @symbol_name("s2d_str")
-export function s2d_str(begin: *uint8, end: *uint8, result: *mut float64) -> std::ryu::parse_result
+export function s2d_str(begin: *u8, end: *u8, result: *mut f64) -> std::ryu::parse_result
 {
 	return std::ryu::s2d_str(__builtin_str_from_ptrs(begin, end), result);
 }
 
 @symbol_name("s2f_str")
-export function s2f_str(begin: *uint8, end: *uint8, result: *mut float32) -> std::ryu::parse_result
+export function s2f_str(begin: *u8, end: *u8, result: *mut f32) -> std::ryu::parse_result
 {
 	return std::ryu::s2f_str(__builtin_str_from_ptrs(begin, end), result);
 }
