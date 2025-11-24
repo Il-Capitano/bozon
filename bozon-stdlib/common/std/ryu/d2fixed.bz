@@ -220,7 +220,7 @@ function copy_special_str_printf(result: *mut u8, sign: bool, mantissa: u64) -> 
 	return sign as i32 + 8;
 }
 
-export function d2fixed_buffered_n(d: float64, precision: u32, result: *mut u8) -> i32
+export function d2fixed_buffered_n(d: f64, precision: u32, result: *mut u8) -> i32
 {
 	let bits = double_to_bits(d);
 
@@ -435,13 +435,13 @@ export function d2fixed_buffered_n(d: float64, precision: u32, result: *mut u8) 
 	return index;
 }
 
-export function d2fixed_buffered(d: float64, precision: u32, result: *mut u8)
+export function d2fixed_buffered(d: f64, precision: u32, result: *mut u8)
 {
 	let len = d2fixed_buffered_n(d, precision, result);
 	*(result + len) = '\x00' as u8;
 }
 
-export function d2fixed(d: float64, precision: u32) -> ?*mut u8
+export function d2fixed(d: f64, precision: u32) -> ?*mut u8
 {
 	let buffer_alloc = std::libc::malloc(2000);
 	if (buffer_alloc == null)
@@ -456,7 +456,7 @@ export function d2fixed(d: float64, precision: u32) -> ?*mut u8
 
 
 
-export function d2exp_buffered_n(d: float64, mut precision: u32, result: *mut u8) -> i32
+export function d2exp_buffered_n(d: f64, mut precision: u32, result: *mut u8) -> i32
 {
 	let bits = double_to_bits(d);
 
@@ -745,13 +745,13 @@ export function d2exp_buffered_n(d: float64, mut precision: u32, result: *mut u8
 	return index;
 }
 
-export function d2exp_buffered(d: float64, precision: u32, result: *mut u8)
+export function d2exp_buffered(d: f64, precision: u32, result: *mut u8)
 {
 	let len = d2exp_buffered_n(d, precision, result);
 	*(result + len) = '\x00' as u8;
 }
 
-export function d2exp(d: float64, precision: u32) -> ?*mut u8
+export function d2exp(d: f64, precision: u32) -> ?*mut u8
 {
 	let buffer_alloc = std::libc::malloc(2000);
 	if (buffer_alloc == null)
@@ -769,12 +769,12 @@ export function d2exp(d: float64, precision: u32) -> ?*mut u8
 // addition by me
 //
 
-export function d2fixed_short(d: float64, precision: u32, result: *mut u8) -> *mut u8
+export function d2fixed_short(d: f64, precision: u32, result: *mut u8) -> *mut u8
 {
 	d2fixed_short(d, precision, result, false);
 }
 
-export function d2fixed_short(d: float64, precision: u32, result: *mut u8, strip_trailing_zeros: bool) -> *mut u8
+export function d2fixed_short(d: f64, precision: u32, result: *mut u8, strip_trailing_zeros: bool) -> *mut u8
 {
 	let bits = double_to_bits(d);
 
@@ -1001,12 +1001,12 @@ export function d2fixed_short(d: float64, precision: u32, result: *mut u8, strip
 	return result + index;
 }
 
-export function d2exp_short(d: float64, precision: u32, result: *mut u8) -> *mut u8
+export function d2exp_short(d: f64, precision: u32, result: *mut u8) -> *mut u8
 {
 	d2exp_short(d, precision, result, false, false);
 }
 
-export function d2exp_short(d: float64, mut precision: u32, result: *mut u8, capital_e: bool, strip_trailing_zeros: bool) -> *mut u8
+export function d2exp_short(d: f64, mut precision: u32, result: *mut u8, capital_e: bool, strip_trailing_zeros: bool) -> *mut u8
 {
 	let bits = double_to_bits(d);
 

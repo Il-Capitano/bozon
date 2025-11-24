@@ -55,8 +55,8 @@ using basic_operator_table_t = bz::enum_array<
 	ast::type_info::u16_,
 	ast::type_info::u32_,
 	ast::type_info::u64_,
-	ast::type_info::float32_,
-	ast::type_info::float64_,
+	ast::type_info::f32_,
+	ast::type_info::f64_,
 	ast::type_info::char_,
 	ast::type_info::bool_
 >;
@@ -99,8 +99,8 @@ using arithmetic_operator_table_t = bz::enum_array<
 	ast::type_info::u16_,
 	ast::type_info::u32_,
 	ast::type_info::u64_,
-	ast::type_info::float32_,
-	ast::type_info::float64_
+	ast::type_info::f32_,
+	ast::type_info::f64_
 >;
 
 struct builtin_type_bitwise_operator_table_t

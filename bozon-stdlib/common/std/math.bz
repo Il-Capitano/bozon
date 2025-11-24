@@ -147,13 +147,13 @@ export function abs = __builtin_abs_f64;
 
 // math constants
 
-export consteval pi_f64 : float64 = 3.1415926535897932;
-export consteval tau_f64: float64 = 6.2831853071795865;
-export consteval e_f64  : float64 = 2.7182818284590452;
+export consteval pi_f64 : f64 = 3.1415926535897932;
+export consteval tau_f64: f64 = 6.2831853071795865;
+export consteval e_f64  : f64 = 2.7182818284590452;
 
-export consteval pi_f32 : float32 = 3.14159265f32;
-export consteval tau_f32: float32 = 6.28318531f32;
-export consteval e_f32  : float32 = 2.71828183f32;
+export consteval pi_f32 : f32 = 3.14159265f32;
+export consteval tau_f32: f32 = 6.28318531f32;
+export consteval e_f32  : f32 = 2.71828183f32;
 
 export consteval pi  = pi_f64;
 export consteval tau = tau_f64;
@@ -167,35 +167,35 @@ static_assert(pi_f32  == atan2(0.0f32, -1.0f32));
 static_assert(tau_f32 == 2.0f32 * pi_f32);
 static_assert(e_f32   == exp(1.0f32));
 
-static_assert(pi_f32  == pi_f64  as float32);
-static_assert(tau_f32 == tau_f64 as float32);
-static_assert(e_f32   == e_f64   as float32);
+static_assert(pi_f32  == pi_f64  as f32);
+static_assert(tau_f32 == tau_f64 as f32);
+static_assert(e_f32   == e_f64   as f32);
 
 // limits
 
-export consteval inf_f64: float64 = ((1.0 / 0.0));
-export consteval nan_f64: float64 = ((inf_f64 - inf_f64));
+export consteval inf_f64: f64 = ((1.0 / 0.0));
+export consteval nan_f64: f64 = ((inf_f64 - inf_f64));
 
-export consteval inf_f32: float32 = ((1.0f32 / 0.0f32));
-export consteval nan_f32: float32 = ((inf_f32 - inf_f32));
+export consteval inf_f32: f32 = ((1.0f32 / 0.0f32));
+export consteval nan_f32: f32 = ((inf_f32 - inf_f32));
 
 export consteval inf = inf_f64;
 export consteval nan = nan_f64;
 
-export consteval f64_min       : float64 = 2.2250738585072014e-308;
-export consteval f64_min_denorm: float64 = 5e-324;
+export consteval f64_min       : f64 = 2.2250738585072014e-308;
+export consteval f64_min_denorm: f64 = 5e-324;
 
-export consteval f32_min       : float32 = 1.1754944e-38f32;
-export consteval f32_min_denorm: float32 = 1e-45f32;
+export consteval f32_min       : f32 = 1.1754944e-38f32;
+export consteval f32_min_denorm: f32 = 1e-45f32;
 
-function bits_as_float(n: u32) -> float32
+function bits_as_float(n: u32) -> f32
 {
-	return __builtin_bit_cast(float32, n);
+	return __builtin_bit_cast(f32, n);
 }
 
-function bits_as_float(n: u64) -> float64
+function bits_as_float(n: u64) -> f64
 {
-	return __builtin_bit_cast(float64, n);
+	return __builtin_bit_cast(f64, n);
 }
 
 static_assert(inf_f64 == bits_as_float(0x7ff0'0000'0000'0000u64));

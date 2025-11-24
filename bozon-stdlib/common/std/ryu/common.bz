@@ -104,12 +104,12 @@ export function copy_special_str(result: *mut u8, sign: bool, exponent: bool, ma
 	return if (sign) { 4 } else { 3 };
 }
 
-export function float_to_bits(f: float32) -> u32
+export function float_to_bits(f: f32) -> u32
 {
 	return std::bit_cast(u32, f);
 }
 
-export function double_to_bits(d: float64) -> u64
+export function double_to_bits(d: f64) -> u64
 {
 	return std::bit_cast(u64, d);
 }
@@ -145,9 +145,9 @@ export function copy_short_special_str(mut result: *mut u8, sign: bool, exponent
 	}
 }
 
-export function bits_to_double(bits: u64) -> float64
+export function bits_to_double(bits: u64) -> f64
 {
-	return std::bit_cast(float64, bits);
+	return std::bit_cast(f64, bits);
 }
 
 export enum parse_result

@@ -298,64 +298,66 @@
 	export consteval max: u64 = 0xffff'ffff'ffff'ffffu64;
 }
 
-@__builtin export struct float32
+@__builtin export struct f32
 {
-	@__builtin export operator + (x: float32) -> float32;
-	@__builtin export operator - (x: float32) -> float32;
+	@__builtin export operator + (x: f32) -> f32;
+	@__builtin export operator - (x: f32) -> f32;
 
-	@__builtin_assign export operator = (lhs: &mut float32, rhs: float32) -> &mut float32;
-	@__builtin export operator + (lhs: float32, rhs: float32) -> float32;
-	@__builtin export operator += (lhs: &mut float32, rhs: float32) -> &mut float32;
-	@__builtin export operator - (lhs: float32, rhs: float32) -> float32;
-	@__builtin export operator -= (lhs: &mut float32, rhs: float32) -> &mut float32;
-	@__builtin export operator * (lhs: float32, rhs: float32) -> float32;
-	@__builtin export operator *= (lhs: &mut float32, rhs: float32) -> &mut float32;
-	@__builtin export operator / (lhs: float32, rhs: float32) -> float32;
-	@__builtin export operator /= (lhs: &mut float32, rhs: float32) -> &mut float32;
-	@__builtin export operator == (lhs: float32, rhs: float32) -> bool;
-	@__builtin export operator != (lhs: float32, rhs: float32) -> bool;
-	@__builtin export operator < (lhs: float32, rhs: float32) -> bool;
-	@__builtin export operator <= (lhs: float32, rhs: float32) -> bool;
-	@__builtin export operator > (lhs: float32, rhs: float32) -> bool;
-	@__builtin export operator >= (lhs: float32, rhs: float32) -> bool;
+	@__builtin_assign export operator = (lhs: &mut f32, rhs: f32) -> &mut f32;
+	@__builtin export operator + (lhs: f32, rhs: f32) -> f32;
+	@__builtin export operator - (lhs: f32, rhs: f32) -> f32;
+	@__builtin export operator * (lhs: f32, rhs: f32) -> f32;
+	@__builtin export operator / (lhs: f32, rhs: f32) -> f32;
+	@__builtin export operator += (lhs: &mut f32, rhs: f32) -> &mut f32;
+	@__builtin export operator -= (lhs: &mut f32, rhs: f32) -> &mut f32;
+	@__builtin export operator *= (lhs: &mut f32, rhs: f32) -> &mut f32;
+	@__builtin export operator /= (lhs: &mut f32, rhs: f32) -> &mut f32;
 
-	export consteval min: float32 = 1.1754944e-38f32;
-	export consteval denorm_min: float32 = 1e-45f32;
-	export consteval epsilon: float32 = 1.1920929e-07f32;
-	export consteval max: float32 = 3.4028235e+38f32;
+	@__builtin export operator == (lhs: f32, rhs: f32) -> bool;
+	@__builtin export operator != (lhs: f32, rhs: f32) -> bool;
+	@__builtin export operator <  (lhs: f32, rhs: f32) -> bool;
+	@__builtin export operator <= (lhs: f32, rhs: f32) -> bool;
+	@__builtin export operator >  (lhs: f32, rhs: f32) -> bool;
+	@__builtin export operator >= (lhs: f32, rhs: f32) -> bool;
 
-	export consteval inf: float32 = ((1.0f32 / 0.0f32));
-	export consteval nan: float32 = ((__builtin_abs_f32(((0.0f32 / 0.0f32)))));
+	export consteval min: f32 = 1.1754944e-38f32;
+	export consteval denorm_min: f32 = 1e-45f32;
+	export consteval epsilon: f32 = 1.1920929e-07f32;
+	export consteval max: f32 = 3.4028235e+38f32;
+
+	export consteval inf: f32 = ((1.0f32 / 0.0f32));
+	export consteval nan: f32 = ((__builtin_abs_f32(((0.0f32 / 0.0f32)))));
 }
 
-@__builtin export struct float64
+@__builtin export struct f64
 {
-	@__builtin export operator + (x: float64) -> float64;
-	@__builtin export operator - (x: float64) -> float64;
+	@__builtin export operator + (x: f64) -> f64;
+	@__builtin export operator - (x: f64) -> f64;
 
-	@__builtin_assign export operator = (lhs: &mut float64, rhs: float64) -> &mut float64;
-	@__builtin export operator + (lhs: float64, rhs: float64) -> float64;
-	@__builtin export operator += (lhs: &mut float64, rhs: float64) -> &mut float64;
-	@__builtin export operator - (lhs: float64, rhs: float64) -> float64;
-	@__builtin export operator -= (lhs: &mut float64, rhs: float64) -> &mut float64;
-	@__builtin export operator * (lhs: float64, rhs: float64) -> float64;
-	@__builtin export operator *= (lhs: &mut float64, rhs: float64) -> &mut float64;
-	@__builtin export operator / (lhs: float64, rhs: float64) -> float64;
-	@__builtin export operator /= (lhs: &mut float64, rhs: float64) -> &mut float64;
-	@__builtin export operator == (lhs: float64, rhs: float64) -> bool;
-	@__builtin export operator != (lhs: float64, rhs: float64) -> bool;
-	@__builtin export operator < (lhs: float64, rhs: float64) -> bool;
-	@__builtin export operator <= (lhs: float64, rhs: float64) -> bool;
-	@__builtin export operator > (lhs: float64, rhs: float64) -> bool;
-	@__builtin export operator >= (lhs: float64, rhs: float64) -> bool;
+	@__builtin_assign export operator = (lhs: &mut f64, rhs: f64) -> &mut f64;
+	@__builtin export operator + (lhs: f64, rhs: f64) -> f64;
+	@__builtin export operator - (lhs: f64, rhs: f64) -> f64;
+	@__builtin export operator * (lhs: f64, rhs: f64) -> f64;
+	@__builtin export operator / (lhs: f64, rhs: f64) -> f64;
+	@__builtin export operator += (lhs: &mut f64, rhs: f64) -> &mut f64;
+	@__builtin export operator -= (lhs: &mut f64, rhs: f64) -> &mut f64;
+	@__builtin export operator *= (lhs: &mut f64, rhs: f64) -> &mut f64;
+	@__builtin export operator /= (lhs: &mut f64, rhs: f64) -> &mut f64;
 
-	export consteval min: float64 = 2.2250738585072014e-308f64;
-	export consteval denorm_min: float64 = 5e-324f64;
-	export consteval epsilon: float64 = 2.220446049250313e-16f64;
-	export consteval max: float64 = 1.7976931348623157e+308f64;
+	@__builtin export operator == (lhs: f64, rhs: f64) -> bool;
+	@__builtin export operator != (lhs: f64, rhs: f64) -> bool;
+	@__builtin export operator <  (lhs: f64, rhs: f64) -> bool;
+	@__builtin export operator <= (lhs: f64, rhs: f64) -> bool;
+	@__builtin export operator >  (lhs: f64, rhs: f64) -> bool;
+	@__builtin export operator >= (lhs: f64, rhs: f64) -> bool;
 
-	export consteval inf: float64 = ((1.0f64 / 0.0f64));
-	export consteval nan: float64 = ((__builtin_abs_f64(((0.0f64 / 0.0f64)))));
+	export consteval min: f64 = 2.2250738585072014e-308f64;
+	export consteval denorm_min: f64 = 5e-324f64;
+	export consteval epsilon: f64 = 2.220446049250313e-16f64;
+	export consteval max: f64 = 1.7976931348623157e+308f64;
+
+	export consteval inf: f64 = ((1.0f64 / 0.0f64));
+	export consteval nan: f64 = ((__builtin_abs_f64(((0.0f64 / 0.0f64)))));
 }
 
 @__builtin export struct char
@@ -1025,25 +1027,25 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin export function __builtin_memmove(dest: ?*mut void, src: ?*void, n: usize);
 @__builtin export function __builtin_memset(dest: ?*mut void, val: u8, n: usize);
 
-@__builtin export function __builtin_isnan_f32(x: float32) -> bool;
-@__builtin export function __builtin_isnan_f64(x: float64) -> bool;
-@__builtin export function __builtin_isinf_f32(x: float32) -> bool;
-@__builtin export function __builtin_isinf_f64(x: float64) -> bool;
-@__builtin export function __builtin_isfinite_f32(x: float32) -> bool;
-@__builtin export function __builtin_isfinite_f64(x: float64) -> bool;
-@__builtin export function __builtin_isnormal_f32(x: float32) -> bool;
-@__builtin export function __builtin_isnormal_f64(x: float64) -> bool;
-@__builtin export function __builtin_issubnormal_f32(x: float32) -> bool;
-@__builtin export function __builtin_issubnormal_f64(x: float64) -> bool;
-@__builtin export function __builtin_iszero_f32(x: float32) -> bool;
-@__builtin export function __builtin_iszero_f64(x: float64) -> bool;
+@__builtin export function __builtin_isnan_f32(x: f32) -> bool;
+@__builtin export function __builtin_isnan_f64(x: f64) -> bool;
+@__builtin export function __builtin_isinf_f32(x: f32) -> bool;
+@__builtin export function __builtin_isinf_f64(x: f64) -> bool;
+@__builtin export function __builtin_isfinite_f32(x: f32) -> bool;
+@__builtin export function __builtin_isfinite_f64(x: f64) -> bool;
+@__builtin export function __builtin_isnormal_f32(x: f32) -> bool;
+@__builtin export function __builtin_isnormal_f64(x: f64) -> bool;
+@__builtin export function __builtin_issubnormal_f32(x: f32) -> bool;
+@__builtin export function __builtin_issubnormal_f64(x: f64) -> bool;
+@__builtin export function __builtin_iszero_f32(x: f32) -> bool;
+@__builtin export function __builtin_iszero_f64(x: f64) -> bool;
 
-@__builtin @symbol_name("nextafterf") export function __builtin_nextafter_f32(from: float32, to: float32) -> float32;
-@__builtin @symbol_name("nextafter")  export function __builtin_nextafter_f64(from: float64, to: float64) -> float64;
+@__builtin @symbol_name("nextafterf") export function __builtin_nextafter_f32(from: f32, to: f32) -> f32;
+@__builtin @symbol_name("nextafter")  export function __builtin_nextafter_f64(from: f64, to: f64) -> f64;
 
-@__builtin export function __builtin_nextup_f32(x: float32) -> float32
+@__builtin export function __builtin_nextup_f32(x: f32) -> f32
 {
-	let is_nan_or_inf = __builtin_isnan_f32(x) || x == float32.inf;
+	let is_nan_or_inf = __builtin_isnan_f32(x) || x == f32.inf;
 	let is_zero = x == 0.0f32;
 
 	let x_bits = __builtin_bit_cast(u32, x);
@@ -1052,12 +1054,12 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	let d = __builtin_arithmetic_shift_right_u32(normalized_zero, 31) | 1u32;
 	let finite_result = ((normalized_zero + d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
-	return __builtin_bit_cast(float32, result);
+	return __builtin_bit_cast(f32, result);
 }
 
-@__builtin export function __builtin_nextup_f64(x: float64) -> float64
+@__builtin export function __builtin_nextup_f64(x: f64) -> f64
 {
-	let is_nan_or_inf = __builtin_isnan_f64(x) || x == float64.inf;
+	let is_nan_or_inf = __builtin_isnan_f64(x) || x == f64.inf;
 	let is_zero = x == 0.0f64;
 
 	let x_bits = __builtin_bit_cast(u64, x);
@@ -1066,12 +1068,12 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	let d = __builtin_arithmetic_shift_right_u64(normalized_zero, 63) | 1u64;
 	let finite_result = ((normalized_zero + d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
-	return __builtin_bit_cast(float64, result);
+	return __builtin_bit_cast(f64, result);
 }
 
-@__builtin export function __builtin_nextdown_f32(x: float32) -> float32
+@__builtin export function __builtin_nextdown_f32(x: f32) -> f32
 {
-	let is_nan_or_inf = __builtin_isnan_f32(x) || x == -float32.inf;
+	let is_nan_or_inf = __builtin_isnan_f32(x) || x == -f32.inf;
 	let is_zero = x == 0.0f32;
 
 	let x_bits = __builtin_bit_cast(u32, x);
@@ -1080,12 +1082,12 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	let d = __builtin_arithmetic_shift_right_u32(normalized_zero, 31) | 1u32;
 	let finite_result = ((normalized_zero - d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
-	return __builtin_bit_cast(float32, result);
+	return __builtin_bit_cast(f32, result);
 }
 
-@__builtin export function __builtin_nextdown_f64(x: float64) -> float64
+@__builtin export function __builtin_nextdown_f64(x: f64) -> f64
 {
-	let is_nan_or_inf = __builtin_isnan_f64(x) || x == -float64.inf;
+	let is_nan_or_inf = __builtin_isnan_f64(x) || x == -f64.inf;
 	let is_zero = x == 0.0f64;
 
 	let x_bits = __builtin_bit_cast(u64, x);
@@ -1094,15 +1096,15 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	let d = __builtin_arithmetic_shift_right_u64(normalized_zero, 63) | 1u64;
 	let finite_result = ((normalized_zero - d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
-	return __builtin_bit_cast(float64, result);
+	return __builtin_bit_cast(f64, result);
 }
 
 @__builtin export function __builtin_abs_i8 (n: i8)  -> i8;
 @__builtin export function __builtin_abs_i16(n: i16) -> i16;
 @__builtin export function __builtin_abs_i32(n: i32) -> i32;
 @__builtin export function __builtin_abs_i64(n: i64) -> i64;
-@__builtin export function __builtin_abs_f32(x: float32) -> float32;
-@__builtin export function __builtin_abs_f64(x: float64) -> float64;
+@__builtin export function __builtin_abs_f32(x: f32) -> f32;
+@__builtin export function __builtin_abs_f64(x: f64) -> f64;
 
 @__builtin export function __builtin_min_i8 (a: i8,  b: i8)  -> i8;
 @__builtin export function __builtin_min_i16(a: i16, b: i16) -> i16;
@@ -1112,8 +1114,8 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin export function __builtin_min_u16(a: u16, b: u16) -> u16;
 @__builtin export function __builtin_min_u32(a: u32, b: u32) -> u32;
 @__builtin export function __builtin_min_u64(a: u64, b: u64) -> u64;
-@__builtin export function __builtin_min_f32(a: float32, b: float32) -> float32;
-@__builtin export function __builtin_min_f64(a: float64, b: float64) -> float64;
+@__builtin export function __builtin_min_f32(a: f32, b: f32) -> f32;
+@__builtin export function __builtin_min_f64(a: f64, b: f64) -> f64;
 
 @__builtin export function __builtin_max_i8 (a: i8,  b: i8)  -> i8;
 @__builtin export function __builtin_max_i16(a: i16, b: i16) -> i16;
@@ -1123,69 +1125,69 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin export function __builtin_max_u16(a: u16, b: u16) -> u16;
 @__builtin export function __builtin_max_u32(a: u32, b: u32) -> u32;
 @__builtin export function __builtin_max_u64(a: u64, b: u64) -> u64;
-@__builtin export function __builtin_max_f32(a: float32, b: float32) -> float32;
-@__builtin export function __builtin_max_f64(a: float64, b: float64) -> float64;
+@__builtin export function __builtin_max_f32(a: f32, b: f32) -> f32;
+@__builtin export function __builtin_max_f64(a: f64, b: f64) -> f64;
 
-@__builtin @symbol_name("expf") export function __builtin_exp_f32(x: float32) -> float32;
-@__builtin @symbol_name("exp")  export function __builtin_exp_f64(x: float64) -> float64;
-@__builtin @symbol_name("exp2f") export function __builtin_exp2_f32(x: float32) -> float32;
-@__builtin @symbol_name("exp2")  export function __builtin_exp2_f64(x: float64) -> float64;
-@__builtin @symbol_name("expm1f") export function __builtin_expm1_f32(x: float32) -> float32;
-@__builtin @symbol_name("expm1")  export function __builtin_expm1_f64(x: float64) -> float64;
-@__builtin @symbol_name("logf") export function __builtin_log_f32(x: float32) -> float32;
-@__builtin @symbol_name("log")  export function __builtin_log_f64(x: float64) -> float64;
-@__builtin @symbol_name("log10f") export function __builtin_log10_f32(x: float32) -> float32;
-@__builtin @symbol_name("log10")  export function __builtin_log10_f64(x: float64) -> float64;
-@__builtin @symbol_name("log2f") export function __builtin_log2_f32(x: float32) -> float32;
-@__builtin @symbol_name("log2")  export function __builtin_log2_f64(x: float64) -> float64;
-@__builtin @symbol_name("log1pf") export function __builtin_log1p_f32(x: float32) -> float32;
-@__builtin @symbol_name("log1p")  export function __builtin_log1p_f64(x: float64) -> float64;
+@__builtin @symbol_name("expf") export function __builtin_exp_f32(x: f32) -> f32;
+@__builtin @symbol_name("exp")  export function __builtin_exp_f64(x: f64) -> f64;
+@__builtin @symbol_name("exp2f") export function __builtin_exp2_f32(x: f32) -> f32;
+@__builtin @symbol_name("exp2")  export function __builtin_exp2_f64(x: f64) -> f64;
+@__builtin @symbol_name("expm1f") export function __builtin_expm1_f32(x: f32) -> f32;
+@__builtin @symbol_name("expm1")  export function __builtin_expm1_f64(x: f64) -> f64;
+@__builtin @symbol_name("logf") export function __builtin_log_f32(x: f32) -> f32;
+@__builtin @symbol_name("log")  export function __builtin_log_f64(x: f64) -> f64;
+@__builtin @symbol_name("log10f") export function __builtin_log10_f32(x: f32) -> f32;
+@__builtin @symbol_name("log10")  export function __builtin_log10_f64(x: f64) -> f64;
+@__builtin @symbol_name("log2f") export function __builtin_log2_f32(x: f32) -> f32;
+@__builtin @symbol_name("log2")  export function __builtin_log2_f64(x: f64) -> f64;
+@__builtin @symbol_name("log1pf") export function __builtin_log1p_f32(x: f32) -> f32;
+@__builtin @symbol_name("log1p")  export function __builtin_log1p_f64(x: f64) -> f64;
 
-@__builtin @symbol_name("sqrtf") export function __builtin_sqrt_f32(x: float32) -> float32;
-@__builtin @symbol_name("sqrt")  export function __builtin_sqrt_f64(x: float64) -> float64;
-@__builtin @symbol_name("powf") export function __builtin_pow_f32(x: float32, y: float32) -> float32;
-@__builtin @symbol_name("pow")  export function __builtin_pow_f64(x: float64, y: float64) -> float64;
-@__builtin @symbol_name("cbrtf") export function __builtin_cbrt_f32(x: float32) -> float32;
-@__builtin @symbol_name("cbrt")  export function __builtin_cbrt_f64(x: float64) -> float64;
-@__builtin @symbol_name("hypotf") export function __builtin_hypot_f32(x: float32, y: float32) -> float32;
-@__builtin @symbol_name("hypot")  export function __builtin_hypot_f64(x: float64, y: float64) -> float64;
+@__builtin @symbol_name("sqrtf") export function __builtin_sqrt_f32(x: f32) -> f32;
+@__builtin @symbol_name("sqrt")  export function __builtin_sqrt_f64(x: f64) -> f64;
+@__builtin @symbol_name("powf") export function __builtin_pow_f32(x: f32, y: f32) -> f32;
+@__builtin @symbol_name("pow")  export function __builtin_pow_f64(x: f64, y: f64) -> f64;
+@__builtin @symbol_name("cbrtf") export function __builtin_cbrt_f32(x: f32) -> f32;
+@__builtin @symbol_name("cbrt")  export function __builtin_cbrt_f64(x: f64) -> f64;
+@__builtin @symbol_name("hypotf") export function __builtin_hypot_f32(x: f32, y: f32) -> f32;
+@__builtin @symbol_name("hypot")  export function __builtin_hypot_f64(x: f64, y: f64) -> f64;
 
-@__builtin @symbol_name("sinf") export function __builtin_sin_f32(x: float32) -> float32;
-@__builtin @symbol_name("sin")  export function __builtin_sin_f64(x: float64) -> float64;
-@__builtin @symbol_name("cosf") export function __builtin_cos_f32(x: float32) -> float32;
-@__builtin @symbol_name("cos")  export function __builtin_cos_f64(x: float64) -> float64;
-@__builtin @symbol_name("tanf") export function __builtin_tan_f32(x: float32) -> float32;
-@__builtin @symbol_name("tan")  export function __builtin_tan_f64(x: float64) -> float64;
-@__builtin @symbol_name("asinf") export function __builtin_asin_f32(x: float32) -> float32;
-@__builtin @symbol_name("asin")  export function __builtin_asin_f64(x: float64) -> float64;
-@__builtin @symbol_name("acosf") export function __builtin_acos_f32(x: float32) -> float32;
-@__builtin @symbol_name("acos")  export function __builtin_acos_f64(x: float64) -> float64;
-@__builtin @symbol_name("atanf") export function __builtin_atan_f32(x: float32) -> float32;
-@__builtin @symbol_name("atan")  export function __builtin_atan_f64(x: float64) -> float64;
-@__builtin @symbol_name("atan2f") export function __builtin_atan2_f32(y: float32, x: float32) -> float32;
-@__builtin @symbol_name("atan2")  export function __builtin_atan2_f64(y: float64, x: float64) -> float64;
+@__builtin @symbol_name("sinf") export function __builtin_sin_f32(x: f32) -> f32;
+@__builtin @symbol_name("sin")  export function __builtin_sin_f64(x: f64) -> f64;
+@__builtin @symbol_name("cosf") export function __builtin_cos_f32(x: f32) -> f32;
+@__builtin @symbol_name("cos")  export function __builtin_cos_f64(x: f64) -> f64;
+@__builtin @symbol_name("tanf") export function __builtin_tan_f32(x: f32) -> f32;
+@__builtin @symbol_name("tan")  export function __builtin_tan_f64(x: f64) -> f64;
+@__builtin @symbol_name("asinf") export function __builtin_asin_f32(x: f32) -> f32;
+@__builtin @symbol_name("asin")  export function __builtin_asin_f64(x: f64) -> f64;
+@__builtin @symbol_name("acosf") export function __builtin_acos_f32(x: f32) -> f32;
+@__builtin @symbol_name("acos")  export function __builtin_acos_f64(x: f64) -> f64;
+@__builtin @symbol_name("atanf") export function __builtin_atan_f32(x: f32) -> f32;
+@__builtin @symbol_name("atan")  export function __builtin_atan_f64(x: f64) -> f64;
+@__builtin @symbol_name("atan2f") export function __builtin_atan2_f32(y: f32, x: f32) -> f32;
+@__builtin @symbol_name("atan2")  export function __builtin_atan2_f64(y: f64, x: f64) -> f64;
 
-@__builtin @symbol_name("sinhf") export function __builtin_sinh_f32(x: float32) -> float32;
-@__builtin @symbol_name("sinh")  export function __builtin_sinh_f64(x: float64) -> float64;
-@__builtin @symbol_name("coshf") export function __builtin_cosh_f32(x: float32) -> float32;
-@__builtin @symbol_name("cosh")  export function __builtin_cosh_f64(x: float64) -> float64;
-@__builtin @symbol_name("tanhf") export function __builtin_tanh_f32(x: float32) -> float32;
-@__builtin @symbol_name("tanh")  export function __builtin_tanh_f64(x: float64) -> float64;
-@__builtin @symbol_name("asinhf") export function __builtin_asinh_f32(x: float32) -> float32;
-@__builtin @symbol_name("asinh")  export function __builtin_asinh_f64(x: float64) -> float64;
-@__builtin @symbol_name("acoshf") export function __builtin_acosh_f32(x: float32) -> float32;
-@__builtin @symbol_name("acosh")  export function __builtin_acosh_f64(x: float64) -> float64;
-@__builtin @symbol_name("atanhf") export function __builtin_atanh_f32(x: float32) -> float32;
-@__builtin @symbol_name("atanh")  export function __builtin_atanh_f64(x: float64) -> float64;
+@__builtin @symbol_name("sinhf") export function __builtin_sinh_f32(x: f32) -> f32;
+@__builtin @symbol_name("sinh")  export function __builtin_sinh_f64(x: f64) -> f64;
+@__builtin @symbol_name("coshf") export function __builtin_cosh_f32(x: f32) -> f32;
+@__builtin @symbol_name("cosh")  export function __builtin_cosh_f64(x: f64) -> f64;
+@__builtin @symbol_name("tanhf") export function __builtin_tanh_f32(x: f32) -> f32;
+@__builtin @symbol_name("tanh")  export function __builtin_tanh_f64(x: f64) -> f64;
+@__builtin @symbol_name("asinhf") export function __builtin_asinh_f32(x: f32) -> f32;
+@__builtin @symbol_name("asinh")  export function __builtin_asinh_f64(x: f64) -> f64;
+@__builtin @symbol_name("acoshf") export function __builtin_acosh_f32(x: f32) -> f32;
+@__builtin @symbol_name("acosh")  export function __builtin_acosh_f64(x: f64) -> f64;
+@__builtin @symbol_name("atanhf") export function __builtin_atanh_f32(x: f32) -> f32;
+@__builtin @symbol_name("atanh")  export function __builtin_atanh_f64(x: f64) -> f64;
 
-@__builtin @symbol_name("erff") export function __builtin_erf_f32(x: float32) -> float32;
-@__builtin @symbol_name("erf")  export function __builtin_erf_f64(x: float64) -> float64;
-@__builtin @symbol_name("erfcf") export function __builtin_erfc_f32(x: float32) -> float32;
-@__builtin @symbol_name("erfc")  export function __builtin_erfc_f64(x: float64) -> float64;
-@__builtin @symbol_name("tgammaf") export function __builtin_tgamma_f32(x: float32) -> float32;
-@__builtin @symbol_name("tgamma")  export function __builtin_tgamma_f64(x: float64) -> float64;
-@__builtin @symbol_name("lgammaf") export function __builtin_lgamma_f32(x: float32) -> float32;
-@__builtin @symbol_name("lgamma")  export function __builtin_lgamma_f64(x: float64) -> float64;
+@__builtin @symbol_name("erff") export function __builtin_erf_f32(x: f32) -> f32;
+@__builtin @symbol_name("erf")  export function __builtin_erf_f64(x: f64) -> f64;
+@__builtin @symbol_name("erfcf") export function __builtin_erfc_f32(x: f32) -> f32;
+@__builtin @symbol_name("erfc")  export function __builtin_erfc_f64(x: f64) -> f64;
+@__builtin @symbol_name("tgammaf") export function __builtin_tgamma_f32(x: f32) -> f32;
+@__builtin @symbol_name("tgamma")  export function __builtin_tgamma_f64(x: f64) -> f64;
+@__builtin @symbol_name("lgammaf") export function __builtin_lgamma_f32(x: f32) -> f32;
+@__builtin @symbol_name("lgamma")  export function __builtin_lgamma_f64(x: f64) -> f64;
 
 @__builtin export function __builtin_bitreverse_u8 (n: u8)  -> u8;
 @__builtin export function __builtin_bitreverse_u16(n: u16) -> u16;

@@ -8010,8 +8010,8 @@ void emit_global_type_symbol(ast::type_info const &info, bitcode_context &contex
 	case ast::type_info::u16_:
 	case ast::type_info::u32_:
 	case ast::type_info::u64_:
-	case ast::type_info::float32_:
-	case ast::type_info::float64_:
+	case ast::type_info::f32_:
+	case ast::type_info::f64_:
 	case ast::type_info::char_:
 	case ast::type_info::bool_:
 		break;
@@ -8051,8 +8051,8 @@ void emit_global_type(ast::type_info const &info, bitcode_context &context)
 	case ast::type_info::u16_:
 	case ast::type_info::u32_:
 	case ast::type_info::u64_:
-	case ast::type_info::float32_:
-	case ast::type_info::float64_:
+	case ast::type_info::f32_:
+	case ast::type_info::f64_:
 	case ast::type_info::char_:
 	case ast::type_info::bool_:
 		break;

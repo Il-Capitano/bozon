@@ -1,6 +1,6 @@
 // error: unable to match type 'i64' to 'i32'
-// note: while matching expression of type '[i64, float64, str]' to '[i32, float64, str]'
+// note: while matching expression of type '[i64, f64, str]' to '[i32, f64, str]'
 function test()
 {
-	let _: [i32, float64, str] = [i64, float64, str]();
+	let _: [i32, f64, str] = [i64, f64, str]();
 }

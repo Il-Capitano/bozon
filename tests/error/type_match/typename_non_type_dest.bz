@@ -5,5 +5,5 @@ function test1(val: i32);
 
 function test()
 {
-	test1(float32);
+	test1(f32);
 }

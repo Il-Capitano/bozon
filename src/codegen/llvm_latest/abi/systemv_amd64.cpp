@@ -211,7 +211,7 @@ std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::syste
 
 	if (first_register_types.size() == 1)
 	{
-		// special case for single types (e.g. pointers or float64)
+		// special case for single types (e.g. pointers or f64)
 		result.first = first_register_types[0].first;
 	}
 	else if (
@@ -220,7 +220,7 @@ std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::syste
 		&& first_register_types[1].first->isFloatTy()
 	)
 	{
-		// special case for 2 float32's
+		// special case for 2 f32's
 		result.first = llvm::FixedVectorType::get(first_register_types[0].first, 2);
 	}
 	else
@@ -233,7 +233,7 @@ std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::syste
 
 	if (second_register_types.size() == 1)
 	{
-		// special case for single types (e.g. pointers or float64)
+		// special case for single types (e.g. pointers or f64)
 		result.second = second_register_types[0].first;
 	}
 	else if (
@@ -242,7 +242,7 @@ std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::syste
 		&& second_register_types[1].first->isFloatTy()
 	)
 	{
-		// special case for 2 float32's
+		// special case for 2 f32's
 		result.second = llvm::FixedVectorType::get(second_register_types[0].first, 2);
 	}
 	else

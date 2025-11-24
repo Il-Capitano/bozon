@@ -1201,7 +1201,7 @@ struct type_info
 	{
 		i8_, i16_, i32_, i64_,
 		u8_, u16_, u32_, u64_,
-		float32_, float64_,
+		f32_, f64_,
 		char_, str_,
 		bool_, null_t_,
 
@@ -1456,14 +1456,14 @@ constexpr bool is_signed_integer_kind(uint8_t kind)
 
 constexpr bool is_floating_point_kind(uint8_t kind)
 {
-	return kind == ast::type_info::float32_
-		|| kind == ast::type_info::float64_;
+	return kind == ast::type_info::f32_
+		|| kind == ast::type_info::f64_;
 }
 
 constexpr bool is_arithmetic_kind(uint8_t kind)
 {
 	return kind >= ast::type_info::i8_
-		&& kind <= ast::type_info::float64_;
+		&& kind <= ast::type_info::f64_;
 }
 
 inline bz::u8string_view get_type_name_from_kind(uint8_t kind)
@@ -1478,8 +1478,8 @@ inline bz::u8string_view get_type_name_from_kind(uint8_t kind)
 	case type_info::u16_:  return "u16";
 	case type_info::u32_:  return "u32";
 	case type_info::u64_:  return "u64";
-	case type_info::float32_: return "float32";
-	case type_info::float64_: return "float64";
+	case type_info::f32_: return "f32";
+	case type_info::f64_: return "f64";
 	case type_info::char_:    return "char";
 	case type_info::str_:     return "str";
 	case type_info::bool_:    return "bool";
@@ -1520,10 +1520,10 @@ struct type_from_type_info<type_info::u64_>
 { using type = uint64_t; };
 
 template<>
-struct type_from_type_info<type_info::float32_>
+struct type_from_type_info<type_info::f32_>
 { using type = float32_t; };
 template<>
-struct type_from_type_info<type_info::float64_>
+struct type_from_type_info<type_info::f64_>
 { using type = float64_t; };
 
 
@@ -1558,10 +1558,10 @@ struct type_info_from_type<uint64_t>
 
 template<>
 struct type_info_from_type<float32_t>
-{ static constexpr auto value = type_info::float32_; };
+{ static constexpr auto value = type_info::f32_; };
 template<>
 struct type_info_from_type<float64_t>
-{ static constexpr auto value = type_info::float64_; };
+{ static constexpr auto value = type_info::f64_; };
 
 } // namespace internal
 

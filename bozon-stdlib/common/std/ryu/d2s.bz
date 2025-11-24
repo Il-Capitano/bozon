@@ -439,7 +439,7 @@ function d2d_small_int(
 	return true;
 }
 
-export function d2s_buffered_n(f: float64, result: *mut u8) -> i32
+export function d2s_buffered_n(f: f64, result: *mut u8) -> i32
 {
 	// Step 1: Decode the floating-point number, and unify normalized and subnormal cases.
 	let bits = double_to_bits(f);
@@ -482,7 +482,7 @@ export function d2s_buffered_n(f: float64, result: *mut u8) -> i32
 	return to_chars(v, ieeeSign, result);
 }
 
-export function d2s_buffered(f: float64, result: *mut u8)
+export function d2s_buffered(f: f64, result: *mut u8)
 {
 	let index = d2s_buffered_n(f, result);
 
@@ -490,7 +490,7 @@ export function d2s_buffered(f: float64, result: *mut u8)
 	*(result + index) = 0;
 }
 
-export function d2s(f: float64) -> ?*mut u8
+export function d2s(f: f64) -> ?*mut u8
 {
 	let buffer_alloc = std::libc::malloc(25);
 	if (buffer_alloc == null)
@@ -507,7 +507,7 @@ export function d2s(f: float64) -> ?*mut u8
 // addition by me
 //
 
-export function d2s_shortest(f: float64, result: *mut u8) -> *mut u8
+export function d2s_shortest(f: f64, result: *mut u8) -> *mut u8
 {
 	// Step 1: Decode the floating-point number, and unify normalized and subnormal cases.
 	let bits = double_to_bits(f);

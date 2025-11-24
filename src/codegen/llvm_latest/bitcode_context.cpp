@@ -415,10 +415,10 @@ llvm::Type *bitcode_context::get_uint64_t(void) const
 { return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::u64_)]; }
 
 llvm::Type *bitcode_context::get_float32_t(void) const
-{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::float32_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::f32_)]; }
 
 llvm::Type *bitcode_context::get_float64_t(void) const
-{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::float64_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::f64_)]; }
 
 llvm::Type *bitcode_context::get_str_t(void) const
 { return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::str_)]; }

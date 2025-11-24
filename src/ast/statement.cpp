@@ -564,20 +564,20 @@ enclosing_scope_t type_info::get_enclosing_scope(void) const noexcept
 	return this->scope.get_global().parent;
 }
 
-static_assert(type_info::i8_      ==  0);
-static_assert(type_info::i16_     ==  1);
-static_assert(type_info::i32_     ==  2);
-static_assert(type_info::i64_     ==  3);
-static_assert(type_info::u8_      ==  4);
-static_assert(type_info::u16_     ==  5);
-static_assert(type_info::u32_     ==  6);
-static_assert(type_info::u64_     ==  7);
-static_assert(type_info::float32_ ==  8);
-static_assert(type_info::float64_ ==  9);
-static_assert(type_info::char_    == 10);
-static_assert(type_info::str_     == 11);
-static_assert(type_info::bool_    == 12);
-static_assert(type_info::null_t_  == 13);
+static_assert(type_info::i8_     ==  0);
+static_assert(type_info::i16_    ==  1);
+static_assert(type_info::i32_    ==  2);
+static_assert(type_info::i64_    ==  3);
+static_assert(type_info::u8_     ==  4);
+static_assert(type_info::u16_    ==  5);
+static_assert(type_info::u32_    ==  6);
+static_assert(type_info::u64_    ==  7);
+static_assert(type_info::f32_    ==  8);
+static_assert(type_info::f64_    ==  9);
+static_assert(type_info::char_   == 10);
+static_assert(type_info::str_    == 11);
+static_assert(type_info::bool_   == 12);
+static_assert(type_info::null_t_ == 13);
 
 uint64_t decl_enum::get_unique_values_count(void) const
 {

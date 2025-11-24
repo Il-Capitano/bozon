@@ -2663,20 +2663,20 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 				bz::vector<source_highlight> notes;
 				if (global_data::do_verbose)
 				{
-					notes.push_back(make_note("at most 9 significant digits are allowed for 'float32'"));
+					notes.push_back(make_note("at most 9 significant digits are allowed for 'f32'"));
 				}
-				this->report_error(literal, "unable to parse 'float32' literal value, it has too many digits", std::move(notes));
+				this->report_error(literal, "unable to parse 'f32' literal value, it has too many digits", std::move(notes));
 			}
 			else if (!std::isfinite(num.get()))
 			{
 				this->report_warning(
 					warning_kind::float_overflow, literal,
-					bz::format("'float32' literal value was parsed as {}", num.get())
+					bz::format("'f32' literal value was parsed as {}", num.get())
 				);
 			}
 
 			float32_t const value = num.has_value() ? num.get() : 0.0f;
-			auto const info = this->get_builtin_type_info(ast::type_info::float32_);
+			auto const info = this->get_builtin_type_info(ast::type_info::f32_);
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
@@ -2698,20 +2698,20 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 				bz::vector<source_highlight> notes;
 				if (global_data::do_verbose)
 				{
-					notes.push_back(make_note("at most 17 significant digits are allowed for 'float64'"));
+					notes.push_back(make_note("at most 17 significant digits are allowed for 'f64'"));
 				}
-				this->report_error(literal, "unable to parse 'float64' literal value, it has too many digits", std::move(notes));
+				this->report_error(literal, "unable to parse 'f64' literal value, it has too many digits", std::move(notes));
 			}
 			else if (!std::isfinite(num.get()))
 			{
 				this->report_warning(
 					warning_kind::float_overflow, literal,
-					bz::format("'float64' literal value was parsed as {}", num.get())
+					bz::format("'f64' literal value was parsed as {}", num.get())
 				);
 			}
 
 			auto const value = num.has_value() ? num.get() : 0.0;
-			auto const info = this->get_builtin_type_info(ast::type_info::float64_);
+			auto const info = this->get_builtin_type_info(ast::type_info::f64_);
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
@@ -6264,9 +6264,9 @@ static ast::expression make_builtin_default_construction(
 			case ast::type_info::u32_:
 			case ast::type_info::u64_:
 				return ast::constant_value(uint64_t());
-			case ast::type_info::float32_:
+			case ast::type_info::f32_:
 				return ast::constant_value(float32_t());
-			case ast::type_info::float64_:
+			case ast::type_info::f64_:
 				return ast::constant_value(float64_t());
 			case ast::type_info::char_:
 				return ast::constant_value(bz::u8char());

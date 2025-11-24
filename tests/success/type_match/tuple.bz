@@ -10,11 +10,11 @@ function test1(arr: [??: i64]) -> i32
 
 function test()
 {
-	let _: [i32, float64, str] = [ -5, 1.2, "hello" ];
-	let _: [i32, float64, ...str] = [ -5, 1.2 ];
-	static_assert(typeof _ == [i32, float64]);
-	let _: [i32, float64, ...str] = [ -5, 1.2, "hi", "hello", "greetings" ];
-	static_assert(typeof _ == [i32, float64, str, str, str]);
+	let _: [i32, f64, str] = [ -5, 1.2, "hello" ];
+	let _: [i32, f64, ...str] = [ -5, 1.2 ];
+	static_assert(typeof _ == [i32, f64]);
+	let _: [i32, f64, ...str] = [ -5, 1.2, "hi", "hello", "greetings" ];
+	static_assert(typeof _ == [i32, f64, str, str, str]);
 	let _: [i32] = [ -5i8 ];
 	let _: [i8] = [ -5 ];
 	let _: #[i8] = [ -5 ];
@@ -41,11 +41,11 @@ function test()
 	static_assert(typeof _ == [1: i8]);
 
 	let _: auto = [ 1, 2.3, "hello" ];
-	static_assert(typeof _ == [i32, float64, str]);
+	static_assert(typeof _ == [i32, f64, str]);
 	let _: #auto = [ 1, 2.3, "hello" ];
-	static_assert(typeof _ == [i32, float64, str]);
+	static_assert(typeof _ == [i32, f64, str]);
 	let _: #mut auto = [ 1, 2.3, "hello" ];
-	static_assert(typeof _ == mut [i32, float64, str]);
+	static_assert(typeof _ == mut [i32, f64, str]);
 	let _: ##auto = [ 1, 2.3, "hello" ];
-	static_assert(typeof _ == [i32, float64, str]);
+	static_assert(typeof _ == [i32, f64, str]);
 }

@@ -5,5 +5,5 @@ function test1(T: [: mut typename]);
 
 function test()
 {
-	test1([: float64]);
+	test1([: f64]);
 }

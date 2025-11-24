@@ -47,7 +47,7 @@ static_assert(0.1 + 0.2 != 0.3);
 static_assert(std::meta::is_tuple([i32, str]));
 static_assert(std::meta::tuple_value_type([i32, str], 0) == i32);
 static_assert(std::meta::tuple_value_type([i32, str], 1) == str);
-static_assert(std::meta::concat_tuple_types([i32, str], [float64]) == [i32, str, float64]);
+static_assert(std::meta::concat_tuple_types([i32, str], [f64]) == [i32, str, f64]);
 
 struct foo_t
 {
@@ -115,8 +115,8 @@ function main(args: [: str]) -> i32
 	(foo_t.foo)(3);
 	// (foo_t.foo)(3, 4);
 
-	consteval t = [i32, float64, [str]]();
-	static_assert(typeof t == [i32, float64, [str]]);
+	consteval t = [i32, f64, [str]]();
+	static_assert(typeof t == [i32, f64, [str]]);
 	static_assert(t[0] == 0 && t[1] == 0.0 && t[2, 0] == "");
 	let arr = [17, 17: foo_t]();
 	for (let &val in arr[0])
@@ -397,9 +397,9 @@ function main(args: [: str]) -> i32
 	std::print("\n==== end main ====\n");
 	std::print("e  = {}\n", std::e);
 	std::print("pi = {}\n", std::pi);
-	std::print("e  = {}\n", std::e as float32);
-	std::print("pi = {}\n", std::pi as float32);
-	static_assert(typeof std::exp(1.0) == float64);
+	std::print("e  = {}\n", std::e as f32);
+	std::print("pi = {}\n", std::pi as f32);
+	static_assert(typeof std::exp(1.0) == f64);
 
 	std::print("{} {} {}\n", 1e14, 1.532e-3, 3e-300);
 	std::print("============\n");
@@ -407,13 +407,13 @@ function main(args: [: str]) -> i32
 	static_assert(0.1 + 0.2 != 0.3);
 	std::print("{} != {}\n", 0.1 + 0.2, 0.3);
 
-	let constants: [3: float64] = [ std::pi, std::tau, std::e ];
-	std::print("{}\n", constants as [: float64]);
+	let constants: [3: f64] = [ std::pi, std::tau, std::e ];
+	std::print("{}\n", constants as [: f64]);
 
 	let [...[vals]] = [ [ std::pi ], [ std::tau ], [ std::e ] ];
 	std::assert([ ...vals ][0] == std::pi);
-	let arr: [3, 1: float64] = [ [ std::pi ], [ std::tau ], [ std::e ] ];
-	// let arr: [3, 1: float64] = [ [ 3.141592653589793 ], [ 6.283185307179586 ], [ 2.718281828459045 ] ];
+	let arr: [3, 1: f64] = [ [ std::pi ], [ std::tau ], [ std::e ] ];
+	// let arr: [3, 1: f64] = [ [ 3.141592653589793 ], [ 6.283185307179586 ], [ 2.718281828459045 ] ];
 	std::print("{}\n", arr);
 	std::print("{}\n", 1e15);
 	mut t = [ 3, 3.234, "hello" ];
@@ -729,7 +729,7 @@ function ref_test() -> void
 function cast_test() -> void
 {
 	let f32 = 1.5f32;
-	std::print("{}\n", f32 as float64);
+	std::print("{}\n", f32 as f64);
 	std::print("{}\n", f32 as i32);
 	std::print("{}\n", 'A' as u32);
 	std::print("{}\n", ' ' as u32);
@@ -850,7 +850,7 @@ function scope_test() -> void
 
 //	-1 as u64;
 
-	mut f: float64;
+	mut f: f64;
 //	f = 3;
 //	u32 = 1.0;
 	f = 1.0;
@@ -1078,7 +1078,7 @@ function array_test() -> void
 	arr[0] = 3;
 	std::print("arr[0] = {}\n", arr[0]);
 
-	mut multi_d_array: [4, 4: float64];
+	mut multi_d_array: [4, 4: f64];
 	std::print("multi_d_array[0, 0] = {}\n", multi_d_array[0, 0]);
 	multi_d_array[0, 0] = 123.0;
 	std::print("multi_d_array[0, 0] = {}\n", multi_d_array[0, 0]);
@@ -1091,7 +1091,7 @@ function array_test() -> void
 		let &mut arr = multi_d_array[i];
 		for (mut j = 0; j < 4; ++j)
 		{
-			arr[j] = ((i + 1) * (j + 1)) as float64;
+			arr[j] = ((i + 1) * (j + 1)) as f64;
 		}
 	}
 
@@ -1119,12 +1119,12 @@ function array_test() -> void
 //	let arr: [10: consteval i32];
 
 	let matrix = {
-		mut result: [4, 4: float64];
+		mut result: [4, 4: f64];
 		for (mut i = 0; i < 4; ++i)
 		{
 			for (mut j = 0; j < 4; ++j)
 			{
-				result[i, j] = (i * 4 + j) as float64 + 0.33;
+				result[i, j] = (i * 4 + j) as f64 + 0.33;
 			}
 		}
 		result
@@ -1132,7 +1132,7 @@ function array_test() -> void
 	print_matrix(matrix);
 }
 
-function print_matrix(arr: [4, 4: float64]) -> void
+function print_matrix(arr: [4, 4: f64]) -> void
 {
 	std::print("[");
 	for (mut i = 0; i < 4; ++i)
@@ -1169,7 +1169,7 @@ function arr2_tester() -> void
 
 function tuple_test() -> void
 {
-	@maybe_unused mut t: [i32, float64];
+	@maybe_unused mut t: [i32, f64];
 	std::print("{}\n", [2, 2.234][1]);
 
 	consteval t = [0, 1.53, "hello"];
@@ -1178,8 +1178,8 @@ function tuple_test() -> void
 	@maybe_unused let &num = t[1];
 	@maybe_unused let t = [t, 234.5f32, 0b0000'1000];
 	let t: [i32, auto] = [123, 3.5f32];
-	static_assert(typeof t == [i32, float32]);
-	@maybe_unused let t: [i32, float64] = [0, 2.5];
+	static_assert(typeof t == [i32, f32]);
+	@maybe_unused let t: [i32, f64] = [0, 2.5];
 
 	mut t = [ 123, 123.123, "HELLO!!"];
 	let &mut i32 = t[0];
@@ -1191,7 +1191,7 @@ function tuple_test() -> void
 	std::print("[{}, {}, {}]\n", t[0], t[1], t[2]);
 	s = "hello?";
 	std::print("[{}, {}, {}]\n", t[0], t[1], t[2]);
-	f64 = i32 as float64 + 0.456;
+	f64 = i32 as ::f64 + 0.456;
 	std::print("[{}, {}, {}]\n", t[0], t[1], t[2]);
 	let val = (f64 * 3.2) + (3.2 * f64);
 	std::print("{}\n", val);
@@ -1199,7 +1199,7 @@ function tuple_test() -> void
 
 function optimization_test() -> void
 {
-	function do_calculation(x: float64) -> float64
+	function do_calculation(x: f64) -> f64
 	{
 		mut res = (x * 3.4) + (3.4 * x);
 		res *= res;
@@ -1415,8 +1415,8 @@ function add_tester()
 
 struct vec2
 {
-	.x: float64;
-	.y: float64;
+	.x: f64;
+	.y: f64;
 }
 
 operator + (lhs: vec2, rhs: vec2) -> vec2
@@ -1448,7 +1448,7 @@ function struct_test()
 	std::print(get_vec().x);
 	get_vec().x = 3.4;
 	static_assert(typeof get_vec() == &vec2d);
-	static_assert(typeof get_vec().x == &float64);
+	static_assert(typeof get_vec().x == &f64);
 	*/
 	// let v = get_vec();
 	// let v = modify_vec(v);
@@ -1508,11 +1508,11 @@ function complex_test()
 
 	let p: *mut i32 = __builtin_pointer_cast(*mut i32, std::libc::malloc(4u).get_value());
 	std::libc::free(p);
-	let p: *mut float32 = __builtin_pointer_cast(*mut float32, std::libc::malloc(4u).get_value());
+	let p: *mut f32 = __builtin_pointer_cast(*mut f32, std::libc::malloc(4u).get_value());
 	std::libc::free(p);
 	type_test(i32, 3);
 	type_test(u32, 2);
-	type_test(float32, 1);
+	type_test(f32, 1);
 	// type_test(str, 1);
 	i32.type_test(3);
 	static_assert(typeof type_test(char, 10) == char);
@@ -1705,7 +1705,7 @@ export function string_test()
 
 struct vec3<T: typename>
 {
-	static_assert(T == float32 || T == float64, "only floating point types are allowed");
+	static_assert(T == f32 || T == f64, "only floating point types are allowed");
 
 	type value_type = T;
 
@@ -1721,10 +1721,10 @@ function abs(v: #vec3) -> (typeof v).value_type
 
 function generic_type_test()
 {
-	let v = vec3<float32>[ 1.0f32, 0.0f32, 0.0f32 ];
+	let v = vec3<f32>[ 1.0f32, 0.0f32, 0.0f32 ];
 
-	static_assert(typeof v.x == float32);
-	static_assert((typeof v).value_type == float32);
+	static_assert(typeof v.x == f32);
+	static_assert((typeof v).value_type == f32);
 
 	std::print("v = ({}, {}, {})\n", v.x, v.y, v.z);
 	std::print("|v| = {}\n", v.abs());

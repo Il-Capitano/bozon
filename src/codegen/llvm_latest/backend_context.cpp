@@ -40,8 +40,8 @@ get_llvm_builtin_types(llvm::LLVMContext &context)
 		llvm::Type::getInt16Ty(context),  // u16_
 		llvm::Type::getInt32Ty(context),  // u32_
 		llvm::Type::getInt64Ty(context),  // u64_
-		llvm::Type::getFloatTy(context),  // float32_
-		llvm::Type::getDoubleTy(context), // float64_
+		llvm::Type::getFloatTy(context),  // f32_
+		llvm::Type::getDoubleTy(context), // f64_
 		llvm::Type::getInt32Ty(context),  // char_
 		str_t,                            // str_
 		llvm::Type::getInt1Ty(context),   // bool_

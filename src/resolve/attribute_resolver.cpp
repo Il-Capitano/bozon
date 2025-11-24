@@ -188,10 +188,10 @@ static ast::type_info::decl_function_ptr make_builtin_default_constructor(ast::t
 		case ast::type_info::u64_:
 			result->body.intrinsic_kind = ast::function_body::u64_default_constructor;
 			break;
-		case ast::type_info::float32_:
+		case ast::type_info::f32_:
 			result->body.intrinsic_kind = ast::function_body::f32_default_constructor;
 			break;
-		case ast::type_info::float64_:
+		case ast::type_info::f64_:
 			result->body.intrinsic_kind = ast::function_body::f64_default_constructor;
 			break;
 		case ast::type_info::char_:
@@ -256,10 +256,10 @@ static bool apply_builtin(
 		case ast::type_info::u64_:
 			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::i64);
 			break;
-		case ast::type_info::float32_:
+		case ast::type_info::f32_:
 			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::f32);
 			break;
-		case ast::type_info::float64_:
+		case ast::type_info::f64_:
 			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::f64);
 			break;
 		case ast::type_info::bool_:

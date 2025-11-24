@@ -788,7 +788,7 @@ static void execute_cmp_f32_check(instructions::cmp_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::nan_compare,
 			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} {} {}' with type 'float32' evaluates to {}", lhs, op, rhs, result)
+			bz::format("comparing nans in expression '{} {} {}' with type 'f32' evaluates to {}", lhs, op, rhs, result)
 		);
 	}
 	else if (std::isnan(lhs) || std::isnan(rhs))
@@ -798,7 +798,7 @@ static void execute_cmp_f32_check(instructions::cmp_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::nan_compare,
 			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} {} {}' with type 'float32' evaluates to {}", lhs, op, rhs, result)
+			bz::format("comparing against nan in expression '{} {} {}' with type 'f32' evaluates to {}", lhs, op, rhs, result)
 		);
 	}
 }
@@ -812,7 +812,7 @@ static void execute_cmp_f64_check(instructions::cmp_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::nan_compare,
 			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} {} {}' with type 'float64' evaluates to {}", lhs, op, rhs, result)
+			bz::format("comparing nans in expression '{} {} {}' with type 'f64' evaluates to {}", lhs, op, rhs, result)
 		);
 	}
 	else if (std::isnan(lhs) || std::isnan(rhs))
@@ -822,7 +822,7 @@ static void execute_cmp_f64_check(instructions::cmp_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::nan_compare,
 			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} {} {}' with type 'float64' evaluates to {}", lhs, op, rhs, result)
+			bz::format("comparing against nan in expression '{} {} {}' with type 'f64' evaluates to {}", lhs, op, rhs, result)
 		);
 	}
 }
@@ -1144,7 +1144,7 @@ static void execute_add_f32_check(instructions::add_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'float32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'f32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1157,7 +1157,7 @@ static void execute_add_f64_check(instructions::add_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'float64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'f64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1338,7 +1338,7 @@ static void execute_sub_f32_check(instructions::sub_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'float32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'f32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1351,7 +1351,7 @@ static void execute_sub_f64_check(instructions::sub_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'float64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'f64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1545,7 +1545,7 @@ static void execute_mul_f32_check(instructions::mul_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'float32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'f32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1558,7 +1558,7 @@ static void execute_mul_f64_check(instructions::mul_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'float64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'f64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1817,7 +1817,7 @@ static void execute_div_f32_check(instructions::div_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'float32' results in {}", lhs, rhs, result)
+			bz::format("dividing by zero in expression '{} / {}' with type 'f32' results in {}", lhs, rhs, result)
 		);
 	}
 	else if (float_operation_overflowed(lhs, rhs, result))
@@ -1825,7 +1825,7 @@ static void execute_div_f32_check(instructions::div_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} / {}' with type 'float32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} / {}' with type 'f32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1838,7 +1838,7 @@ static void execute_div_f64_check(instructions::div_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'float64' results in {}", lhs, rhs, result)
+			bz::format("dividing by zero in expression '{} / {}' with type 'f64' results in {}", lhs, rhs, result)
 		);
 	}
 	else if (float_operation_overflowed(lhs, rhs, result))
@@ -1846,7 +1846,7 @@ static void execute_div_f64_check(instructions::div_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} / {}' with type 'float64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} / {}' with type 'f64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -2494,7 +2494,7 @@ static void execute_abs_f32_check(instructions::abs_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			"calling 'abs' with nan of type 'float32' results in nan"
+			"calling 'abs' with nan of type 'f32' results in nan"
 		);
 	}
 }
@@ -2506,7 +2506,7 @@ static void execute_abs_f64_check(instructions::abs_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			"calling 'abs' with nan of type 'float64' results in nan"
+			"calling 'abs' with nan of type 'f64' results in nan"
 		);
 	}
 }
@@ -2568,7 +2568,7 @@ static void execute_min_f32_check(instructions::min_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			bz::format("calling 'min' with {} and {} of type 'float32'", x, y)
+			bz::format("calling 'min' with {} and {} of type 'f32'", x, y)
 		);
 	}
 }
@@ -2580,7 +2580,7 @@ static void execute_min_f64_check(instructions::min_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			bz::format("calling 'min' with {} and {} of type 'float64'", x, y)
+			bz::format("calling 'min' with {} and {} of type 'f64'", x, y)
 		);
 	}
 }
@@ -2642,7 +2642,7 @@ static void execute_max_f32_check(instructions::max_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			bz::format("calling 'max' with {} and {} of type 'float32'", x, y)
+			bz::format("calling 'max' with {} and {} of type 'f32'", x, y)
 		);
 	}
 }
@@ -2654,7 +2654,7 @@ static void execute_max_f64_check(instructions::max_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			bz::format("calling 'max' with {} and {} of type 'float64'", x, y)
+			bz::format("calling 'max' with {} and {} of type 'f64'", x, y)
 		);
 	}
 }

@@ -48,8 +48,8 @@ bool is_special_array_type(ast::typespec_view type)
 	case ast::type_info::u16_:
 	case ast::type_info::u32_:
 	case ast::type_info::u64_:
-	case ast::type_info::float32_:
-	case ast::type_info::float64_:
+	case ast::type_info::f32_:
+	case ast::type_info::f64_:
 		return true;
 	default:
 		return false;
@@ -2027,9 +2027,9 @@ static ast::constant_value get_default_constructed_value(
 		case ast::type_info::u32_:
 		case ast::type_info::u64_:
 			return context.add_constant_uint_array(ast::arena_vector<uint64_t>(size, 0));
-		case ast::type_info::float32_:
+		case ast::type_info::f32_:
 			return context.add_constant_float32_array(ast::arena_vector<float32_t>(size, 0.0f));
-		case ast::type_info::float64_:
+		case ast::type_info::f64_:
 			return context.add_constant_float64_array(ast::arena_vector<float64_t>(size, 0.0));
 		default:
 		{
@@ -2063,9 +2063,9 @@ static ast::constant_value get_default_constructed_value(
 					case ast::type_info::u32_:
 					case ast::type_info::u64_:
 						return ast::constant_value(uint64_t());
-					case ast::type_info::float32_:
+					case ast::type_info::f32_:
 						return ast::constant_value(float32_t());
-					case ast::type_info::float64_:
+					case ast::type_info::f64_:
 						return ast::constant_value(float64_t());
 					case ast::type_info::char_:
 						return ast::constant_value(bz::u8char());
@@ -2319,7 +2319,7 @@ static ast::constant_value evaluate_cast(
 		}
 	}
 
-	case ast::type_info::float32_:
+	case ast::type_info::f32_:
 		switch (value.kind())
 		{
 		static_assert(ast::constant_value::variant_count == 19);
@@ -2334,7 +2334,7 @@ static ast::constant_value evaluate_cast(
 		default:
 			bz_unreachable;
 		}
-	case ast::type_info::float64_:
+	case ast::type_info::f64_:
 		switch (value.kind())
 		{
 		static_assert(ast::constant_value::variant_count == 19);
@@ -2532,7 +2532,7 @@ static ast::constant_value consteval_guaranteed_special_array_value(
 			return ast::constant_value();
 		}
 	}
-	case ast::type_info::float32_:
+	case ast::type_info::f32_:
 	{
 		auto float32_array = ast::arena_vector<float32_t>();
 		float32_array.reserve(size);
@@ -2556,7 +2556,7 @@ static ast::constant_value consteval_guaranteed_special_array_value(
 			return ast::constant_value();
 		}
 	}
-	case ast::type_info::float64_:
+	case ast::type_info::f64_:
 	{
 		auto float64_array = ast::arena_vector<float64_t>();
 		float64_array.reserve(size);
@@ -2643,7 +2643,7 @@ static ast::constant_value get_special_array_value(
 		}
 		return context.add_constant_uint_array(std::move(uint_array));
 	}
-	case ast::type_info::float32_:
+	case ast::type_info::f32_:
 	{
 		auto float32_array = ast::arena_vector<float32_t>();
 		float32_array.reserve(size);
@@ -2663,7 +2663,7 @@ static ast::constant_value get_special_array_value(
 		}
 		return context.add_constant_float32_array(std::move(float32_array));
 	}
-	case ast::type_info::float64_:
+	case ast::type_info::f64_:
 	{
 		auto float64_array = ast::arena_vector<float64_t>();
 		float64_array.reserve(size);

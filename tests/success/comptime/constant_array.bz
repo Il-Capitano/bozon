@@ -2,16 +2,16 @@ struct S
 {
 	.i: i32;
 	.j: u32;
-	.x: float32;
-	.y: float64;
+	.x: f32;
+	.y: f64;
 	.ai0: [10: i32];
 	.ai1: [100: i32];
 	.aj0: [10: u32];
 	.aj1: [100: u32];
-	.ax0: [10: float32];
-	.ax1: [100: float32];
-	.ay0: [10: float64];
-	.ay1: [100: float64];
+	.ax0: [10: f32];
+	.ax1: [100: f32];
+	.ay0: [10: f64];
+	.ay1: [100: f64];
 }
 
 function test()
@@ -21,10 +21,10 @@ function test()
 		let _ = [100: i32]();
 		let _ = [10: u32]();
 		let _ = [100: u32]();
-		let _ = [10: float32]();
-		let _ = [100: float32]();
-		let _ = [10: float64]();
-		let _ = [100: float64]();
+		let _ = [10: f32]();
+		let _ = [100: f32]();
+		let _ = [10: f64]();
+		let _ = [100: f64]();
 		let _ = [10: S]();
 		let _ = [100: S]();
 	});

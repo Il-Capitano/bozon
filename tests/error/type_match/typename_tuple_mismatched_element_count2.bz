@@ -5,5 +5,5 @@ function test1(T: [typename, typename, typename]);
 
 function test()
 {
-	test1([i32, float64]);
+	test1([i32, f64]);
 }

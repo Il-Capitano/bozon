@@ -195,7 +195,7 @@ do {                                                                            
 		0
 	})");
 	x_fail(R"({
-		@symbol_name("exp") function my_exp(x: float64) -> float64;
+		@symbol_name("exp") function my_exp(x: f64) -> f64;
 		let e = my_exp(1.0);
 		0
 	})");

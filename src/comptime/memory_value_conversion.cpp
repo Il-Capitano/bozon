@@ -449,9 +449,9 @@ constant_value_from_object_result_t constant_value_from_object(
 				return { ast::constant_value(static_cast<uint64_t>(load<uint32_t>(mem, endianness))), {} };
 			case ast::type_info::u64_:
 				return { ast::constant_value(static_cast<uint64_t>(load<uint64_t>(mem, endianness))), {} };
-			case ast::type_info::float32_:
+			case ast::type_info::f32_:
 				return { ast::constant_value(load<float32_t>(mem, endianness)), {} };
-			case ast::type_info::float64_:
+			case ast::type_info::f64_:
 				return { ast::constant_value(load<float64_t>(mem, endianness)), {} };
 			case ast::type_info::char_:
 				return { ast::constant_value(load<bz::u8char>(mem, endianness)), {} };
@@ -724,14 +724,14 @@ constant_value_from_object_result_t constant_value_from_object(
 				result.value = context.codegen_ctx->parse_ctx->add_constant_uint_array(std::move(result_array));
 				break;
 			}
-			case ast::type_info::float32_:
+			case ast::type_info::f32_:
 			{
 				auto result_array = ast::arena_vector<float32_t>(info.size);
 				load_array<float32_t>(mem, result_array.data(), info.size, endianness);
 				result.value = context.codegen_ctx->parse_ctx->add_constant_float32_array(std::move(result_array));
 				break;
 			}
-			case ast::type_info::float64_:
+			case ast::type_info::f64_:
 			{
 				auto result_array = ast::arena_vector<float64_t>(info.size);
 				load_array<float64_t>(mem, result_array.data(), info.size, endianness);

@@ -186,11 +186,11 @@ xx_compiles(                                                                    
 	x_const_expr("42u64", ast::type_info::u64_, ast::constant_value_kind::uint, 42);
 	x_err("128i8");
 
-	x_const_expr("1.5", ast::type_info::float64_, ast::constant_value_kind::float64, 1.5);
+	x_const_expr("1.5", ast::type_info::f64_, ast::constant_value_kind::float64, 1.5);
 	x_err("1.5f123456");
 
-	x_const_expr("1.5f32", ast::type_info::float32_, ast::constant_value_kind::float32, 1.5f);
-	x_const_expr("1.5f64", ast::type_info::float64_, ast::constant_value_kind::float64, 1.5);
+	x_const_expr("1.5f32", ast::type_info::f32_, ast::constant_value_kind::float32, 1.5f);
+	x_const_expr("1.5f64", ast::type_info::f64_, ast::constant_value_kind::float64, 1.5);
 
 	x_const_expr("0x42", ast::type_info::u32_, ast::constant_value_kind::uint, 0x42);
 	x_const_expr("0x1234'5678'90ab'cdef", ast::type_info::u64_, ast::constant_value_kind::uint, 0x1234'5678'90ab'cdef);
@@ -395,8 +395,8 @@ xx(                                                                           \
 		pair_t{ "u64_", ast::type_info::u64_ },
 	};
 	bz::array floating_point_vars = {
-		pair_t{ "f32", ast::type_info::float32_ },
-		pair_t{ "f64", ast::type_info::float64_ },
+		pair_t{ "f32_", ast::type_info::f32_ },
+		pair_t{ "f64_", ast::type_info::f64_ },
 	};
 	bz::array char_vars = {
 		pair_t{ "c", ast::type_info::char_ },
@@ -415,8 +415,8 @@ xx(                                                                           \
 	declare_var("u16_", "mut u16", "");
 	declare_var("u32_", "mut u32", "");
 	declare_var("u64_", "mut u64", "");
-	declare_var("f32", "mut float32", "");
-	declare_var("f64", "mut float64", "");
+	declare_var("f32_", "mut f32", "");
+	declare_var("f64_", "mut f64", "");
 	declare_var("c", "mut char", "");
 	declare_var("s", "mut str", "");
 	declare_var("p", "mut *i32", "&i32_");
@@ -1089,7 +1089,7 @@ static bz::optional<bz::u8string> parse_typespec_test(ctx::global_context &globa
 	x("&i32", tokens.begin() + 2, ast::ts_lvalue_reference);
 
 	x("[]", tokens.begin() + 2, ast::ts_tuple);
-	x("[i32, float64, __null_t]", tokens.begin() + 7, ast::ts_tuple);
+	x("[i32, f64, __null_t]", tokens.begin() + 7, ast::ts_tuple);
 
 	// x("function() -> void", tokens.begin() + 5, ast::ts_function);
 	// x("function(i32, i32) -> void", tokens.begin() + 8, ast::ts_function);

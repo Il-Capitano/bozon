@@ -215,7 +215,7 @@ float32_t safe_binary_plus(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} + {}' with type 'float32' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} + {}' with type 'f32' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -237,7 +237,7 @@ float64_t safe_binary_plus(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} + {}' with type 'float64' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} + {}' with type 'f64' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -402,7 +402,7 @@ float32_t safe_binary_minus(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} - {}' with type 'float32' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} - {}' with type 'f32' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -424,7 +424,7 @@ float64_t safe_binary_minus(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} - {}' with type 'float64' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} - {}' with type 'f64' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -537,7 +537,7 @@ float32_t safe_binary_multiply(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} * {}' with type 'float32' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} * {}' with type 'f32' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -559,7 +559,7 @@ float64_t safe_binary_multiply(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} * {}' with type 'float64' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} * {}' with type 'f64' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -633,7 +633,7 @@ float32_t safe_binary_divide(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_divide_by_zero,
 			src_tokens,
-			bz::format("dividing by zero in expression '{} / {}' with type 'float32' results in {}", lhs, rhs, result)
+			bz::format("dividing by zero in expression '{} / {}' with type 'f32' results in {}", lhs, rhs, result)
 		);
 	}
 	else if (
@@ -645,7 +645,7 @@ float32_t safe_binary_divide(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} / {}' with type 'float32' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} / {}' with type 'f32' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -663,7 +663,7 @@ float64_t safe_binary_divide(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_divide_by_zero,
 			src_tokens,
-			bz::format("dividing by zero in expression '{} / {}' with type 'float64' results in {}", lhs, rhs, result)
+			bz::format("dividing by zero in expression '{} / {}' with type 'f64' results in {}", lhs, rhs, result)
 		);
 	}
 	else if (
@@ -675,7 +675,7 @@ float64_t safe_binary_divide(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} / {}' with type 'float64' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} / {}' with type 'f64' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -756,7 +756,7 @@ bool safe_binary_equals(
 			context.report_parenthesis_suppressed_warning(
 				2 - paren_level, ctx::warning_kind::nan_compare,
 				src_tokens,
-				bz::format("comparing nans in expression '{} == {}' with type 'float32' evaluates to false", lhs, rhs)
+				bz::format("comparing nans in expression '{} == {}' with type 'f32' evaluates to false", lhs, rhs)
 			);
 		}
 		else if (std::isnan(lhs) || std::isnan(rhs))
@@ -764,7 +764,7 @@ bool safe_binary_equals(
 			context.report_parenthesis_suppressed_warning(
 				2 - paren_level, ctx::warning_kind::nan_compare,
 				src_tokens,
-				bz::format("comparing against nan in expression '{} == {}' with type 'float32' evaluates to false", lhs, rhs)
+				bz::format("comparing against nan in expression '{} == {}' with type 'f32' evaluates to false", lhs, rhs)
 			);
 		}
 	}
@@ -784,7 +784,7 @@ bool safe_binary_equals(
 			context.report_parenthesis_suppressed_warning(
 				2 - paren_level, ctx::warning_kind::nan_compare,
 				src_tokens,
-				bz::format("comparing nans in expression '{} == {}' with type 'float64' evaluates to false", lhs, rhs)
+				bz::format("comparing nans in expression '{} == {}' with type 'f64' evaluates to false", lhs, rhs)
 			);
 		}
 		else if (std::isnan(lhs) || std::isnan(rhs))
@@ -792,7 +792,7 @@ bool safe_binary_equals(
 			context.report_parenthesis_suppressed_warning(
 				2 - paren_level, ctx::warning_kind::nan_compare,
 				src_tokens,
-				bz::format("comparing against nan in expression '{} == {}' with type 'float64' evaluates to false", lhs, rhs)
+				bz::format("comparing against nan in expression '{} == {}' with type 'f64' evaluates to false", lhs, rhs)
 			);
 		}
 	}

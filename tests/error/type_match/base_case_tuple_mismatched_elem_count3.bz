@@ -1,6 +1,6 @@
-// error: unable to match type '[i32]' to '[i32, float64, ...str]'
+// error: unable to match type '[i32]' to '[i32, f64, ...str]'
 // note: mismatched tuple element counts: 1 and 3
 function test()
 {
-	let _: [i32, float64, ...str] = [i32]();
+	let _: [i32, f64, ...str] = [i32]();
 }

@@ -298,7 +298,7 @@ function to_chars(v: floating_decimal_32, sign: bool, result: *mut u8) -> i32
 	return index;
 }
 
-export function f2s_buffered_n(f: float32, result: *mut u8) -> i32
+export function f2s_buffered_n(f: f32, result: *mut u8) -> i32
 {
 	// Step 1: Decode the floating-point number, and unify normalized and subnormal cases.
 	let bits = float_to_bits(f);
@@ -318,7 +318,7 @@ export function f2s_buffered_n(f: float32, result: *mut u8) -> i32
 	return to_chars(v, ieeeSign, result);
 }
 
-export function f2s_buffered(f: float32, result: *mut u8)
+export function f2s_buffered(f: f32, result: *mut u8)
 {
 	let index = f2s_buffered_n(f, result);
 
@@ -326,7 +326,7 @@ export function f2s_buffered(f: float32, result: *mut u8)
 	*(result + index) = 0;
 }
 
-export function f2s(f: float32) -> ?*mut u8
+export function f2s(f: f32) -> ?*mut u8
 {
 	let buffer_alloc = std::libc::malloc(16);
 	if (buffer_alloc == null)
@@ -343,7 +343,7 @@ export function f2s(f: float32) -> ?*mut u8
 // addition by me
 //
 
-export function f2s_shortest(f: float32, result: *mut u8) -> *mut u8
+export function f2s_shortest(f: f32, result: *mut u8) -> *mut u8
 {
 	// Step 1: Decode the floating-point number, and unify normalized and subnormal cases.
 	let bits = float_to_bits(f);

@@ -5,7 +5,7 @@ function test1([...elems]) -> [sizeof ...elems: i32]
 
 function test()
 {
-	let t = [i32, float32, str, float64, usize]();
+	let t = [i32, f32, str, f64, usize]();
 	test1(t);
 	static_assert(typeof test1(t) == [5: i32]);
 

@@ -22,8 +22,8 @@ llvm::Type *get_llvm_base_type(ast::ts_base_type const &base_t, Context &context
 	case ast::type_info::u32_:
 	case ast::type_info::i64_:
 	case ast::type_info::u64_:
-	case ast::type_info::float32_:
-	case ast::type_info::float64_:
+	case ast::type_info::f32_:
+	case ast::type_info::f64_:
 	case ast::type_info::char_:
 	case ast::type_info::str_:
 	case ast::type_info::bool_:

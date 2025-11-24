@@ -98,16 +98,16 @@ function test()
 	static_assert(typeof _ == i32);
 	let _: auto = 'a';
 	static_assert(typeof _ == char);
-	let _: auto = [i32, float64, str, char]();
-	static_assert(typeof _ == [i32, float64, str, char]);
+	let _: auto = [i32, f64, str, char]();
+	static_assert(typeof _ == [i32, f64, str, char]);
 	let _: auto = [5: char]();
 	static_assert(typeof _ == [5: char]);
 
 	// generic base type deduction
 	let _: generic_type_t = generic_type_t<i32>();
 	static_assert(typeof _ == generic_type_t<i32>);
-	let _: generic_type_t = generic_type_t<float64>();
-	static_assert(typeof _ == generic_type_t<float64>);
+	let _: generic_type_t = generic_type_t<f64>();
+	static_assert(typeof _ == generic_type_t<f64>);
 	let _: generic_type_t = generic_type_t<str>();
 	static_assert(typeof _ == generic_type_t<str>);
 	let _: generic_type_t = generic_type_t<[i32, char]>();
@@ -165,10 +165,10 @@ function test()
 	static_assert(typeof _ == [3: i32]);
 
 	// tuple
-	let _: [i32, float64, str] = [i32, float64, str]();
-	let _: [i32, float64, ...str] = [i32, float64, str]();
-	let _: [i32, float64, ...str] = [i32, float64]();
-	let _: [i32, float64, ...str] = [i32, float64, str, str]();
+	let _: [i32, f64, str] = [i32, f64, str]();
+	let _: [i32, f64, ...str] = [i32, f64, str]();
+	let _: [i32, f64, ...str] = [i32, f64]();
+	let _: [i32, f64, ...str] = [i32, f64, str, str]();
 
 	// array to slice
 	mut arr = [4: i32]();

@@ -39,12 +39,12 @@ function max32(a: i32, b: i32) -> i32
 	return if (a < b) { b } else { a };
 }
 
-function int64Bits2Double(bits: u64) -> float64
+function int64Bits2Double(bits: u64) -> f64
 {
-	return std::bit_cast(float64, bits);
+	return std::bit_cast(f64, bits);
 }
 
-export function s2d_n(buffer: *u8, len: i32, result: *mut float64) -> parse_result
+export function s2d_n(buffer: *u8, len: i32, result: *mut f64) -> parse_result
 {
 	if (len == 0)
 	{
@@ -244,7 +244,7 @@ function c_strlen(mut c_str: *u8) -> i32
 	return result;
 }
 
-export function s2d(buffer: ?*u8, result: *mut float64) -> parse_result
+export function s2d(buffer: ?*u8, result: *mut f64) -> parse_result
 {
 	if (buffer == null)
 	{
@@ -254,7 +254,7 @@ export function s2d(buffer: ?*u8, result: *mut float64) -> parse_result
 	return s2d_n(buffer, c_strlen(buffer), result);
 }
 
-export function s2d_str(s: str, result: *mut float64) -> parse_result
+export function s2d_str(s: str, result: *mut f64) -> parse_result
 {
 	if (s.size() == 0)
 	{

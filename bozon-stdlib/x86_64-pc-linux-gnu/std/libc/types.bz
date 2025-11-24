@@ -1,8 +1,8 @@
 export type _Bool = ::bool;
 export type bool = ::bool;
 export type char = u8;
-export type double = float64;
-export type float = float32;
+export type double = f64;
+export type float = f32;
 export type int = i32;
 export type long = i64;
 export type long_long = i64;
