@@ -15,7 +15,7 @@ constexpr bz::u8string_view cc_default = "clang";
 constexpr bz::u8string_view os_exe_extension = ".exe";
 #else
 constexpr bz::u8string_view bozon_default = "bin/linux-debug/bozon";
-constexpr bz::u8string_view cc_default = "clang-17";
+constexpr bz::u8string_view cc_default = "clang-21";
 constexpr bz::u8string_view os_exe_extension = ".out";
 #endif
 

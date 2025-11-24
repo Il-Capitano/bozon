@@ -319,7 +319,7 @@
 		},
 		"run_tests.out": {
 			"dependencies": [ "scripts/run_tests.cpp", "ryu_format.linux.o" ],
-			"command": "clang++-17 -std=c++20 -Isrc -Iinclude scripts/run_tests.cpp ryu_format.linux.o -o run_tests.out"
+			"command": "clang++-21 -std=c++20 -Isrc -Iinclude scripts/run_tests.cpp ryu_format.linux.o -o run_tests.out"
 		},
 		"run-tests": {
 			"windows": {
@@ -329,7 +329,7 @@
 			},
 			"linux": {
 				"dependencies": [ "run_tests.out" ],
-				"command": "./run_tests.out -- -g -fsanitize=address,undefined -fuse-ld=lld-17 -lm",
+				"command": "./run_tests.out -- -g -fsanitize=address,undefined -fuse-ld=lld-21 -lm",
 				"is_file": false
 			}
 		},
@@ -341,7 +341,7 @@
 			},
 			"linux": {
 				"dependencies": [ "run_tests.out" ],
-				"command": "./run_tests.out --bozon=bin/linux-debug/no-sanitize-bozon -- -fuse-ld=lld-17 -lm",
+				"command": "./run_tests.out --bozon=bin/linux-debug/no-sanitize-bozon -- -fuse-ld=lld-21 -lm",
 				"is_file": false
 			}
 		},
