@@ -9,7 +9,7 @@ function test(b: bool)
 	}
 }
 
-function main() -> int32
+function main() -> i32
 {
 	test(false);
 	if (!counting_resource_is_valid())

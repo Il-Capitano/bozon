@@ -1,18 +1,18 @@
 function main()
 {
-	let s = __builtin_slice_from_ptrs(null as ?*int32, null as ?*int32);
+	let s = __builtin_slice_from_ptrs(null as ?*i32, null as ?*i32);
 	if (__builtin_slice_begin_ptr(s) != null) unreachable;
 	if (__builtin_slice_end_ptr(s) != null) unreachable;
 
-	let s = __builtin_slice_from_mut_ptrs(null as ?*mut int32, null as ?*mut int32);
+	let s = __builtin_slice_from_mut_ptrs(null as ?*mut i32, null as ?*mut i32);
 	if (__builtin_slice_begin_ptr(s) != null || __builtin_slice_end_ptr(s) != null) unreachable;
 
-	let a = [10: int32]();
+	let a = [10: i32]();
 	let s = __builtin_slice_from_ptrs(__builtin_array_begin_ptr(a), __builtin_array_end_ptr(a));
 	if (__builtin_slice_begin_ptr(s) != __builtin_array_begin_ptr(a)) unreachable;
 	if (__builtin_slice_end_ptr(s) != __builtin_array_end_ptr(a)) unreachable;
 
-	mut a = [10: int32]();
+	mut a = [10: i32]();
 	let s = __builtin_slice_from_mut_ptrs(__builtin_array_begin_mut_ptr(a), __builtin_array_end_mut_ptr(a));
 	if (__builtin_slice_begin_ptr(s) != __builtin_array_begin_ptr(a)) unreachable;
 	if (__builtin_slice_end_ptr(s) != __builtin_array_end_ptr(a)) unreachable;

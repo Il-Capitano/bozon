@@ -1,8 +1,8 @@
 function main()
 {
 	mut i = 0i32;
-	let p: *int32 = &i;
-	let mp: *mut int32 = &i;
+	let p: *i32 = &i;
+	let mp: *mut i32 = &i;
 
 	static_assert(sizeof __builtin_pointer_to_int(p) == sizeof *void);
 

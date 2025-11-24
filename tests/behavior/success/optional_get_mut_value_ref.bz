@@ -4,8 +4,8 @@ function foo()
 function main()
 {
 	let i = 3;
-	mut oi: ?int32 = 3;
-	mut pi: ?*int32 = &i;
+	mut oi: ?i32 = 3;
+	mut pi: ?*i32 = &i;
 	mut f: ?function() -> void = foo;
 
 	let &mut r = __builtin_optional_get_mut_value_ref(oi);

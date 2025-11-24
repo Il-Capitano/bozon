@@ -1,6 +1,6 @@
 import counting_resource;
 
-function test(i: int32)
+function test(i: i32)
 {
 	let a = counting_resource_t();
 	let _ = switch (i) {
@@ -28,7 +28,7 @@ function test(i: int32)
 	};
 }
 
-function main() -> int32
+function main() -> i32
 {
 	test(0);
 	if (!counting_resource_is_valid())

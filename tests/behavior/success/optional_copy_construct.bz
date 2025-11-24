@@ -6,20 +6,20 @@ function foo() {}
 function main()
 {
 	{
-		let o = (?int32)();
+		let o = (?i32)();
 		let o_copy = o;
 		if (o_copy != null) unreachable;
-		let o = (?*int32)();
+		let o = (?*i32)();
 		let o_copy = o;
 		if (o_copy != null) unreachable;
-		let o = (?*mut int32)();
+		let o = (?*mut i32)();
 		let o_copy = o;
 		if (o_copy != null) unreachable;
-		let o = (?**int32)();
+		let o = (?**i32)();
 		let o_copy = o;
 		if (o_copy != null) unreachable;
 		// TODO:
-		// let o = (?&int32)();
+		// let o = (?&i32)();
 		// let o_copy = o;
 		// if (o_copy != null) unreachable;
 		let o = (?function() -> void)();
@@ -28,25 +28,25 @@ function main()
 	}
 
 	{
-		let o: ?int32 = 42;
+		let o: ?i32 = 42;
 		let o_copy = o;
 		if (o_copy == null) unreachable;
 		if (o.get_value() != o_copy.get_value()) unreachable;
 		mut i = 0;
-		let o: ?*int32 = &i;
+		let o: ?*i32 = &i;
 		let o_copy = o;
 		if (o_copy == null) unreachable;
 		if (o.get_value() != o_copy.get_value()) unreachable;
-		let o: ?*mut int32 = &i;
+		let o: ?*mut i32 = &i;
 		let o_copy = o;
 		if (o_copy == null) unreachable;
 		if (o.get_value() != o_copy.get_value()) unreachable;
 		let p = &i;
-		let o: ?**int32 = &p;
+		let o: ?**i32 = &p;
 		let o_copy = o;
 		if (o_copy == null) unreachable;
 		if (o.get_value() != o_copy.get_value()) unreachable;
-		let o: ?&int32 = i;
+		let o: ?&i32 = i;
 		let o_copy = o;
 		// TODO:
 		// if (o_copy == null) unreachable;

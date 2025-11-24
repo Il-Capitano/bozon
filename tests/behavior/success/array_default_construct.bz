@@ -3,11 +3,11 @@ import counting_resource;
 
 struct S
 {
-	.i: int32;
+	.i: i32;
 	.j: usize;
-	.x: float32;
-	.y: float64;
-	.a: [20: uint32];
+	.x: f32;
+	.y: f64;
+	.a: [20: u32];
 	.s: str;
 }
 
@@ -22,38 +22,38 @@ struct complex_S
 function main()
 {
 	{
-		let a = [1: int32]();
+		let a = [1: i32]();
 		for (let &v in a)
 		{
-			if (v != int32()) unreachable;
+			if (v != i32()) unreachable;
 		}
-		let a = [10: int32]();
+		let a = [10: i32]();
 		for (let &v in a)
 		{
-			if (v != int32()) unreachable;
+			if (v != i32()) unreachable;
 		}
-		let a = [100: int32]();
+		let a = [100: i32]();
 		for (let &v in a)
 		{
-			if (v != int32()) unreachable;
+			if (v != i32()) unreachable;
 		}
 	}
 
 	{
-		let a = [1: float64]();
+		let a = [1: f64]();
 		for (let &v in a)
 		{
-			if (v != float64()) unreachable;
+			if (v != f64()) unreachable;
 		}
-		let a = [10: float64]();
+		let a = [10: f64]();
 		for (let &v in a)
 		{
-			if (v != float64()) unreachable;
+			if (v != f64()) unreachable;
 		}
-		let a = [100: float64]();
+		let a = [100: f64]();
 		for (let &v in a)
 		{
-			if (v != float64()) unreachable;
+			if (v != f64()) unreachable;
 		}
 	}
 
@@ -108,31 +108,31 @@ function main()
 		let a = [1: S]();
 		for (let &s in a)
 		{
-			if (s.i != int32()) unreachable;
+			if (s.i != i32()) unreachable;
 			if (s.j != usize()) unreachable;
-			if (s.x != float32()) unreachable;
-			if (s.y != float64()) unreachable;
-			if (s.a != [20: uint32]()) unreachable;
+			if (s.x != f32()) unreachable;
+			if (s.y != f64()) unreachable;
+			if (s.a != [20: u32]()) unreachable;
 			if (s.s != str()) unreachable;
 		}
 		let a = [10: S]();
 		for (let &s in a)
 		{
-			if (s.i != int32()) unreachable;
+			if (s.i != i32()) unreachable;
 			if (s.j != usize()) unreachable;
-			if (s.x != float32()) unreachable;
-			if (s.y != float64()) unreachable;
-			if (s.a != [20: uint32]()) unreachable;
+			if (s.x != f32()) unreachable;
+			if (s.y != f64()) unreachable;
+			if (s.a != [20: u32]()) unreachable;
 			if (s.s != str()) unreachable;
 		}
 		let a = [100: S]();
 		for (let &s in a)
 		{
-			if (s.i != int32()) unreachable;
+			if (s.i != i32()) unreachable;
 			if (s.j != usize()) unreachable;
-			if (s.x != float32()) unreachable;
-			if (s.y != float64()) unreachable;
-			if (s.a != [20: uint32]()) unreachable;
+			if (s.x != f32()) unreachable;
+			if (s.y != f64()) unreachable;
+			if (s.a != [20: u32]()) unreachable;
 			if (s.s != str()) unreachable;
 		}
 

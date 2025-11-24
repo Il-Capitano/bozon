@@ -1,8 +1,8 @@
-// warning: taking 'sizeof' of an expression with reference type '&int32' results in the size of type 'int32' [-W sizeof-reference-expression]
+// warning: taking 'sizeof' of an expression with reference type '&i32' results in the size of type 'i32' [-W sizeof-reference-expression]
 function main()
 {
 	let i = 0i32;
 	let &r = i;
 
-	static_assert(sizeof r == sizeof int32);
+	static_assert(sizeof r == sizeof i32);
 }

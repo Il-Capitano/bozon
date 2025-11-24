@@ -1,4 +1,4 @@
-function get_optional() -> ?&int32
+function get_optional() -> ?&i32
 {
 	return null;
 }

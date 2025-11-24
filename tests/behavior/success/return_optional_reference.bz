@@ -1,12 +1,12 @@
-let global: int32 = 3;
-consteval consteval_global: int32 = 3;
+let global: i32 = 3;
+consteval consteval_global: i32 = 3;
 
-function get_ref_global() -> ?&int32
+function get_ref_global() -> ?&i32
 {
 	return global;
 }
 
-function get_ref_consteval_global() -> ?&int32
+function get_ref_consteval_global() -> ?&i32
 {
 	return consteval_global;
 }

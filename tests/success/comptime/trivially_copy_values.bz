@@ -23,8 +23,8 @@ function test1(count: *mut usize)
 
 function test2()
 {
-	mut a = [10: int32]();
-	mut b = [10: int32]();
+	mut a = [10: i32]();
+	mut b = [10: i32]();
 
 	for (let &mut v in a)
 	{
@@ -53,12 +53,12 @@ function test()
 
 		test2();
 
-		mut a = [10: int32]();
+		mut a = [10: i32]();
 		__builtin_trivially_copy_values(a.begin(), a.begin() + 5, 5);
 		__builtin_trivially_copy_values(a.begin() + 5, a.begin(), 5);
 
 		let p = a.begin();
-		let np = null as ?*mut int32;
+		let np = null as ?*mut i32;
 
 		__builtin_trivially_copy_values(p, p, 0);
 		__builtin_trivially_copy_values(p, np, 0);

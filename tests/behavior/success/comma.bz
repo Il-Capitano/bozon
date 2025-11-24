@@ -1,6 +1,6 @@
 import counting_resource;
 
-function main() -> int32
+function main() -> i32
 {
 	{
 		counting_resource_t(), counting_resource_t(), counting_resource_t();

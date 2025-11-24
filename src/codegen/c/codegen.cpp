@@ -172,46 +172,46 @@ type generate_struct(ast::type_info const &info, codegen_context &context)
 
 	switch (info.kind)
 	{
-	case ast::type_info::int8_:
-		bz_assert(context.builtin_types.int8_ == type::typedef_reference::invalid());
-		context.builtin_types.int8_ = add_int_type(info, "t_int8", 1, true, context);
-		return type(context.builtin_types.int8_);
-	case ast::type_info::int16_:
-		bz_assert(context.builtin_types.int16_ == type::typedef_reference::invalid());
-		context.builtin_types.int16_ = add_int_type(info, "t_int16", 2, true, context);
-		return type(context.builtin_types.int16_);
-	case ast::type_info::int32_:
-		bz_assert(context.builtin_types.int32_ == type::typedef_reference::invalid());
-		context.builtin_types.int32_ = add_int_type(info, "t_int32", 4, true, context);
-		return type(context.builtin_types.int32_);
-	case ast::type_info::int64_:
-		bz_assert(context.builtin_types.int64_ == type::typedef_reference::invalid());
-		context.builtin_types.int64_ = add_int_type(info, "t_int64", 8, true, context);
-		return type(context.builtin_types.int64_);
-	case ast::type_info::uint8_:
-		bz_assert(context.builtin_types.uint8_ == type::typedef_reference::invalid());
-		context.builtin_types.uint8_ = add_int_type(info, "t_uint8", 1, false, context);
-		return type(context.builtin_types.uint8_);
-	case ast::type_info::uint16_:
-		bz_assert(context.builtin_types.uint16_ == type::typedef_reference::invalid());
-		context.builtin_types.uint16_ = add_int_type(info, "t_uint16", 2, false, context);
-		return type(context.builtin_types.uint16_);
-	case ast::type_info::uint32_:
-		bz_assert(context.builtin_types.uint32_ == type::typedef_reference::invalid());
-		context.builtin_types.uint32_ = add_int_type(info, "t_uint32", 4, false, context);
-		return type(context.builtin_types.uint32_);
-	case ast::type_info::uint64_:
-		bz_assert(context.builtin_types.uint64_ == type::typedef_reference::invalid());
-		context.builtin_types.uint64_ = add_int_type(info, "t_uint64", 8, false, context);
-		return type(context.builtin_types.uint64_);
-	case ast::type_info::float32_:
-		bz_assert(context.builtin_types.float32_ == type::typedef_reference::invalid());
-		context.builtin_types.float32_ = context.add_builtin_type(info, "t_float32", "float");
-		return type(context.builtin_types.float32_);
-	case ast::type_info::float64_:
-		bz_assert(context.builtin_types.float64_ == type::typedef_reference::invalid());
-		context.builtin_types.float64_ = context.add_builtin_type(info, "t_float64", "double");
-		return type(context.builtin_types.float64_);
+	case ast::type_info::i8_:
+		bz_assert(context.builtin_types.i8_ == type::typedef_reference::invalid());
+		context.builtin_types.i8_ = add_int_type(info, "t_i8", 1, true, context);
+		return type(context.builtin_types.i8_);
+	case ast::type_info::i16_:
+		bz_assert(context.builtin_types.i16_ == type::typedef_reference::invalid());
+		context.builtin_types.i16_ = add_int_type(info, "t_i16", 2, true, context);
+		return type(context.builtin_types.i16_);
+	case ast::type_info::i32_:
+		bz_assert(context.builtin_types.i32_ == type::typedef_reference::invalid());
+		context.builtin_types.i32_ = add_int_type(info, "t_i32", 4, true, context);
+		return type(context.builtin_types.i32_);
+	case ast::type_info::i64_:
+		bz_assert(context.builtin_types.i64_ == type::typedef_reference::invalid());
+		context.builtin_types.i64_ = add_int_type(info, "t_i64", 8, true, context);
+		return type(context.builtin_types.i64_);
+	case ast::type_info::u8_:
+		bz_assert(context.builtin_types.u8_ == type::typedef_reference::invalid());
+		context.builtin_types.u8_ = add_int_type(info, "t_u8", 1, false, context);
+		return type(context.builtin_types.u8_);
+	case ast::type_info::u16_:
+		bz_assert(context.builtin_types.u16_ == type::typedef_reference::invalid());
+		context.builtin_types.u16_ = add_int_type(info, "t_u16", 2, false, context);
+		return type(context.builtin_types.u16_);
+	case ast::type_info::u32_:
+		bz_assert(context.builtin_types.u32_ == type::typedef_reference::invalid());
+		context.builtin_types.u32_ = add_int_type(info, "t_u32", 4, false, context);
+		return type(context.builtin_types.u32_);
+	case ast::type_info::u64_:
+		bz_assert(context.builtin_types.u64_ == type::typedef_reference::invalid());
+		context.builtin_types.u64_ = add_int_type(info, "t_u64", 8, false, context);
+		return type(context.builtin_types.u64_);
+	case ast::type_info::f32_:
+		bz_assert(context.builtin_types.f32_ == type::typedef_reference::invalid());
+		context.builtin_types.f32_ = context.add_builtin_type(info, "t_f32", "float");
+		return type(context.builtin_types.f32_);
+	case ast::type_info::f64_:
+		bz_assert(context.builtin_types.f64_ == type::typedef_reference::invalid());
+		context.builtin_types.f64_ = context.add_builtin_type(info, "t_f64", "double");
+		return type(context.builtin_types.f64_);
 	case ast::type_info::char_:
 		bz_assert(context.builtin_types.char_ == type::typedef_reference::invalid());
 		context.builtin_types.char_ = context.add_char_typedef(info, "t_char");
@@ -280,13 +280,13 @@ static void write_uint(bz::u8string &buffer, uint64_t value, ast::typespec_view 
 	auto const int_size = [&]() -> uint32_t {
 		switch (int_kind)
 		{
-		case ast::type_info::uint8_:
+		case ast::type_info::u8_:
 			return 1;
-		case ast::type_info::uint16_:
+		case ast::type_info::u16_:
 			return 2;
-		case ast::type_info::uint32_:
+		case ast::type_info::u32_:
 			return 4;
-		case ast::type_info::uint64_:
+		case ast::type_info::u64_:
 			return 8;
 		default:
 			bz_unreachable;
@@ -1623,13 +1623,13 @@ static bool needs_cast_for_overflow(uint32_t int_kind, codegen_context &context)
 	auto const operand_size = [&]() -> uint32_t {
 		switch (int_kind)
 		{
-		case ast::type_info::uint8_:
+		case ast::type_info::u8_:
 			return 1;
-		case ast::type_info::uint16_:
+		case ast::type_info::u16_:
 			return 2;
-		case ast::type_info::uint32_:
+		case ast::type_info::u32_:
 			return 4;
-		case ast::type_info::uint64_:
+		case ast::type_info::u64_:
 			return 8;
 		default:
 			return 8;
@@ -1657,8 +1657,8 @@ static type get_unsigned_type_for_overflow(uint32_t int_kind, codegen_context &c
 	};
 	switch (int_kind)
 	{
-	case ast::type_info::int8_:
-	case ast::type_info::uint8_:
+	case ast::type_info::i8_:
+	case ast::type_info::u8_:
 		if (1 < context.int_size)
 		{
 			return get_unsigned_int_type();
@@ -1667,8 +1667,8 @@ static type get_unsigned_type_for_overflow(uint32_t int_kind, codegen_context &c
 		{
 			return context.get_uint8();
 		}
-	case ast::type_info::int16_:
-	case ast::type_info::uint16_:
+	case ast::type_info::i16_:
+	case ast::type_info::u16_:
 		if (2 < context.int_size)
 		{
 			return get_unsigned_int_type();
@@ -1677,8 +1677,8 @@ static type get_unsigned_type_for_overflow(uint32_t int_kind, codegen_context &c
 		{
 			return context.get_uint16();
 		}
-	case ast::type_info::int32_:
-	case ast::type_info::uint32_:
+	case ast::type_info::i32_:
+	case ast::type_info::u32_:
 		if (4 < context.int_size)
 		{
 			return get_unsigned_int_type();
@@ -1687,8 +1687,8 @@ static type get_unsigned_type_for_overflow(uint32_t int_kind, codegen_context &c
 		{
 			return context.get_uint32();
 		}
-	case ast::type_info::int64_:
-	case ast::type_info::uint64_:
+	case ast::type_info::i64_:
+	case ast::type_info::u64_:
 	default:
 		if (8 < context.int_size)
 		{
@@ -1727,13 +1727,13 @@ static expr_value generate_builtin_unary_minus(
 		auto const func_name = [&]() -> bz::u8string_view {
 			switch (kind)
 			{
-			case ast::type_info::int8_:
+			case ast::type_info::i8_:
 				return "bozon_neg_i8";
-			case ast::type_info::int16_:
+			case ast::type_info::i16_:
 				return "bozon_neg_i16";
-			case ast::type_info::int32_:
+			case ast::type_info::i32_:
 				return "bozon_neg_i32";
-			case ast::type_info::int64_:
+			case ast::type_info::i64_:
 				return "bozon_neg_i64";
 			default:
 				bz_unreachable;
@@ -1893,12 +1893,12 @@ static expr_value generate_builtin_binary_plus(
 
 			if (lhs_kind == ast::type_info::char_)
 			{
-				needs_cast = rhs_kind == ast::type_info::uint64_ || rhs_kind == ast::type_info::int64_;
+				needs_cast = rhs_kind == ast::type_info::u64_ || rhs_kind == ast::type_info::i64_;
 				return lhs_value.get_type();
 			}
 			else if (rhs_kind == ast::type_info::char_)
 			{
-				needs_cast = rhs_kind == ast::type_info::uint64_ || rhs_kind == ast::type_info::int64_;
+				needs_cast = rhs_kind == ast::type_info::u64_ || rhs_kind == ast::type_info::i64_;
 				return rhs_value.get_type();
 			}
 			else
@@ -2030,7 +2030,7 @@ static expr_value generate_builtin_binary_minus(
 			}
 			else if (lhs_kind == ast::type_info::char_)
 			{
-				needs_cast = rhs_kind == ast::type_info::uint64_ || rhs_kind == ast::type_info::int64_;
+				needs_cast = rhs_kind == ast::type_info::u64_ || rhs_kind == ast::type_info::i64_;
 				return lhs_value.get_type();
 			}
 			else
@@ -2194,13 +2194,13 @@ static expr_value generate_builtin_binary_divide(
 		auto const func_name = [&]() -> bz::u8string_view {
 			switch (kind)
 			{
-			case ast::type_info::int8_:
+			case ast::type_info::i8_:
 				return "bozon_div_i8";
-			case ast::type_info::int16_:
+			case ast::type_info::i16_:
 				return "bozon_div_i16";
-			case ast::type_info::int32_:
+			case ast::type_info::i32_:
 				return "bozon_div_i32";
-			case ast::type_info::int64_:
+			case ast::type_info::i64_:
 				return "bozon_div_i64";
 			default:
 				bz_unreachable;
@@ -2243,13 +2243,13 @@ static expr_value generate_builtin_binary_divide_eq(
 		auto const func_name = [&]() -> bz::u8string_view {
 			switch (kind)
 			{
-			case ast::type_info::int8_:
+			case ast::type_info::i8_:
 				return "bozon_div_i8";
-			case ast::type_info::int16_:
+			case ast::type_info::i16_:
 				return "bozon_div_i16";
-			case ast::type_info::int32_:
+			case ast::type_info::i32_:
 				return "bozon_div_i32";
-			case ast::type_info::int64_:
+			case ast::type_info::i64_:
 				return "bozon_div_i64";
 			default:
 				bz_unreachable;
@@ -2293,13 +2293,13 @@ static expr_value generate_builtin_binary_modulo(
 		auto const func_name = [&]() -> bz::u8string_view {
 			switch (kind)
 			{
-			case ast::type_info::int8_:
+			case ast::type_info::i8_:
 				return "bozon_rem_i8";
-			case ast::type_info::int16_:
+			case ast::type_info::i16_:
 				return "bozon_rem_i16";
-			case ast::type_info::int32_:
+			case ast::type_info::i32_:
 				return "bozon_rem_i32";
-			case ast::type_info::int64_:
+			case ast::type_info::i64_:
 				return "bozon_rem_i64";
 			default:
 				bz_unreachable;
@@ -2342,13 +2342,13 @@ static expr_value generate_builtin_binary_modulo_eq(
 		auto const func_name = [&]() -> bz::u8string_view {
 			switch (kind)
 			{
-			case ast::type_info::int8_:
+			case ast::type_info::i8_:
 				return "bozon_rem_i8";
-			case ast::type_info::int16_:
+			case ast::type_info::i16_:
 				return "bozon_rem_i16";
-			case ast::type_info::int32_:
+			case ast::type_info::i32_:
 				return "bozon_rem_i32";
-			case ast::type_info::int64_:
+			case ast::type_info::i64_:
 				return "bozon_rem_i64";
 			default:
 				bz_unreachable;
@@ -3957,13 +3957,13 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const signed_type = [&]() {
 			switch (kind)
 			{
-			case ast::type_info::uint8_:
+			case ast::type_info::u8_:
 				return context.get_int8();
-			case ast::type_info::uint16_:
+			case ast::type_info::u16_:
 				return context.get_int16();
-			case ast::type_info::uint32_:
+			case ast::type_info::u32_:
 				return context.get_int32();
-			case ast::type_info::uint64_:
+			case ast::type_info::u64_:
 				return context.get_int64();
 			default:
 				bz_unreachable;

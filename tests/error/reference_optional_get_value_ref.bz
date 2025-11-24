@@ -1,9 +1,9 @@
 // error: couldn't match the function call to the function
-// note: function argument types are '?&int32'
+// note: function argument types are '?&i32'
 // note: candidate: 'function __builtin_optional_get_value_ref(value: &?auto) -> <unresolved>'
 function test()
 {
-	let i: ?&int32 = null;
+	let i: ?&i32 = null;
 
 	__builtin_optional_get_value_ref(i);
 }

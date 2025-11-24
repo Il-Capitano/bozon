@@ -4,10 +4,10 @@ import counting_resource;
 function main()
 {
 	{
-		__builtin_create_initialized_array([32: int32], 42);
-		__builtin_create_initialized_array([32: int8], 42i8);
+		__builtin_create_initialized_array([32: i32], 42);
+		__builtin_create_initialized_array([32: i8], 42i8);
 		__builtin_create_initialized_array([32: str], "foo");
-		__builtin_create_initialized_array([32: [float32, str, bool]], [ 1.234f32, "bar", false ]);
+		__builtin_create_initialized_array([32: [f32, str, bool]], [ 1.234f32, "bar", false ]);
 
 		__builtin_create_initialized_array([32: resource_t], resource_t());
 		let r = resource_t();
@@ -31,10 +31,10 @@ function main()
 	}
 
 	{
-		__builtin_create_initialized_array([10: int32], 42);
-		__builtin_create_initialized_array([10: int8], 42i8);
+		__builtin_create_initialized_array([10: i32], 42);
+		__builtin_create_initialized_array([10: i8], 42i8);
 		__builtin_create_initialized_array([10: str], "foo");
-		__builtin_create_initialized_array([10: [float32, str, bool]], [ 1.234f32, "bar", false ]);
+		__builtin_create_initialized_array([10: [f32, str, bool]], [ 1.234f32, "bar", false ]);
 
 		__builtin_create_initialized_array([10: resource_t], resource_t());
 		let r = resource_t();
@@ -58,11 +58,11 @@ function main()
 	}
 
 	{
-		for (let &v in __builtin_create_initialized_array([32: int32], 42))
+		for (let &v in __builtin_create_initialized_array([32: i32], 42))
 		{
 			if (v != 42) unreachable;
 		}
-		for (let &v in __builtin_create_initialized_array([32: int8], 42i8))
+		for (let &v in __builtin_create_initialized_array([32: i8], 42i8))
 		{
 			if (v != 42) unreachable;
 		}
@@ -70,7 +70,7 @@ function main()
 		{
 			if (s != "foo") unreachable;
 		}
-		for (let &t in __builtin_create_initialized_array([32: [float32, str, bool]], [ 1.234f32, "bar", false ]))
+		for (let &t in __builtin_create_initialized_array([32: [f32, str, bool]], [ 1.234f32, "bar", false ]))
 		{
 			if (t[0] != 1.234f32) unreachable;
 			if (t[1] != "bar") unreachable;
@@ -99,11 +99,11 @@ function main()
 	}
 
 	{
-		for (let &v in __builtin_create_initialized_array([10: int32], 42))
+		for (let &v in __builtin_create_initialized_array([10: i32], 42))
 		{
 			if (v != 42) unreachable;
 		}
-		for (let &v in __builtin_create_initialized_array([10: int8], 42i8))
+		for (let &v in __builtin_create_initialized_array([10: i8], 42i8))
 		{
 			if (v != 42) unreachable;
 		}
@@ -111,7 +111,7 @@ function main()
 		{
 			if (s != "foo") unreachable;
 		}
-		for (let &t in __builtin_create_initialized_array([10: [float32, str, bool]], [ 1.234f32, "bar", false ]))
+		for (let &t in __builtin_create_initialized_array([10: [f32, str, bool]], [ 1.234f32, "bar", false ]))
 		{
 			if (t[0] != 1.234f32) unreachable;
 			if (t[1] != "bar") unreachable;
@@ -140,10 +140,10 @@ function main()
 	}
 
 	{
-		let _ = __builtin_create_initialized_array([32: int32], 42)[8];
-		let _ = __builtin_create_initialized_array([32: int8], 42i8)[8];
+		let _ = __builtin_create_initialized_array([32: i32], 42)[8];
+		let _ = __builtin_create_initialized_array([32: i8], 42i8)[8];
 		let _ = __builtin_create_initialized_array([32: str], "foo")[8];
-		let _ = __builtin_create_initialized_array([32: [float32, str, bool]], [ 1.234f32, "bar", false ])[8];
+		let _ = __builtin_create_initialized_array([32: [f32, str, bool]], [ 1.234f32, "bar", false ])[8];
 
 		let _ = __builtin_create_initialized_array([32: resource_t], resource_t())[8];
 		let r = resource_t();

@@ -3,11 +3,11 @@ import counting_resource;
 
 struct S
 {
-	.i: int32;
+	.i: i32;
 	.j: usize;
-	.x: float32;
-	.y: float64;
-	.a: [20: uint32];
+	.x: f32;
+	.y: f64;
+	.a: [20: u32];
 	.s: str;
 }
 
@@ -24,18 +24,18 @@ struct complex_S
 function main()
 {
 	{
-		static_assert(__builtin_is_trivially_copy_constructible(int32));
-		static_assert(__builtin_is_trivially_relocatable(int32));
-		let n: int32 = 42;
+		static_assert(__builtin_is_trivially_copy_constructible(i32));
+		static_assert(__builtin_is_trivially_relocatable(i32));
+		let n: i32 = 42;
 		let n_copy = n;
 		let n = move n;
 		if (n != n_copy) unreachable;
 	}
 
 	{
-		static_assert(__builtin_is_trivially_copy_constructible(float64));
-		static_assert(__builtin_is_trivially_relocatable(float64));
-		let x: float64 = 42.42;
+		static_assert(__builtin_is_trivially_copy_constructible(f64));
+		static_assert(__builtin_is_trivially_relocatable(f64));
+		let x: f64 = 42.42;
 		let x_copy = x;
 		let x = move x;
 		if (x != x_copy) unreachable;
@@ -58,7 +58,7 @@ function main()
 			100,
 			3.14159265f32,
 			2.71828,
-			__builtin_create_initialized_array([20: uint32], 42u32),
+			__builtin_create_initialized_array([20: u32], 42u32),
 			"hello",
 		];
 		let s_copy = s;

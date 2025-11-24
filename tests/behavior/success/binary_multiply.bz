@@ -12,32 +12,32 @@ function multiply_test(consteval a, consteval b)
 	if (&(dyn_a *= dyn_b) != &dyn_a) unreachable;
 }
 
-function multiply_signed_overflow(intN: typename)
+function multiply_signed_overflow(iN: typename)
 {
-	consteval size_in_bits = 8 * sizeof intN;
-	consteval max = ((1u64 << (size_in_bits - 1)) - 1) as intN;
-	consteval min = (((1u64 << (size_in_bits - 1)) as intN));
+	consteval size_in_bits = 8 * sizeof iN;
+	consteval max = ((1u64 << (size_in_bits - 1)) - 1) as iN;
+	consteval min = (((1u64 << (size_in_bits - 1)) as iN));
 
-	multiply_test(max, 2 as intN);
-	multiply_test(2 as intN, max);
+	multiply_test(max, 2 as iN);
+	multiply_test(2 as iN, max);
 	multiply_test(max, max);
 
-	multiply_test(min, -1 as intN);
-	multiply_test(-1 as intN, min);
-	multiply_test(min, 2 as intN);
-	multiply_test(2 as intN, min);
+	multiply_test(min, -1 as iN);
+	multiply_test(-1 as iN, min);
+	multiply_test(min, 2 as iN);
+	multiply_test(2 as iN, min);
 	multiply_test(min, min);
 
 	multiply_test(min, max);
 	multiply_test(max, min);
 }
 
-function multiply_unsigned_overflow(uintN: typename)
+function multiply_unsigned_overflow(uN: typename)
 {
-	consteval max = ~uintN(0);
+	consteval max = ~uN(0);
 
-	multiply_test(max, 2 as uintN);
-	multiply_test(2 as uintN, max);
+	multiply_test(max, 2 as uN);
+	multiply_test(2 as uN, max);
 	multiply_test(max, max);
 }
 
@@ -73,13 +73,13 @@ function main()
 	multiply_test(-inf_f32, -inf_f32);
 	multiply_test(-inf_f64, -inf_f64);
 
-	multiply_signed_overflow(int8);
-	multiply_signed_overflow(int16);
-	multiply_signed_overflow(int32);
-	multiply_signed_overflow(int64);
+	multiply_signed_overflow(i8);
+	multiply_signed_overflow(i16);
+	multiply_signed_overflow(i32);
+	multiply_signed_overflow(i64);
 
-	multiply_unsigned_overflow(uint8);
-	multiply_unsigned_overflow(uint16);
-	multiply_unsigned_overflow(uint32);
-	multiply_unsigned_overflow(uint64);
+	multiply_unsigned_overflow(u8);
+	multiply_unsigned_overflow(u16);
+	multiply_unsigned_overflow(u32);
+	multiply_unsigned_overflow(u64);
 }

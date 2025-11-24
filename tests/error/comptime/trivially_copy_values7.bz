@@ -4,6 +4,6 @@
 function test()
 {
 	(consteval {
-		__builtin_trivially_copy_values(null as ?*mut int32, null as ?*int32, 1);
+		__builtin_trivially_copy_values(null as ?*mut i32, null as ?*i32, 1);
 	});
 }

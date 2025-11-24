@@ -7,35 +7,35 @@ function cast_test(consteval value, T: typename)
 
 function int_cast_test()
 {
-	cast_test(42i8, int8);
-	cast_test(42i16, int16);
-	cast_test(42i32, int32);
-	cast_test(42i64, int64);
+	cast_test(42i8, i8);
+	cast_test(42i16, i16);
+	cast_test(42i32, i32);
+	cast_test(42i64, i64);
 
-	cast_test(-42i8, int8);
-	cast_test(-42i16, int16);
-	cast_test(-42i32, int32);
-	cast_test(-42i64, int64);
+	cast_test(-42i8, i8);
+	cast_test(-42i16, i16);
+	cast_test(-42i32, i32);
+	cast_test(-42i64, i64);
 
-	cast_test(42u8, uint8);
-	cast_test(42u16, uint16);
-	cast_test(42u32, uint32);
-	cast_test(42u64, uint64);
+	cast_test(42u8, u8);
+	cast_test(42u16, u16);
+	cast_test(42u32, u32);
+	cast_test(42u64, u64);
 
-	cast_test(42i8, uint8);
-	cast_test(42i16, uint16);
-	cast_test(42i32, uint32);
-	cast_test(42i64, uint64);
+	cast_test(42i8, u8);
+	cast_test(42i16, u16);
+	cast_test(42i32, u32);
+	cast_test(42i64, u64);
 
-	cast_test(-42i8, uint8);
-	cast_test(-42i16, uint16);
-	cast_test(-42i32, uint32);
-	cast_test(-42i64, uint64);
+	cast_test(-42i8, u8);
+	cast_test(-42i16, u16);
+	cast_test(-42i32, u32);
+	cast_test(-42i64, u64);
 
-	cast_test(42u8, int8);
-	cast_test(42u16, int16);
-	cast_test(42u32, int32);
-	cast_test(42u64, int64);
+	cast_test(42u8, i8);
+	cast_test(42u16, i16);
+	cast_test(42u32, i32);
+	cast_test(42u64, i64);
 
 	cast_test(123u32, char);
 	cast_test(123i32, char);
@@ -55,135 +55,135 @@ function float_nan_cast_test(n, T: typename)
 
 function float_cast_test()
 {
-	cast_test(0.0f32, uint32);
-	cast_test(0.0f64, uint64);
-	cast_test(-0.0f32, uint32);
-	cast_test(-0.0f64, uint64);
-	cast_test(42.0f32, uint32);
-	cast_test(42.0f64, uint64);
-	cast_test(-42.0f32, uint32);
-	cast_test(-42.0f64, uint64);
-	cast_test(12412.3523f32, uint32);
-	cast_test(12412.3523f64, uint64);
-	cast_test(-12412.3523f32, uint32);
-	cast_test(-12412.3523f64, uint64);
+	cast_test(0.0f32, u32);
+	cast_test(0.0f64, u64);
+	cast_test(-0.0f32, u32);
+	cast_test(-0.0f64, u64);
+	cast_test(42.0f32, u32);
+	cast_test(42.0f64, u64);
+	cast_test(-42.0f32, u32);
+	cast_test(-42.0f64, u64);
+	cast_test(12412.3523f32, u32);
+	cast_test(12412.3523f64, u64);
+	cast_test(-12412.3523f32, u32);
+	cast_test(-12412.3523f64, u64);
 
-	cast_test(0u32, float32); // 0.0
+	cast_test(0u32, f32); // 0.0
 	let n = 0u32;
-	let f = __builtin_bit_cast(float32, n);
+	let f = __builtin_bit_cast(f32, n);
 	if (f != 0.0f32) unreachable;
 	if (f != -0.0f32) unreachable;
-	let n = __builtin_bit_cast(uint32, f);
+	let n = __builtin_bit_cast(u32, f);
 	if (n != 0u32) unreachable;
 
-	cast_test(1u32 << 31, float32); // -0.0
+	cast_test(1u32 << 31, f32); // -0.0
 	let n = 1u32 << 31;
-	let f = __builtin_bit_cast(float32, n);
+	let f = __builtin_bit_cast(f32, n);
 	if (f != 0.0f32) unreachable;
 	if (f != -0.0f32) unreachable;
-	let n = __builtin_bit_cast(uint32, f);
+	let n = __builtin_bit_cast(u32, f);
 	if (n != (1u32 << 31)) unreachable;
 
-	cast_test(__builtin_bit_cast(uint32, 0.1f32), float32);
-	cast_test(__builtin_bit_cast(uint32, 123.123f32), float32);
+	cast_test(__builtin_bit_cast(u32, 0.1f32), f32);
+	cast_test(__builtin_bit_cast(u32, 123.123f32), f32);
 
-	cast_test(0x7f80'0000u32, float32); // inf
-	cast_test(0xff80'0000u32, float32); // -inf
+	cast_test(0x7f80'0000u32, f32); // inf
+	cast_test(0xff80'0000u32, f32); // -inf
 
-	float_nan_cast_test(0x7fc0'0000u32, float32);
-	float_nan_cast_test(0xffc0'0000u32, float32);
-	float_nan_cast_test(0x7f80'0100u32, float32);
-	float_nan_cast_test(0xff80'0100u32, float32);
-	float_nan_cast_test(0x7f80'0001u32, float32);
-	float_nan_cast_test(0xff80'0001u32, float32);
-	float_nan_cast_test(0x7f83'9836u32, float32);
-	float_nan_cast_test(0xff83'9836u32, float32);
+	float_nan_cast_test(0x7fc0'0000u32, f32);
+	float_nan_cast_test(0xffc0'0000u32, f32);
+	float_nan_cast_test(0x7f80'0100u32, f32);
+	float_nan_cast_test(0xff80'0100u32, f32);
+	float_nan_cast_test(0x7f80'0001u32, f32);
+	float_nan_cast_test(0xff80'0001u32, f32);
+	float_nan_cast_test(0x7f83'9836u32, f32);
+	float_nan_cast_test(0xff83'9836u32, f32);
 
-	cast_test(0u64, float64); // 0.0
+	cast_test(0u64, f64); // 0.0
 	let n = 0u64;
-	let f = __builtin_bit_cast(float64, n);
+	let f = __builtin_bit_cast(f64, n);
 	if (f != 0.0f64) unreachable;
 	if (f != -0.0f64) unreachable;
-	let n = __builtin_bit_cast(uint64, f);
+	let n = __builtin_bit_cast(u64, f);
 	if (n != 0u64) unreachable;
 
-	cast_test(1u64 << 31, float64); // -0.0
+	cast_test(1u64 << 31, f64); // -0.0
 	let n = 1u64 << 63;
-	let f = __builtin_bit_cast(float64, n);
+	let f = __builtin_bit_cast(f64, n);
 	if (f != 0.0f64) unreachable;
 	if (f != -0.0f64) unreachable;
-	let n = __builtin_bit_cast(uint64, f);
+	let n = __builtin_bit_cast(u64, f);
 	if (n != (1u64 << 63)) unreachable;
 
-	cast_test(__builtin_bit_cast(uint64, 0.1f64), float64);
-	cast_test(__builtin_bit_cast(uint64, 123.123f64), float64);
+	cast_test(__builtin_bit_cast(u64, 0.1f64), f64);
+	cast_test(__builtin_bit_cast(u64, 123.123f64), f64);
 
-	cast_test(0x7ff0'0000'0000'0000u64, float64); // inf
-	cast_test(0xfff0'0000'0000'0000u64, float64); // -inf
+	cast_test(0x7ff0'0000'0000'0000u64, f64); // inf
+	cast_test(0xfff0'0000'0000'0000u64, f64); // -inf
 
-	float_nan_cast_test(0x7ff8'0000'0000'0000u64, float64);
-	float_nan_cast_test(0xfff8'0000'0000'0000u64, float64);
-	float_nan_cast_test(0x7ff1'0000'0000'0000u64, float64);
-	float_nan_cast_test(0xfff1'0000'0000'0000u64, float64);
-	float_nan_cast_test(0x7ff0'0100'0000'0000u64, float64);
-	float_nan_cast_test(0xfff0'0100'0000'0000u64, float64);
-	float_nan_cast_test(0x7ff0'0001'0000'0000u64, float64);
-	float_nan_cast_test(0xfff0'0001'0000'0000u64, float64);
-	float_nan_cast_test(0x7ff0'0000'0100'0000u64, float64);
-	float_nan_cast_test(0xfff0'0000'0100'0000u64, float64);
-	float_nan_cast_test(0x7ff0'0000'0001'0000u64, float64);
-	float_nan_cast_test(0xfff0'0000'0001'0000u64, float64);
-	float_nan_cast_test(0x7ff0'0000'0000'0100u64, float64);
-	float_nan_cast_test(0xfff0'0000'0000'0100u64, float64);
-	float_nan_cast_test(0x7ff0'0000'0000'0001u64, float64);
-	float_nan_cast_test(0xfff0'0000'0000'0001u64, float64);
-	float_nan_cast_test(0x7ff6'2358'fac8'9dabu64, float64);
-	float_nan_cast_test(0xfff6'2358'fac8'9dabu64, float64);
+	float_nan_cast_test(0x7ff8'0000'0000'0000u64, f64);
+	float_nan_cast_test(0xfff8'0000'0000'0000u64, f64);
+	float_nan_cast_test(0x7ff1'0000'0000'0000u64, f64);
+	float_nan_cast_test(0xfff1'0000'0000'0000u64, f64);
+	float_nan_cast_test(0x7ff0'0100'0000'0000u64, f64);
+	float_nan_cast_test(0xfff0'0100'0000'0000u64, f64);
+	float_nan_cast_test(0x7ff0'0001'0000'0000u64, f64);
+	float_nan_cast_test(0xfff0'0001'0000'0000u64, f64);
+	float_nan_cast_test(0x7ff0'0000'0100'0000u64, f64);
+	float_nan_cast_test(0xfff0'0000'0100'0000u64, f64);
+	float_nan_cast_test(0x7ff0'0000'0001'0000u64, f64);
+	float_nan_cast_test(0xfff0'0000'0001'0000u64, f64);
+	float_nan_cast_test(0x7ff0'0000'0000'0100u64, f64);
+	float_nan_cast_test(0xfff0'0000'0000'0100u64, f64);
+	float_nan_cast_test(0x7ff0'0000'0000'0001u64, f64);
+	float_nan_cast_test(0xfff0'0000'0000'0001u64, f64);
+	float_nan_cast_test(0x7ff6'2358'fac8'9dabu64, f64);
+	float_nan_cast_test(0xfff6'2358'fac8'9dabu64, f64);
 }
 
 function aggregate_to_int_test()
 {
-	consteval a: [4: uint8] = [ 0xaa, 0xbb, 0xcc, 0xdd ];
-	static_assert(__builtin_bit_cast(uint32, a) == 0xaabbccdd || __builtin_bit_cast(uint32, a) == 0xddccbbaa);
-	cast_test(a, uint32);
+	consteval a: [4: u8] = [ 0xaa, 0xbb, 0xcc, 0xdd ];
+	static_assert(__builtin_bit_cast(u32, a) == 0xaabbccdd || __builtin_bit_cast(u32, a) == 0xddccbbaa);
+	cast_test(a, u32);
 
-	consteval a: [2: uint16] = [ 0xaabb, 0xccdd ];
-	cast_test(a, uint32);
+	consteval a: [2: u16] = [ 0xaabb, 0xccdd ];
+	cast_test(a, u32);
 
-	consteval a: [1: uint32] = [ 0xaabbccdd ];
-	cast_test(a, uint32);
+	consteval a: [1: u32] = [ 0xaabbccdd ];
+	cast_test(a, u32);
 
-	consteval t: [uint8, uint8, uint8, uint8] = [ 0xaa, 0xbb, 0xcc, 0xdd ];
-	cast_test(t, uint32);
+	consteval t: [u8, u8, u8, u8] = [ 0xaa, 0xbb, 0xcc, 0xdd ];
+	cast_test(t, u32);
 
-	consteval t: [uint8, uint8, uint16] = [ 0xaa, 0xbb, 0xccdd ];
-	cast_test(t, uint32);
+	consteval t: [u8, u8, u16] = [ 0xaa, 0xbb, 0xccdd ];
+	cast_test(t, u32);
 
-	consteval t: [float32, uint32] = [ 123.123f32, 42 ];
-	cast_test(t, uint64);
+	consteval t: [f32, u32] = [ 123.123f32, 42 ];
+	cast_test(t, u64);
 }
 
 function aggregate_test()
 {
-	consteval a: [4: uint8] = [ 0xaa, 0xbb, 0xcc, 0xdd ];
-	cast_test(a, [2: uint16]);
+	consteval a: [4: u8] = [ 0xaa, 0xbb, 0xcc, 0xdd ];
+	cast_test(a, [2: u16]);
 
-	consteval a: [4: uint8] = [ 0xaa, 0xbb, 0xcc, 0xdd ];
-	consteval expected = __builtin_bit_cast([uint8, uint16], a);
+	consteval a: [4: u8] = [ 0xaa, 0xbb, 0xcc, 0xdd ];
+	consteval expected = __builtin_bit_cast([u8, u16], a);
 	let a = a;
-	let t = __builtin_bit_cast([uint8, uint16], a);
+	let t = __builtin_bit_cast([u8, u16], a);
 	if (t[0] != expected[0] || t[1] != expected[1]) unreachable;
 
-	consteval a: [2: uint32] = [ 0x00112233, 0x44556677 ];
-	consteval expected = __builtin_bit_cast([float32, uint16, uint8, uint8], a);
+	consteval a: [2: u32] = [ 0x00112233, 0x44556677 ];
+	consteval expected = __builtin_bit_cast([f32, u16, u8, u8], a);
 	let a = a;
-	let t = __builtin_bit_cast([float32, uint16, uint8, uint8], a);
+	let t = __builtin_bit_cast([f32, u16, u8, u8], a);
 	if (t[0] != expected[0] || t[1] != expected[1] || t[2] != expected[2]) unreachable;
 
-	consteval t: [uint32, uint64, float32, float64] = [ 123, 456, 42.42f32, 42.42f64 ];
-	consteval expected = __builtin_bit_cast([uint16, float64, uint8, uint8, uint16, uint64], t);
+	consteval t: [u32, u64, f32, f64] = [ 123, 456, 42.42f32, 42.42f64 ];
+	consteval expected = __builtin_bit_cast([u16, f64, u8, u8, u16, u64], t);
 	let t = t;
-	let t = __builtin_bit_cast([uint16, float64, uint8, uint8, uint16, uint64], t);
+	let t = __builtin_bit_cast([u16, f64, u8, u8, u16, u64], t);
 	if (
 		t[0] != expected[0]
 		|| t[1] != expected[1]

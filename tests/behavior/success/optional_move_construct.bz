@@ -6,20 +6,20 @@ function foo() {}
 function main()
 {
 	{
-		let o = (?int32)();
+		let o = (?i32)();
 		let o = move o;
 		if (o != null) unreachable;
-		let o = (?*int32)();
+		let o = (?*i32)();
 		let o = move o;
 		if (o != null) unreachable;
-		let o = (?*mut int32)();
+		let o = (?*mut i32)();
 		let o = move o;
 		if (o != null) unreachable;
-		let o = (?**int32)();
+		let o = (?**i32)();
 		let o = move o;
 		if (o != null) unreachable;
 		// TODO:
-		// let o = (?&int32)();
+		// let o = (?&i32)();
 		// let o = move o;
 		// if (o != null) unreachable;
 		let o = (?function() -> void)();
@@ -28,25 +28,25 @@ function main()
 	}
 
 	{
-		let o: ?int32 = 42;
+		let o: ?i32 = 42;
 		let o = move o;
 		if (o == null) unreachable;
 		if (o.get_value() != 42) unreachable;
 		mut i = 0;
-		let o: ?*int32 = &i;
+		let o: ?*i32 = &i;
 		let o = o;
 		if (o == null) unreachable;
 		if (o.get_value() != &i) unreachable;
-		let o: ?*mut int32 = &i;
+		let o: ?*mut i32 = &i;
 		let o = move o;
 		if (o == null) unreachable;
 		if (o.get_value() != &i) unreachable;
 		let p = &i;
-		let o: ?**int32 = &p;
+		let o: ?**i32 = &p;
 		let o = move o;
 		if (o == null) unreachable;
 		if (o.get_value() != &p) unreachable;
-		let o: ?&int32 = i;
+		let o: ?&i32 = i;
 		let o = move o;
 		// TODO:
 		// if (o == null) unreachable;

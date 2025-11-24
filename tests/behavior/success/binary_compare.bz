@@ -19,74 +19,74 @@ function compare_test(a, b, c)
 	if (!(a != b) || !(a != c) || !(b != c)) unreachable;
 }
 
-function compare_test_signed(intN: typename)
+function compare_test_signed(iN: typename)
 {
-	let a: intN = -99;
-	let b: intN = 0;
-	let c: intN = 99;
+	let a: iN = -99;
+	let b: iN = 0;
+	let c: iN = 99;
 
 	compare_test(a, b, c);
 }
 
-function compare_test_unsigned(uintN: typename)
+function compare_test_unsigned(uN: typename)
 {
-	let a: uintN = 0;
-	let b: uintN = 99;
-	let c: uintN = 199;
+	let a: uN = 0;
+	let b: uN = 99;
+	let c: uN = 199;
 
 	compare_test(a, b, c);
 }
 
-function compare_test_float(floatN: typename)
+function compare_test_float(fN: typename)
 {
-	compare_test(-24.3 as floatN, 0.0 as floatN, 3.53e8 as floatN);
+	compare_test(-24.3 as fN, 0.0 as fN, 3.53e8 as fN);
 
-	let nan = ((0.0 / 0.0)) as floatN;
-	let inf = ((1.0 / 0.0)) as floatN;
+	let nan = ((0.0 / 0.0)) as fN;
+	let inf = ((1.0 / 0.0)) as fN;
 
 	if (nan < nan) unreachable;
 	if (inf < nan) unreachable;
-	if (3.83532 as floatN < nan) unreachable;
+	if (3.83532 as fN < nan) unreachable;
 
 	if (nan > nan) unreachable;
 	if (inf > nan) unreachable;
-	if (3.83532 as floatN > nan) unreachable;
+	if (3.83532 as fN > nan) unreachable;
 
 	if (nan <= nan) unreachable;
 	if (inf <= nan) unreachable;
-	if (3.83532 as floatN <= nan) unreachable;
+	if (3.83532 as fN <= nan) unreachable;
 
 	if (nan >= nan) unreachable;
 	if (inf >= nan) unreachable;
-	if (3.83532 as floatN >= nan) unreachable;
+	if (3.83532 as fN >= nan) unreachable;
 
 	if (nan == nan) unreachable;
 	if (inf == nan) unreachable;
-	if (3.83532 as floatN == nan) unreachable;
+	if (3.83532 as fN == nan) unreachable;
 
 	if (!(nan != nan)) unreachable;
 	if (!(inf != nan)) unreachable;
-	if (!(3.83532 as floatN != nan)) unreachable;
+	if (!(3.83532 as fN != nan)) unreachable;
 }
 
 function main()
 {
-	compare_test_signed(int8);
-	compare_test_signed(int16);
-	compare_test_signed(int32);
-	compare_test_signed(int64);
+	compare_test_signed(i8);
+	compare_test_signed(i16);
+	compare_test_signed(i32);
+	compare_test_signed(i64);
 
-	compare_test_unsigned(uint8);
-	compare_test_unsigned(uint16);
-	compare_test_unsigned(uint32);
-	compare_test_unsigned(uint64);
+	compare_test_unsigned(u8);
+	compare_test_unsigned(u16);
+	compare_test_unsigned(u32);
+	compare_test_unsigned(u64);
 
 	compare_test('a', 'b', 'c');
 
-	compare_test_float(float32);
-	compare_test_float(float64);
+	compare_test_float(f32);
+	compare_test_float(f64);
 
-	let a = [10: int32]();
+	let a = [10: i32]();
 	compare_test(&a[0], &a[3], &a[9]);
 
 	let a = false;

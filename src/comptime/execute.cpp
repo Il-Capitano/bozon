@@ -528,8 +528,8 @@ static uint8_t execute_cast_f32_to_i8(instructions::cast_f32_to_i8 const &inst, 
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as int8', "
-				"floating-point value of type 'float32' is outside the representable range of integer type 'int8'",
+				"invalid cast in expression '{} as i8', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'i8'",
 				value
 			)
 		);
@@ -547,8 +547,8 @@ static uint16_t execute_cast_f32_to_i16(instructions::cast_f32_to_i16 const &ins
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as int16', "
-				"floating-point value of type 'float32' is outside the representable range of integer type 'int16'",
+				"invalid cast in expression '{} as i16', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'i16'",
 				value
 			)
 		);
@@ -566,8 +566,8 @@ static uint32_t execute_cast_f32_to_i32(instructions::cast_f32_to_i32 const &ins
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as int32', "
-				"floating-point value of type 'float32' is outside the representable range of integer type 'int32'",
+				"invalid cast in expression '{} as i32', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'i32'",
 				value
 			)
 		);
@@ -585,8 +585,8 @@ static uint64_t execute_cast_f32_to_i64(instructions::cast_f32_to_i64 const &ins
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as int64', "
-				"floating-point value of type 'float32' is outside the representable range of integer type 'int64'",
+				"invalid cast in expression '{} as i64', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'i64'",
 				value
 			)
 		);
@@ -604,8 +604,8 @@ static uint8_t execute_cast_f32_to_u8(instructions::cast_f32_to_u8 const &inst, 
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as uint8', "
-				"floating-point value of type 'float32' is outside the representable range of integer type 'uint8'",
+				"invalid cast in expression '{} as u8', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'u8'",
 				value
 			)
 		);
@@ -623,8 +623,8 @@ static uint16_t execute_cast_f32_to_u16(instructions::cast_f32_to_u16 const &ins
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as uint16', "
-				"floating-point value of type 'float32' is outside the representable range of integer type 'uint16'",
+				"invalid cast in expression '{} as u16', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'u16'",
 				value
 			)
 		);
@@ -642,8 +642,8 @@ static uint32_t execute_cast_f32_to_u32(instructions::cast_f32_to_u32 const &ins
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as uint32', "
-				"floating-point value of type 'float32' is outside the representable range of integer type 'uint32'",
+				"invalid cast in expression '{} as u32', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'u32'",
 				value
 			)
 		);
@@ -661,8 +661,8 @@ static uint64_t execute_cast_f32_to_u64(instructions::cast_f32_to_u64 const &ins
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as uint64', "
-				"floating-point value of type 'float32' is outside the representable range of integer type 'uint64'",
+				"invalid cast in expression '{} as u64', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'u64'",
 				value
 			)
 		);
@@ -680,8 +680,8 @@ static uint8_t execute_cast_f64_to_i8(instructions::cast_f64_to_i8 const &inst, 
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as int8', "
-				"floating-point value of type 'float64' is outside the representable range of integer type 'int8'",
+				"invalid cast in expression '{} as i8', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'i8'",
 				value
 			)
 		);
@@ -699,8 +699,8 @@ static uint16_t execute_cast_f64_to_i16(instructions::cast_f64_to_i16 const &ins
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as int16', "
-				"floating-point value of type 'float64' is outside the representable range of integer type 'int16'",
+				"invalid cast in expression '{} as i16', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'i16'",
 				value
 			)
 		);
@@ -718,8 +718,8 @@ static uint32_t execute_cast_f64_to_i32(instructions::cast_f64_to_i32 const &ins
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as int32', "
-				"floating-point value of type 'float64' is outside the representable range of integer type 'int32'",
+				"invalid cast in expression '{} as i32', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'i32'",
 				value
 			)
 		);
@@ -737,8 +737,8 @@ static uint64_t execute_cast_f64_to_i64(instructions::cast_f64_to_i64 const &ins
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as int64', "
-				"floating-point value of type 'float64' is outside the representable range of integer type 'int64'",
+				"invalid cast in expression '{} as i64', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'i64'",
 				value
 			)
 		);
@@ -756,8 +756,8 @@ static uint8_t execute_cast_f64_to_u8(instructions::cast_f64_to_u8 const &inst, 
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as uint8', "
-				"floating-point value of type 'float64' is outside the representable range of integer type 'uint8'",
+				"invalid cast in expression '{} as u8', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'u8'",
 				value
 			)
 		);
@@ -775,8 +775,8 @@ static uint16_t execute_cast_f64_to_u16(instructions::cast_f64_to_u16 const &ins
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as uint16', "
-				"floating-point value of type 'float64' is outside the representable range of integer type 'uint16'",
+				"invalid cast in expression '{} as u16', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'u16'",
 				value
 			)
 		);
@@ -794,8 +794,8 @@ static uint32_t execute_cast_f64_to_u32(instructions::cast_f64_to_u32 const &ins
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as uint32', "
-				"floating-point value of type 'float64' is outside the representable range of integer type 'uint32'",
+				"invalid cast in expression '{} as u32', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'u32'",
 				value
 			)
 		);
@@ -813,8 +813,8 @@ static uint64_t execute_cast_f64_to_u64(instructions::cast_f64_to_u64 const &ins
 		context.report_error(
 			inst.src_tokens_index,
 			bz::format(
-				"invalid cast in expression '{} as uint64', "
-				"floating-point value of type 'float64' is outside the representable range of integer type 'uint64'",
+				"invalid cast in expression '{} as u64', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'u64'",
 				value
 			)
 		);

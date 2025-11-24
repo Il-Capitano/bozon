@@ -2,7 +2,7 @@ import counting_resource;
 
 mut global_value = 0;
 
-function get_tuple() -> [int32, &mut int32, str, counting_resource_t]
+function get_tuple() -> [i32, &mut i32, str, counting_resource_t]
 {
 	return [ 42, global_value, "hello", counting_resource_t() ];
 }

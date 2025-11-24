@@ -110,14 +110,14 @@ function tgamma = __builtin_tgamma_f64;
 function lgamma = __builtin_lgamma_f32;
 function lgamma = __builtin_lgamma_f64;
 
-function bits(x: float32) -> uint32
+function bits(x: f32) -> u32
 {
-	return __builtin_bit_cast(uint32, x);
+	return __builtin_bit_cast(u32, x);
 }
 
-function bits(x: float64) -> uint64
+function bits(x: f64) -> u64
 {
-	return __builtin_bit_cast(uint64, x);
+	return __builtin_bit_cast(u64, x);
 }
 
 function isnan_test(T: typename)
@@ -650,19 +650,19 @@ function exp_test(T: typename)
 	let zero_bits = (0.0 as T).bits();
 
 	let x = 1.0 as T;
-	let expected = if consteval (T == float32) { 2.7182817f32 } else { 2.718281828459045f64 };
+	let expected = if consteval (T == f32) { 2.7182817f32 } else { 2.718281828459045f64 };
 	if (exp(x) != expected) unreachable;
 
 	let x = -1.0 as T;
-	let expected = if consteval (T == float32) { 0.36787945f32 } else { 0.36787944117144233f64 };
+	let expected = if consteval (T == f32) { 0.36787945f32 } else { 0.36787944117144233f64 };
 	if (exp(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let expected = if consteval (T == float32) { 30.876644f32 } else { 30.876642749677046f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 30.876644f32 } else { 30.876642749677046f64 };
 	if (exp(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { -3.43f32 } else { -3.43f64 };
-	let expected = if consteval (T == float32) { 0.03238694f32 } else { 0.03238694077290704f64 };
+	let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+	let expected = if consteval (T == f32) { 0.03238694f32 } else { 0.03238694077290704f64 };
 	if (exp(x) != expected) unreachable;
 
 	if (exp(zero) != 1.0 as T) unreachable;
@@ -682,23 +682,23 @@ function exp2_test(T: typename)
 	let zero_bits = (0.0 as T).bits();
 
 	let x = 1.0 as T;
-	let expected = if consteval (T == float32) { 2.0f32 } else { 2.0f64 };
+	let expected = if consteval (T == f32) { 2.0f32 } else { 2.0f64 };
 	if (exp2(x) != expected) unreachable;
 
 	let x = -1.0 as T;
-	let expected = if consteval (T == float32) { 0.5f32 } else { 0.5f64 };
+	let expected = if consteval (T == f32) { 0.5f32 } else { 0.5f64 };
 	if (exp2(x) != expected) unreachable;
 
 	// FIXME: exp2f on windows doesn't produce the same values as glibc on linux
 	// this could potentially be fixed by using LLVM libc's implementation of math functions everywhere
-	if (T != float32)
+	if (T != f32)
 	{
-		let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-		let expected = if consteval (T == float32) { 10.777869f32 } else { 10.777868614925524f64 };
+		let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+		let expected = if consteval (T == f32) { 10.777869f32 } else { 10.777868614925524f64 };
 		if (exp2(x) != expected) unreachable;
 
-		let x = if consteval (T == float32) { -3.43f32 } else { -3.43f64 };
-		let expected = if consteval (T == float32) { 0.09278272f32 } else { 0.09278272316431556f64 };
+		let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+		let expected = if consteval (T == f32) { 0.09278272f32 } else { 0.09278272316431556f64 };
 		if (exp2(x) != expected) unreachable;
 	}
 
@@ -720,19 +720,19 @@ function expm1_test(T: typename)
 	let negative_zero_bits = (-0.0 as T).bits();
 
 	let x = 1.0 as T;
-	let expected = if consteval (T == float32) { 1.7182817f32 } else { 1.718281828459045f64 };
+	let expected = if consteval (T == f32) { 1.7182817f32 } else { 1.718281828459045f64 };
 	if (expm1(x) != expected) unreachable;
 
 	let x = -1.0 as T;
-	let expected = if consteval (T == float32) { -0.63212055f32 } else { -0.6321205588285577f64 };
+	let expected = if consteval (T == f32) { -0.63212055f32 } else { -0.6321205588285577f64 };
 	if (expm1(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let expected = if consteval (T == float32) { 29.876644f32 } else { 29.876642749677046f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 29.876644f32 } else { 29.876642749677046f64 };
 	if (expm1(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { -3.43f32 } else { -3.43f64 };
-	let expected = if consteval (T == float32) { -0.96761304f32 } else { -0.967613059227093f64 };
+	let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+	let expected = if consteval (T == f32) { -0.96761304f32 } else { -0.967613059227093f64 };
 	if (expm1(x) != expected) unreachable;
 
 	if (expm1(zero) != 0.0 as T) unreachable;
@@ -756,15 +756,15 @@ function log_test(T: typename)
 	let zero_bits = (0.0 as T).bits();
 
 	let x = exp(1.0 as T);
-	let expected = if consteval (T == float32) { 0.99999994f32 } else { 1.0f64 };
+	let expected = if consteval (T == f32) { 0.99999994f32 } else { 1.0f64 };
 	if (log(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let expected = if consteval (T == float32) { 1.2325603f32 } else { 1.2325602611778486f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 1.2325603f32 } else { 1.2325602611778486f64 };
 	if (log(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { -1.2325603f32 } else { -1.2325602611778488f64 };
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { -1.2325603f32 } else { -1.2325602611778488f64 };
 	if (log(x) != expected) unreachable;
 
 	if (log(zero) != -inf) unreachable;
@@ -798,12 +798,12 @@ function log2_test(T: typename)
 	let x = 2.0 as T;
 	if (log2(x) != 1.0 as T) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let expected = if consteval (T == float32) { 1.7782086f32 } else { 1.7782085763980877f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 1.7782086f32 } else { 1.7782085763980877f64 };
 	if (log2(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { -1.7782086f32 } else { -1.778208576398088f64 };
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { -1.7782086f32 } else { -1.778208576398088f64 };
 	if (log2(x) != expected) unreachable;
 
 	if (log2(zero) != -inf) unreachable;
@@ -837,12 +837,12 @@ function log10_test(T: typename)
 	let x = 10.0 as T;
 	if (log10(x) != 1.0 as T) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let expected = if consteval (T == float32) { 0.5352941f32 } else { 0.5352941200427705f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 0.5352941f32 } else { 0.5352941200427705f64 };
 	if (log10(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { -0.5352941f32 } else { -0.5352941200427705f64 };
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { -0.5352941f32 } else { -0.5352941200427705f64 };
 	if (log10(x) != expected) unreachable;
 
 	if (log10(zero) != -inf) unreachable;
@@ -873,21 +873,21 @@ function log1p_test(T: typename)
 	let negative_zero_bits = (-0.0 as T).bits();
 
 	// FIXME: log1pf on windows doesn't produce the same values as glibc on linux
-	if (T != float32)
+	if (T != f32)
 	{
 		let x = expm1(1.0 as T);
 		if (log1p(x) != 1.0 as T) unreachable;
 	}
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let expected = if consteval (T == float32) { 1.4883996f32 } else { 1.4883995840570443f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 1.4883996f32 } else { 1.4883995840570443f64 };
 	if (log1p(x) != expected) unreachable;
 
 	// FIXME: log1p on windows doesn't produce the same values as glibc on linux
-	if (T != float64)
+	if (T != f64)
 	{
-		let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-		let expected = if consteval (T == float32) { 0.25583932f32 } else { 0.2558393228791957f64 };
+		let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == f32) { 0.25583932f32 } else { 0.2558393228791957f64 };
 		if (log1p(x) != expected) unreachable;
 	}
 
@@ -920,15 +920,15 @@ function sqrt_test(T: typename)
 	if (sqrt(x) != 1.0 as T) unreachable;
 
 	let x = 2.0 as T;
-	let expected = if consteval (T == float32) { 1.4142135f32 } else { 1.4142135623730951f64 };
+	let expected = if consteval (T == f32) { 1.4142135f32 } else { 1.4142135623730951f64 };
 	if (sqrt(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let expected = if consteval (T == float32) { 1.852026f32 } else { 1.8520259177452134f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 1.852026f32 } else { 1.8520259177452134f64 };
 	if (sqrt(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { 0.53994924f32 } else { 0.5399492471560389f64 };
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.53994924f32 } else { 0.5399492471560389f64 };
 	if (sqrt(x) != expected) unreachable;
 
 	if (sqrt(zero) != 0.0 as T) unreachable;
@@ -964,31 +964,31 @@ function cbrt_test(T: typename)
 	if (cbrt(x) != -1.0 as T) unreachable;
 
 	// FIXME: cbrt on windows doesn't produce the same values as glibc on linux
-	if (T != float64)
+	if (T != f64)
 	{
 		let x = 2.0 as T;
-		let expected = if consteval (T == float32) { 1.2599211f32 } else { 1.2599210498948734f64 };
+		let expected = if consteval (T == f32) { 1.2599211f32 } else { 1.2599210498948734f64 };
 		if (cbrt(x) != expected) unreachable;
 
 		let x = -2.0 as T;
-		let expected = if consteval (T == float32) { -1.2599211f32 } else { -1.2599210498948734f64 };
+		let expected = if consteval (T == f32) { -1.2599211f32 } else { -1.2599210498948734f64 };
 		if (cbrt(x) != expected) unreachable;
 
-		let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-		let expected = if consteval (T == float32) { 1.5081043f32 } else { 1.508104283022319f64 };
+		let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+		let expected = if consteval (T == f32) { 1.5081043f32 } else { 1.508104283022319f64 };
 		if (cbrt(x) != expected) unreachable;
 
-		let x = if consteval (T == float32) { -3.43f32 } else { -3.43f64 };
-		let expected = if consteval (T == float32) { -1.5081043f32 } else { -1.508104283022319f64 };
+		let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+		let expected = if consteval (T == f32) { -1.5081043f32 } else { -1.508104283022319f64 };
 		if (cbrt(x) != expected) unreachable;
 	}
 
-	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { 0.6630841f32 } else { 0.6630841190875398f64 };
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.6630841f32 } else { 0.6630841190875398f64 };
 	if (cbrt(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { -0.6630841f32 } else { -0.6630841190875398f64 };
+	let x = if consteval (T == f32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { -0.6630841f32 } else { -0.6630841190875398f64 };
 	if (cbrt(x) != expected) unreachable;
 
 	if (cbrt(zero) != 0.0 as T) unreachable;
@@ -1013,24 +1013,24 @@ function pow_test(T: typename)
 	let zero_bits = (0.0 as T).bits();
 	let negative_zero_bits = (-0.0 as T).bits();
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let y = if consteval (T == float32) { 0.3533f32 } else { 0.3533f64 };
-	let expected = if consteval (T == float32) { 1.5456795f32 } else { 1.5456793775596471f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let y = if consteval (T == f32) { 0.3533f32 } else { 0.3533f64 };
+	let expected = if consteval (T == f32) { 1.5456795f32 } else { 1.5456793775596471f64 };
 	if (pow(x, y) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let y = if consteval (T == float32) { -0.3533f32 } else { -0.3533f64 };
-	let expected = if consteval (T == float32) { 0.64696467f32 } else { 0.646964703364822f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let y = if consteval (T == f32) { -0.3533f32 } else { -0.3533f64 };
+	let expected = if consteval (T == f32) { 0.64696467f32 } else { 0.646964703364822f64 };
 	if (pow(x, y) != expected) unreachable;
 
 	let x = min;
-	let y = if consteval (T == float32) { -0.123f32 } else { -0.123f64 };
-	let expected = if consteval (T == float32) { 46276.766f32 } else { 6.9386764195714765e+37f64 };
+	let y = if consteval (T == f32) { -0.123f32 } else { -0.123f64 };
+	let expected = if consteval (T == f32) { 46276.766f32 } else { 6.9386764195714765e+37f64 };
 	if (pow(x, y) != expected) unreachable;
 
 	let x = denorm_min;
-	let y = if consteval (T == float32) { -0.123f32 } else { -0.123f64 };
-	let expected = if consteval (T == float32) { 328834.12f32 } else { 5.84338480921933e+39f64 };
+	let y = if consteval (T == f32) { -0.123f32 } else { -0.123f64 };
+	let expected = if consteval (T == f32) { 328834.12f32 } else { 5.84338480921933e+39f64 };
 	if (pow(x, y) != expected) unreachable;
 
 	let x = min;
@@ -1201,7 +1201,7 @@ function hypot_test(T: typename)
 
 	let x = 1.0 as T;
 	let y = 1.0 as T;
-	let expected = if consteval (T == float32) { 1.4142135f32 } else { 1.4142135623730951f64 };
+	let expected = if consteval (T == f32) { 1.4142135f32 } else { 1.4142135623730951f64 };
 	if (hypot(x, y) != expected) unreachable;
 	if (hypot(-x, y) != expected) unreachable;
 	if (hypot(x, -y) != expected) unreachable;
@@ -1211,9 +1211,9 @@ function hypot_test(T: typename)
 	if (hypot(y, -x) != expected) unreachable;
 	if (hypot(-y, -x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let y = if consteval (T == float32) { 0.3533f32 } else { 0.3533f64 };
-	let expected = if consteval (T == float32) { 3.4481475f32 } else { 3.4481474576937687f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let y = if consteval (T == f32) { 0.3533f32 } else { 0.3533f64 };
+	let expected = if consteval (T == f32) { 3.4481475f32 } else { 3.4481474576937687f64 };
 	if (hypot(x, y) != expected) unreachable;
 	if (hypot(-x, y) != expected) unreachable;
 	if (hypot(x, -y) != expected) unreachable;
@@ -1225,7 +1225,7 @@ function hypot_test(T: typename)
 
 	let x = min;
 	let y = min;
-	let expected = if consteval (T == float32) { 1.6624e-38f32 } else { 3.1467296279827175e-308f64 };
+	let expected = if consteval (T == f32) { 1.6624e-38f32 } else { 3.1467296279827175e-308f64 };
 	if (hypot(x, y) != expected) unreachable;
 	if (hypot(-x, y) != expected) unreachable;
 	if (hypot(x, -y) != expected) unreachable;
@@ -1237,7 +1237,7 @@ function hypot_test(T: typename)
 
 	let x = denorm_min;
 	let y = denorm_min;
-	let expected = if consteval (T == float32) { 1e-45f32 } else { 5e-324f64 };
+	let expected = if consteval (T == f32) { 1e-45f32 } else { 5e-324f64 };
 	if (hypot(x, y) != expected) unreachable;
 	if (hypot(-x, y) != expected) unreachable;
 	if (hypot(x, -y) != expected) unreachable;
@@ -1280,24 +1280,24 @@ function sin_test(T: typename)
 	let zero_bits = (0.0 as T).bits();
 	let negative_zero_bits = (-0.0 as T).bits();
 
-	let x = if consteval (T == float32) { 3.1415927f32 } else { 3.141592653589793f64 };
-	let expected = if consteval (T == float32) { -8.742278e-08f32 } else { 1.2246467991473532e-16f64 };
+	let x = if consteval (T == f32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	let expected = if consteval (T == f32) { -8.742278e-08f32 } else { 1.2246467991473532e-16f64 };
 	if (sin(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { -3.1415927f32 } else { -3.141592653589793f64 };
-	let expected = if consteval (T == float32) { 8.742278e-08f32 } else { -1.2246467991473532e-16f64 };
+	let x = if consteval (T == f32) { -3.1415927f32 } else { -3.141592653589793f64 };
+	let expected = if consteval (T == f32) { 8.742278e-08f32 } else { -1.2246467991473532e-16f64 };
 	if (sin(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	let x = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
 	let expected = 1.0 as T;
 	if (sin(x) != expected) unreachable;
 
 	let x = 1.0 as T;
-	let expected = if consteval (T == float32) { 0.84147096f32 } else { 0.8414709848078965f64 };
+	let expected = if consteval (T == f32) { 0.84147096f32 } else { 0.8414709848078965f64 };
 	if (sin(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
-	let expected = if consteval (T == float32) { -0.56537485f32 } else { -0.5653739196973395f64 };
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { -0.56537485f32 } else { -0.5653739196973395f64 };
 	if (sin(x) != expected) unreachable;
 
 	if (sin(zero).bits() != zero_bits) unreachable;
@@ -1313,24 +1313,24 @@ function cos_test(T: typename)
 	let nan = T.nan;
 	let zero = 0.0 as T;
 
-	let x = if consteval (T == float32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	let x = if consteval (T == f32) { 3.1415927f32 } else { 3.141592653589793f64 };
 	let expected = -1.0 as T;
 	if (cos(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { -3.1415927f32 } else { -3.141592653589793f64 };
+	let x = if consteval (T == f32) { -3.1415927f32 } else { -3.141592653589793f64 };
 	let expected = -1.0 as T;
 	if (cos(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
-	let expected = if consteval (T == float32) { -4.371139e-08f32 } else { 6.123233995736766e-17f64 };
+	let x = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	let expected = if consteval (T == f32) { -4.371139e-08f32 } else { 6.123233995736766e-17f64 };
 	if (cos(x) != expected) unreachable;
 
 	let x = 1.0 as T;
-	let expected = if consteval (T == float32) { 0.5403023f32 } else { 0.5403023058681398f64 };
+	let expected = if consteval (T == f32) { 0.5403023f32 } else { 0.5403023058681398f64 };
 	if (cos(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
-	let expected = if consteval (T == float32) { -0.8248341f32 } else { -0.8248347294616457f64 };
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { -0.8248341f32 } else { -0.8248347294616457f64 };
 	if (cos(x) != expected) unreachable;
 
 	if (cos(zero) != 1.0 as T) unreachable;
@@ -1349,28 +1349,28 @@ function tan_test(T: typename)
 	let zero_bits = (0.0 as T).bits();
 	let negative_zero_bits = (-0.0 as T).bits();
 
-	let x = if consteval (T == float32) { 3.1415927f32 } else { 3.141592653589793f64 };
-	let expected = if consteval (T == float32) { 8.742278e-08f32 } else { -1.2246467991473532e-16f64 };
+	let x = if consteval (T == f32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	let expected = if consteval (T == f32) { 8.742278e-08f32 } else { -1.2246467991473532e-16f64 };
 	if (tan(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { -3.1415927f32 } else { -3.141592653589793f64 };
-	let expected = if consteval (T == float32) { -8.742278e-08f32 } else { 1.2246467991473532e-16f64 };
+	let x = if consteval (T == f32) { -3.1415927f32 } else { -3.141592653589793f64 };
+	let expected = if consteval (T == f32) { -8.742278e-08f32 } else { 1.2246467991473532e-16f64 };
 	if (tan(x) != expected) unreachable;
 
 	// FIXME: tanf on windows doesn't produce the same values as glibc on linux
-	if (T != float32)
+	if (T != f32)
 	{
-		let x = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
-		let expected = if consteval (T == float32) { -2.2877334e+07f32 } else { 1.633123935319537e+16f64 };
+		let x = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+		let expected = if consteval (T == f32) { -2.2877334e+07f32 } else { 1.633123935319537e+16f64 };
 		if (tan(x) != expected) unreachable;
 	}
 
 	let x = 1.0 as T;
-	let expected = if consteval (T == float32) { 1.5574077f32 } else { 1.5574077246549023f64 };
+	let expected = if consteval (T == f32) { 1.5574077f32 } else { 1.5574077246549023f64 };
 	if (tan(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
-	let expected = if consteval (T == float32) { 0.68544066f32 } else { 0.6854390334247306f64 };
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { 0.68544066f32 } else { 0.6854390334247306f64 };
 	if (tan(x) != expected) unreachable;
 
 	if (tan(zero).bits() != zero_bits) unreachable;
@@ -1392,19 +1392,19 @@ function asin_test(T: typename)
 	let negative_zero_bits = (-0.0 as T).bits();
 
 	let x = 1.0 as T;
-	let expected = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	let expected = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
 	if (asin(x) != expected) unreachable;
 
 	let x = -1.0 as T;
-	let expected = if consteval (T == float32) { -1.5707964f32 } else { -1.5707963267948966f64 };
+	let expected = if consteval (T == f32) { -1.5707964f32 } else { -1.5707963267948966f64 };
 	if (asin(x) != expected) unreachable;
 
 	let x = 0.5 as T;
-	let expected = if consteval (T == float32) { 0.5235988f32 } else { 0.5235987755982989f64 };
+	let expected = if consteval (T == f32) { 0.5235988f32 } else { 0.5235987755982989f64 };
 	if (asin(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { 0.2958418f32 } else { 0.2958418067382629f64 };
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.2958418f32 } else { 0.2958418067382629f64 };
 	if (asin(x) != expected) unreachable;
 
 	if (asin(zero).bits() != zero_bits) unreachable;
@@ -1429,28 +1429,28 @@ function acos_test(T: typename)
 	let zero_bits = (0.0 as T).bits();
 
 	let x = -1.0 as T;
-	let expected = if consteval (T == float32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	let expected = if consteval (T == f32) { 3.1415927f32 } else { 3.141592653589793f64 };
 	if (acos(x) != expected) unreachable;
 
 	let x = 0.5 as T;
-	let expected = if consteval (T == float32) { 1.0471976f32 } else { 1.0471975511965979f64 };
+	let expected = if consteval (T == f32) { 1.0471976f32 } else { 1.0471975511965979f64 };
 	if (acos(x) != expected) unreachable;
 
 	let x = -0.5 as T;
-	let expected = if consteval (T == float32) { 2.0943952f32 } else { 2.0943951023931957f64 };
+	let expected = if consteval (T == f32) { 2.0943952f32 } else { 2.0943951023931957f64 };
 	if (acos(x) != expected) unreachable;
 
 	let x = 0.0 as T;
-	let expected = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	let expected = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
 	if (acos(x) != expected) unreachable;
 	if (acos(-x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { 1.2749546f32 } else { 1.2749545200566337f64 };
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 1.2749546f32 } else { 1.2749545200566337f64 };
 	if (acos(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { 1.8666382f32 } else { 1.8666381335331594f64 };
+	let x = if consteval (T == f32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 1.8666382f32 } else { 1.8666381335331594f64 };
 	if (acos(x) != expected) unreachable;
 
 	if (acos(one).bits() != zero_bits) unreachable;
@@ -1474,27 +1474,27 @@ function atan_test(T: typename)
 	let negative_zero_bits = (-0.0 as T).bits();
 
 	let x = 1.0 as T;
-	let expected = if consteval (T == float32) { 0.7853982f32 } else { 0.7853981633974483f64 };
+	let expected = if consteval (T == f32) { 0.7853982f32 } else { 0.7853981633974483f64 };
 	if (atan(x) != expected) unreachable;
 
 	let x = -1.0 as T;
-	let expected = if consteval (T == float32) { -0.7853982f32 } else { -0.7853981633974483f64 };
+	let expected = if consteval (T == f32) { -0.7853982f32 } else { -0.7853981633974483f64 };
 	if (atan(x) != expected) unreachable;
 
 	let x = 0.5 as T;
-	let expected = if consteval (T == float32) { 0.4636476f32 } else { 0.4636476090008061f64 };
+	let expected = if consteval (T == f32) { 0.4636476f32 } else { 0.4636476090008061f64 };
 	if (atan(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
-	let expected = if consteval (T == float32) { 1.5626745f32 } else { 1.5626745460380187f64 };
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { 1.5626745f32 } else { 1.5626745460380187f64 };
 	if (atan(x) != expected) unreachable;
 
 	let x = inf;
-	let expected = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	let expected = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
 	if (atan(x) != expected) unreachable;
 
 	let x = -inf;
-	let expected = if consteval (T == float32) { -1.5707964f32 } else { -1.5707963267948966f64 };
+	let expected = if consteval (T == f32) { -1.5707964f32 } else { -1.5707963267948966f64 };
 	if (atan(x) != expected) unreachable;
 
 	if (atan(zero).bits() != zero_bits) unreachable;
@@ -1509,22 +1509,22 @@ function atan2_test(T: typename)
 	let inf = T.inf;
 	let nan = T.nan;
 	let zero = 0.0 as T;
-	let pi = if consteval (T == float32) { 3.1415927f32 } else { 3.141592653589793f64 };
-	let pi_half = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
-	let pi_quarter = if consteval (T == float32) { 0.7853982f32 } else { 0.7853981633974483f64 };
-	let pi_three_quarters = if consteval (T == float32) { 2.3561945f32 } else { 2.356194490192345f64 };
+	let pi = if consteval (T == f32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	let pi_half = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	let pi_quarter = if consteval (T == f32) { 0.7853982f32 } else { 0.7853981633974483f64 };
+	let pi_three_quarters = if consteval (T == f32) { 2.3561945f32 } else { 2.356194490192345f64 };
 
 	let zero_bits = (0.0 as T).bits();
 	let negative_zero_bits = (-0.0 as T).bits();
 
-	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
-	let y = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let expected = if consteval (T == float32) { 0.027851118f32 } else { 0.027851117077518864f64 };
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let y = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 0.027851118f32 } else { 0.027851117077518864f64 };
 	if (atan2(y, x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let y = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
-	let expected = if consteval (T == float32) { 1.5429453f32 } else { 1.5429452097173777f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let y = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { 1.5429453f32 } else { 1.5429452097173777f64 };
 	if (atan2(y, x) != expected) unreachable;
 
 	// https://en.cppreference.com/w/c/numeric/math/atan2
@@ -1624,17 +1624,17 @@ function sinh_test(T: typename)
 	let zero_bits = (0.0 as T).bits();
 	let negative_zero_bits = (-0.0 as T).bits();
 
-	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
-	let expected = if consteval (T == float32) { inf } else { 1.4811856630877337e+53f64 };
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { inf } else { 1.4811856630877337e+53f64 };
 	if (sinh(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let expected = if consteval (T == float32) { 15.422129f32 } else { 15.42212790445207f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 15.422129f32 } else { 15.42212790445207f64 };
 	if (sinh(x) != expected) unreachable;
 	if (sinh(-x) != -expected) unreachable;
 
-	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { 0.29569292f32 } else { 0.29569293331053953f64 };
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.29569292f32 } else { 0.29569293331053953f64 };
 	if (sinh(x) != expected) unreachable;
 	if (sinh(-x) != -expected) unreachable;
 
@@ -1651,21 +1651,21 @@ function cosh_test(T: typename)
 	let nan = T.nan;
 	let zero = 0.0 as T;
 
-	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
-	let expected = if consteval (T == float32) { inf } else { 1.4811856630877337e+53f64 };
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { inf } else { 1.4811856630877337e+53f64 };
 	if (cosh(x) != expected) unreachable;
 
 	// FIXME: cosh on windows doesn't produce the same values as glibc on linux
-	if (T != float64)
+	if (T != f64)
 	{
-		let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-		let expected = if consteval (T == float32) { 15.454515f32 } else { 15.454514845224976f64 };
+		let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+		let expected = if consteval (T == f32) { 15.454515f32 } else { 15.454514845224976f64 };
 		if (cosh(x) != expected) unreachable;
 		if (cosh(-x) != expected) unreachable;
 	}
 
-	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { 1.0428011f32 } else { 1.0428011846990735f64 };
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 1.0428011f32 } else { 1.0428011846990735f64 };
 	if (cosh(x) != expected) unreachable;
 	if (cosh(-x) != expected) unreachable;
 
@@ -1685,17 +1685,17 @@ function tanh_test(T: typename)
 	let zero_bits = (0.0 as T).bits();
 	let negative_zero_bits = (-0.0 as T).bits();
 
-	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
 	let expected = 1.0 as T;
 	if (tanh(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let expected = if consteval (T == float32) { 0.99790436f32 } else { 0.9979043702699659f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 0.99790436f32 } else { 0.9979043702699659f64 };
 	if (tanh(x) != expected) unreachable;
 	if (tanh(-x) != -expected) unreachable;
 
-	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { 0.28355637f32 } else { 0.28355638414034706f64 };
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.28355637f32 } else { 0.28355638414034706f64 };
 	if (tanh(x) != expected) unreachable;
 	if (tanh(-x) != -expected) unreachable;
 
@@ -1715,17 +1715,17 @@ function asinh_test(T: typename)
 	let zero_bits = (0.0 as T).bits();
 	let negative_zero_bits = (-0.0 as T).bits();
 
-	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
-	let expected = if consteval (T == float32) { 5.5063477f32 } else { 5.50634752741339f64 };
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { 5.5063477f32 } else { 5.50634752741339f64 };
 	if (asinh(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let expected = if consteval (T == float32) { 1.94631f32 } else { 1.9463100722741329f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 1.94631f32 } else { 1.9463100722741329f64 };
 	if (asinh(x) != expected) unreachable;
 	if (asinh(-x) != -expected) unreachable;
 
-	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { 0.28756544f32 } else { 0.28756545247221277f64 };
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.28756544f32 } else { 0.28756545247221277f64 };
 	if (asinh(x) != expected) unreachable;
 	if (asinh(-x) != -expected) unreachable;
 
@@ -1746,20 +1746,20 @@ function acosh_test(T: typename)
 
 	let zero_bits = (0.0 as T).bits();
 
-	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
-	let expected = if consteval (T == float32) { 5.5063148f32 } else { 5.506314544301588f64 };
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { 5.5063148f32 } else { 5.506314544301588f64 };
 	if (acosh(x) != expected) unreachable;
 
 	// FIXME: acosh on windows doesn't produce the same values as glibc on linux
-	if (T != float64)
+	if (T != f64)
 	{
-		let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-		let expected = if consteval (T == float32) { 1.9037466f32 } else { 1.9037465859926774f64 };
+		let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+		let expected = if consteval (T == f32) { 1.9037466f32 } else { 1.9037465859926774f64 };
 		if (acosh(x) != expected) unreachable;
 	}
 
 	let x = one + epsilon;
-	let expected = if consteval (T == float32) { 0.00048828122f32 } else { 2.1073424255447017e-08f64 };
+	let expected = if consteval (T == f32) { 0.00048828122f32 } else { 2.1073424255447017e-08f64 };
 	if (acosh(x) != expected) unreachable;
 
 	if (acosh(one).bits() != zero_bits) unreachable;
@@ -1784,21 +1784,21 @@ function atanh_test(T: typename)
 	let negative_zero_bits = (-0.0 as T).bits();
 
 	// FIXME: atanhf on windows doesn't produce the same values as glibc on linux
-	if (T != float32)
+	if (T != f32)
 	{
-		let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-		let expected = if consteval (T == float32) { 0.30025417f32 } else { 0.30025416335229355f64 };
+		let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == f32) { 0.30025417f32 } else { 0.30025416335229355f64 };
 		if (atanh(x) != expected) unreachable;
 		if (atanh(-x) != -expected) unreachable;
 
-		let x = if consteval (T == float32) { 0.321123f32 } else { 0.321123f64 };
-		let expected = if consteval (T == float32) { 0.33289874f32 } else { 0.3328987245329761f64 };
+		let x = if consteval (T == f32) { 0.321123f32 } else { 0.321123f64 };
+		let expected = if consteval (T == f32) { 0.33289874f32 } else { 0.3328987245329761f64 };
 		if (atanh(x) != expected) unreachable;
 		if (atanh(-x) != -expected) unreachable;
 	}
 
 	let x = one - epsilon / 2.0 as T;
-	let expected = if consteval (T == float32) { 8.66434f32 } else { 18.714973875118524f64 };
+	let expected = if consteval (T == f32) { 8.66434f32 } else { 18.714973875118524f64 };
 	if (atanh(x) != expected) unreachable;
 	if (atanh(-x) != -expected) unreachable;
 
@@ -1824,17 +1824,17 @@ function erf_test(T: typename)
 	let zero_bits = (0.0 as T).bits();
 	let negative_zero_bits = (-0.0 as T).bits();
 
-	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
 	let expected = 1.0 as T;
 	if (erf(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let expected = if consteval (T == float32) { 0.99999875f32 } else { 0.9999987700606605f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 0.99999875f32 } else { 0.9999987700606605f64 };
 	if (erf(x) != expected) unreachable;
 	if (erf(-x) != -expected) unreachable;
 
-	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { 0.3198857f32 } else { 0.31988569945795137f64 };
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.3198857f32 } else { 0.31988569945795137f64 };
 	if (erf(x) != expected) unreachable;
 	if (erf(-x) != -expected) unreachable;
 
@@ -1852,33 +1852,33 @@ function erfc_test(T: typename)
 
 	let zero_bits = (0.0 as T).bits();
 
-	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
 	let expected = 0.0 as T;
 	if (erfc(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { -123.123f32 } else { -123.123f64 };
+	let x = if consteval (T == f32) { -123.123f32 } else { -123.123f64 };
 	let expected = 2.0 as T;
 	if (erfc(x) != expected) unreachable;
 
 	// FIXME: erfcf and erfc on windows don't produce the same values as glibc on linux
-	// let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	// let expected = if consteval (T == float32) { 1.2299388e-06f32 } else { 1.22993933946727e-06f64 };
+	// let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	// let expected = if consteval (T == f32) { 1.2299388e-06f32 } else { 1.22993933946727e-06f64 };
 	// if (erfc(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { -3.43f32 } else { -3.43f64 };
-	let expected = if consteval (T == float32) { 1.9999988f32 } else { 1.9999987700606605f64 };
+	let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+	let expected = if consteval (T == f32) { 1.9999988f32 } else { 1.9999987700606605f64 };
 	if (erfc(x) != expected) unreachable;
 
 	// FIXME: erfcf on windows doesn't produce the same values as glibc on linux
-	if (T != float32)
+	if (T != f32)
 	{
-		let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-		let expected = if consteval (T == float32) { 0.6801143f32 } else { 0.6801143005420487f64 };
+		let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == f32) { 0.6801143f32 } else { 0.6801143005420487f64 };
 		if (erfc(x) != expected) unreachable;
 	}
 
-	let x = if consteval (T == float32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
-	let expected = if consteval (T == float32) { 1.3198857f32 } else { 1.3198856994579513f64 };
+	let x = if consteval (T == f32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 1.3198857f32 } else { 1.3198856994579513f64 };
 	if (erfc(x) != expected) unreachable;
 
 	if (erfc(inf).bits() != zero_bits) unreachable;
@@ -1897,7 +1897,7 @@ function tgamma_test(T: typename)
 	let one = 1.0 as T;
 
 	let x = min;
-	let expected = if consteval (T == float32) { 8.507059e+37f32 } else { 4.49423283715579e+307f64 };
+	let expected = if consteval (T == f32) { 8.507059e+37f32 } else { 4.49423283715579e+307f64 };
 	if (tgamma(x) != expected) unreachable;
 
 	let x = denorm_min;
@@ -1905,62 +1905,62 @@ function tgamma_test(T: typename)
 	if (tgamma(x) != expected) unreachable;
 
 	let x = -one - epsilon;
-	let expected = if consteval (T == float32) { 8388607.5f32 } else { 4503599627370495.5f64 };
+	let expected = if consteval (T == f32) { 8388607.5f32 } else { 4503599627370495.5f64 };
 	if (tgamma(x) != expected) unreachable;
 
 	let x = -one + epsilon / 2.0 as T;
-	let expected = if consteval (T == float32) { -16777218.0f32 } else { -9007199254740994.0f64 };
+	let expected = if consteval (T == f32) { -16777218.0f32 } else { -9007199254740994.0f64 };
 	if (tgamma(x) != expected) unreachable;
 
 	// FIXME: tgammaf on windows doesn't produce the same values as glibc on linux
-	if (T != float32)
+	if (T != f32)
 	{
 		let x = 0.5 as T;
-		let expected = if consteval (T == float32) { 1.7724538f32 } else { 1.772453850905516f64 };
+		let expected = if consteval (T == f32) { 1.7724538f32 } else { 1.772453850905516f64 };
 		if (tgamma(x) != expected) unreachable;
 	}
 
 	// FIXME: tgammaf and tgamma on windows don't produce the same values as glibc on linux
 	// let x = 10.0 as T;
-	// let expected = if consteval (T == float32) { 362880.03f32 } else { 362879.99999999994f64 };
+	// let expected = if consteval (T == f32) { 362880.03f32 } else { 362879.99999999994f64 };
 	// if (tgamma(x) != expected) unreachable;
 
 	// FIXME: tgammaf and tgamma on windows don't produce the same values as glibc on linux
 	// let x = 25.0 as T;
-	// let expected = if consteval (T == float32) { 6.204484e+23f32 } else { 6.204484017332395e+23f64 };
+	// let expected = if consteval (T == f32) { 6.204484e+23f32 } else { 6.204484017332395e+23f64 };
 	// if (tgamma(x) != expected) unreachable;
 
 	// FIXME: tgammaf on windows doesn't produce the same values as glibc on linux
-	if (T != float64)
+	if (T != f64)
 	{
-		let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
-		let expected = if consteval (T == float32) { inf } else { 1.78404886066154e+203f64 };
+		let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+		let expected = if consteval (T == f32) { inf } else { 1.78404886066154e+203f64 };
 		if (tgamma(x) != expected) unreachable;
 
-		let x = if consteval (T == float32) { -123.123f32 } else { -123.123f64 };
-		let expected = if consteval (T == float32) { 0.0f32 } else { 3.794994993510893e-205f64 };
+		let x = if consteval (T == f32) { -123.123f32 } else { -123.123f64 };
+		let expected = if consteval (T == f32) { 0.0f32 } else { 3.794994993510893e-205f64 };
 		if (tgamma(x) != expected) unreachable;
 	}
 
 	// FIXME: tgammaf on windows doesn't produce the same values as glibc on linux
-	if (T != float32)
+	if (T != f32)
 	{
-		let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-		let expected = if consteval (T == float32) { 3.0788875f32 } else { 3.078887316908918f64 };
+		let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+		let expected = if consteval (T == f32) { 3.0788875f32 } else { 3.078887316908918f64 };
 		if (tgamma(x) != expected) unreachable;
 
-		let x = if consteval (T == float32) { -3.43f32 } else { -3.43f64 };
-		let expected = if consteval (T == float32) { 0.304824f32 } else { 0.30482401613041793f64 };
+		let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+		let expected = if consteval (T == f32) { 0.304824f32 } else { 0.30482401613041793f64 };
 		if (tgamma(x) != expected) unreachable;
 
-		let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-		let expected = if consteval (T == float32) { 3.0828564f32 } else { 3.0828564628345165f64 };
+		let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == f32) { 3.0828564f32 } else { 3.0828564628345165f64 };
 		if (tgamma(x) != expected) unreachable;
 	}
 
 	// FIXME: tgammaf and tgamma on windows don't produce the same values as glibc on linux
-	// let x = if consteval (T == float32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
-	// let expected = if consteval (T == float32) { -4.407084f32 } else { -4.407083317294696f64 };
+	// let x = if consteval (T == f32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+	// let expected = if consteval (T == f32) { -4.407084f32 } else { -4.407083317294696f64 };
 	// if (tgamma(x) != expected) unreachable;
 
 	if (tgamma(zero) != inf) unreachable;
@@ -1988,66 +1988,66 @@ function lgamma_test(T: typename)
 	let zero_bits = (0.0 as T).bits();
 
 	let x = min;
-	let expected = if consteval (T == float32) { 87.33655f32 } else { 708.3964185322641f64 };
+	let expected = if consteval (T == f32) { 87.33655f32 } else { 708.3964185322641f64 };
 	if (lgamma(x) != expected) unreachable;
 
 	// FIXME: lgamma on windows doesn't produce the same values as glibc on linux
-	if (T != float64)
+	if (T != f64)
 	{
 		let x = denorm_min;
-		let expected = if consteval (T == float32) { 103.27893f32 } else { 744.4400719213812f64 };
+		let expected = if consteval (T == f32) { 103.27893f32 } else { 744.4400719213812f64 };
 		if (lgamma(x) != expected) unreachable;
 
 		let x = -one - epsilon;
-		let expected = if consteval (T == float32) { 15.942385f32 } else { 36.04365338911715f64 };
+		let expected = if consteval (T == f32) { 15.942385f32 } else { 36.04365338911715f64 };
 		if (lgamma(x) != expected) unreachable;
 	}
 
 	let x = -one + epsilon / 2.0 as T;
-	let expected = if consteval (T == float32) { 16.635532f32 } else { 36.7368005696771f64 };
+	let expected = if consteval (T == f32) { 16.635532f32 } else { 36.7368005696771f64 };
 	if (lgamma(x) != expected) unreachable;
 
 	// FIXME: lgamma on windows doesn't produce the same values as glibc on linux
-	if (T != float64)
+	if (T != f64)
 	{
 		let x = 0.5 as T;
-		let expected = if consteval (T == float32) { 0.5723649f32 } else { 0.5723649429247001f64 };
+		let expected = if consteval (T == f32) { 0.5723649f32 } else { 0.5723649429247001f64 };
 		if (lgamma(x) != expected) unreachable;
 
 		let x = 10.0 as T;
-		let expected = if consteval (T == float32) { 12.801827f32 } else { 12.80182748008147f64 };
+		let expected = if consteval (T == f32) { 12.801827f32 } else { 12.80182748008147f64 };
 		if (lgamma(x) != expected) unreachable;
 
 		let x = 25.0 as T;
-		let expected = if consteval (T == float32) { 54.78473f32 } else { 54.78472939811231f64 };
+		let expected = if consteval (T == f32) { 54.78473f32 } else { 54.78472939811231f64 };
 		if (lgamma(x) != expected) unreachable;
 	}
 
-	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
-	let expected = if consteval (T == float32) { 468.00366f32 } else { 468.0036592998372f64 };
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { 468.00366f32 } else { 468.0036592998372f64 };
 	if (lgamma(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { -123.123f32 } else { -123.123f64 };
-	let expected = if consteval (T == float32) { -470.69626f32 } else { -470.69626097216553f64 };
+	let x = if consteval (T == f32) { -123.123f32 } else { -123.123f64 };
+	let expected = if consteval (T == f32) { -470.69626f32 } else { -470.69626097216553f64 };
 	if (lgamma(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
-	let expected = if consteval (T == float32) { 1.1245683f32 } else { 1.1245682709712426f64 };
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 1.1245683f32 } else { 1.1245682709712426f64 };
 	if (lgamma(x) != expected) unreachable;
 
-	let x = if consteval (T == float32) { -3.43f32 } else { -3.43f64 };
-	let expected = if consteval (T == float32) { -1.1880208f32 } else { -1.1880206651948586f64 };
+	let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+	let expected = if consteval (T == f32) { -1.1880208f32 } else { -1.1880206651948586f64 };
 	if (lgamma(x) != expected) unreachable;
 
 	// FIXME: lgamma on windows doesn't produce the same values as glibc on linux
-	if (T != float64)
+	if (T != f64)
 	{
-		let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
-		let expected = if consteval (T == float32) { 1.1258566f32 } else { 1.1258565901927058f64 };
+		let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == f32) { 1.1258566f32 } else { 1.1258565901927058f64 };
 		if (lgamma(x) != expected) unreachable;
 
-		let x = if consteval (T == float32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
-		let expected = if consteval (T == float32) { 1.4832132f32 } else { 1.4832130913527293f64 };
+		let x = if consteval (T == f32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+		let expected = if consteval (T == f32) { 1.4832132f32 } else { 1.4832130913527293f64 };
 		if (lgamma(x) != expected) unreachable;
 	}
 
@@ -2067,115 +2067,115 @@ function lgamma_test(T: typename)
 
 function main()
 {
-	isnan_test(float32);
-	isnan_test(float64);
-	isinf_test(float32);
-	isinf_test(float64);
-	isfinite_test(float32);
-	isfinite_test(float64);
-	isnormal_test(float32);
-	isnormal_test(float64);
-	issubnormal_test(float32);
-	issubnormal_test(float64);
-	iszero_test(float32);
-	iszero_test(float64);
+	isnan_test(f32);
+	isnan_test(f64);
+	isinf_test(f32);
+	isinf_test(f64);
+	isfinite_test(f32);
+	isfinite_test(f64);
+	isnormal_test(f32);
+	isnormal_test(f64);
+	issubnormal_test(f32);
+	issubnormal_test(f64);
+	iszero_test(f32);
+	iszero_test(f64);
 
-	nextafter_test(float32);
-	nextafter_test(float64);
-	nextup_test(float32);
-	nextup_test(float64);
-	nextdown_test(float32);
-	nextdown_test(float64);
+	nextafter_test(f32);
+	nextafter_test(f64);
+	nextup_test(f32);
+	nextup_test(f64);
+	nextdown_test(f32);
+	nextdown_test(f64);
 
-	abs_test_int(int8);
-	abs_test_int(int16);
-	abs_test_int(int32);
-	abs_test_int(int64);
-	abs_test_float(float32);
-	abs_test_float(float64);
+	abs_test_int(i8);
+	abs_test_int(i16);
+	abs_test_int(i32);
+	abs_test_int(i64);
+	abs_test_float(f32);
+	abs_test_float(f64);
 
-	min_test_int(int8);
-	min_test_int(int16);
-	min_test_int(int32);
-	min_test_int(int64);
-	min_test_int(uint8);
-	min_test_int(uint16);
-	min_test_int(uint32);
-	min_test_int(uint64);
-	min_test_float(float32);
-	min_test_float(float64);
+	min_test_int(i8);
+	min_test_int(i16);
+	min_test_int(i32);
+	min_test_int(i64);
+	min_test_int(u8);
+	min_test_int(u16);
+	min_test_int(u32);
+	min_test_int(u64);
+	min_test_float(f32);
+	min_test_float(f64);
 
-	max_test_int(int8);
-	max_test_int(int16);
-	max_test_int(int32);
-	max_test_int(int64);
-	max_test_int(uint8);
-	max_test_int(uint16);
-	max_test_int(uint32);
-	max_test_int(uint64);
-	max_test_float(float32);
-	max_test_float(float64);
+	max_test_int(i8);
+	max_test_int(i16);
+	max_test_int(i32);
+	max_test_int(i64);
+	max_test_int(u8);
+	max_test_int(u16);
+	max_test_int(u32);
+	max_test_int(u64);
+	max_test_float(f32);
+	max_test_float(f64);
 
-	exp_test(float32);
-	exp_test(float64);
-	exp2_test(float32);
-	exp2_test(float64);
-	expm1_test(float32);
-	expm1_test(float64);
+	exp_test(f32);
+	exp_test(f64);
+	exp2_test(f32);
+	exp2_test(f64);
+	expm1_test(f32);
+	expm1_test(f64);
 
-	log_test(float32);
-	log_test(float64);
-	log2_test(float32);
-	log2_test(float64);
-	log10_test(float32);
-	log10_test(float64);
-	log1p_test(float32);
-	log1p_test(float64);
+	log_test(f32);
+	log_test(f64);
+	log2_test(f32);
+	log2_test(f64);
+	log10_test(f32);
+	log10_test(f64);
+	log1p_test(f32);
+	log1p_test(f64);
 
-	sqrt_test(float32);
-	sqrt_test(float64);
-	cbrt_test(float32);
-	cbrt_test(float64);
-	pow_test(float32);
-	pow_test(float64);
-	hypot_test(float32);
-	hypot_test(float64);
+	sqrt_test(f32);
+	sqrt_test(f64);
+	cbrt_test(f32);
+	cbrt_test(f64);
+	pow_test(f32);
+	pow_test(f64);
+	hypot_test(f32);
+	hypot_test(f64);
 
-	sin_test(float32);
-	sin_test(float64);
-	cos_test(float32);
-	cos_test(float64);
-	tan_test(float32);
-	tan_test(float64);
-	asin_test(float32);
-	asin_test(float64);
-	acos_test(float32);
-	acos_test(float64);
-	atan_test(float32);
-	atan_test(float64);
-	atan2_test(float32);
-	atan2_test(float64);
+	sin_test(f32);
+	sin_test(f64);
+	cos_test(f32);
+	cos_test(f64);
+	tan_test(f32);
+	tan_test(f64);
+	asin_test(f32);
+	asin_test(f64);
+	acos_test(f32);
+	acos_test(f64);
+	atan_test(f32);
+	atan_test(f64);
+	atan2_test(f32);
+	atan2_test(f64);
 
-	sinh_test(float32);
-	sinh_test(float64);
-	cosh_test(float32);
-	cosh_test(float64);
-	tanh_test(float32);
-	tanh_test(float64);
-	asinh_test(float32);
-	asinh_test(float64);
-	acosh_test(float32);
-	acosh_test(float64);
-	atanh_test(float32);
-	atanh_test(float64);
+	sinh_test(f32);
+	sinh_test(f64);
+	cosh_test(f32);
+	cosh_test(f64);
+	tanh_test(f32);
+	tanh_test(f64);
+	asinh_test(f32);
+	asinh_test(f64);
+	acosh_test(f32);
+	acosh_test(f64);
+	atanh_test(f32);
+	atanh_test(f64);
 
-	erf_test(float32);
-	erf_test(float64);
-	erfc_test(float32);
-	erfc_test(float64);
+	erf_test(f32);
+	erf_test(f64);
+	erfc_test(f32);
+	erfc_test(f64);
 
-	tgamma_test(float32);
-	tgamma_test(float64);
-	lgamma_test(float32);
-	lgamma_test(float64);
+	tgamma_test(f32);
+	tgamma_test(f64);
+	lgamma_test(f32);
+	lgamma_test(f64);
 }

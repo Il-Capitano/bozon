@@ -3,11 +3,11 @@ import counting_resource;
 
 struct S
 {
-	.i: int32;
+	.i: i32;
 	.j: usize;
-	.x: float32;
-	.y: float64;
-	.a: [20: uint32];
+	.x: f32;
+	.y: f64;
+	.a: [20: u32];
 	.s: str;
 }
 
@@ -22,17 +22,17 @@ struct complex_S
 function main()
 {
 	{
-		mut a = [1: int32]();
+		mut a = [1: i32]();
 		a[0] = 42;
 		let a = move a;
 		for (let i in 0..a.size())
 		{
 			if (a[i] != switch (i) {
 				0 => 42,
-				else => int32(),
+				else => i32(),
 			}) unreachable;
 		}
-		mut a = [10: int32]();
+		mut a = [10: i32]();
 		a[0] = 42;
 		a[4] = 99;
 		a[8] = 10;
@@ -43,10 +43,10 @@ function main()
 				0 => 42,
 				4 => 99,
 				8 => 10,
-				else => int32(),
+				else => i32(),
 			}) unreachable;
 		}
-		mut a = [100: int32]();
+		mut a = [100: i32]();
 		a[0] = 42;
 		a[4] = 99;
 		a[8] = 10;
@@ -61,23 +61,23 @@ function main()
 				8 => 10,
 				66 => 33,
 				90 => 90,
-				else => int32(),
+				else => i32(),
 			}) unreachable;
 		}
 	}
 
 	{
-		mut a = [1: float64]();
+		mut a = [1: f64]();
 		a[0] = 42.42;
 		let a = move a;
 		for (let i in 0..a.size())
 		{
 			if (a[i] != switch (i) {
 				0 => 42.42,
-				else => float64(),
+				else => f64(),
 			}) unreachable;
 		}
-		mut a = [10: float64]();
+		mut a = [10: f64]();
 		a[0] = 42.42;
 		a[4] = 99.99;
 		a[8] = 10.10;
@@ -88,10 +88,10 @@ function main()
 				0 => 42.42,
 				4 => 99.99,
 				8 => 10.10,
-				else => float64(),
+				else => f64(),
 			}) unreachable;
 		}
-		mut a = [100: float64]();
+		mut a = [100: f64]();
 		a[0] = 42.42;
 		a[4] = 99.99;
 		a[8] = 10.10;
@@ -106,7 +106,7 @@ function main()
 				8 => 10.10,
 				66 => 33.33,
 				90 => 90.90,
-				else => float64(),
+				else => f64(),
 			}) unreachable;
 		}
 	}

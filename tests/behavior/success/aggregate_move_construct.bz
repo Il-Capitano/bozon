@@ -3,11 +3,11 @@ import counting_resource;
 
 struct S
 {
-	.i: int32;
+	.i: i32;
 	.j: usize;
-	.x: float32;
-	.y: float64;
-	.a: [20: uint32];
+	.x: f32;
+	.y: f64;
+	.a: [20: u32];
 	.s: str;
 }
 
@@ -43,7 +43,7 @@ function test_tuple(Ts: ...typename)
 
 function main()
 {
-	test_tuple(int32, str, float32, float64, uint64, [10: int32], [100: float32]);
+	test_tuple(i32, str, f32, f64, u64, [10: i32], [100: f32]);
 	{
 		let r = [resource_t]();
 		let _ = move r;

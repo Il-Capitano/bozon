@@ -3,16 +3,16 @@ import counting_resource;
 
 struct S
 {
-	.i: int32;
+	.i: i32;
 	.s: str;
 	.res1: resource_t;
 	.res2: complex_resource_t;
 	.res3: relocatable_counting_resource_t;
 	.res4: counting_resource_t;
 
-	.ref1: &int32;
-	.ref2: &mut int32;
-	.ref3: &mut int32;
+	.ref1: &i32;
+	.ref2: &mut i32;
+	.ref3: &mut i32;
 	.ref4: &relocatable_counting_resource_t;
 	.ref5: &counting_resource_t;
 }
@@ -22,7 +22,7 @@ function test(: move auto)
 
 mut global_i = 0;
 
-function get_ref() -> &mut int32
+function get_ref() -> &mut i32
 {
 	return global_i;
 }

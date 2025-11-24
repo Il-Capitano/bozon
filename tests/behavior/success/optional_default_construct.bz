@@ -4,16 +4,16 @@ import counting_resource;
 function main()
 {
 	{
-		let o = (?int32)();
+		let o = (?i32)();
 		if (o != null) unreachable;
-		let o = (?*int32)();
+		let o = (?*i32)();
 		if (o != null) unreachable;
-		let o = (?*mut int32)();
+		let o = (?*mut i32)();
 		if (o != null) unreachable;
-		let o = (?**int32)();
+		let o = (?**i32)();
 		if (o != null) unreachable;
 		// TODO:
-		// let o = (?&int32)();
+		// let o = (?&i32)();
 		// if (o != null) unreachable;
 		let o = (?function() -> void)();
 		if (o != null) unreachable;

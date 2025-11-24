@@ -14,7 +14,7 @@ function free(p: *mut auto)
 	std::libc::free(p);
 }
 
-function main() -> int32
+function main() -> i32
 {
 	let p = malloc(counting_resource_t);
 	__builtin_inplace_construct(p, counting_resource_t());

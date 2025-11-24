@@ -12,27 +12,27 @@ function plus_test(consteval a, consteval b)
 	if (&(dyn_a += dyn_b) != &dyn_a) unreachable;
 }
 
-function plus_signed_overflow(intN: typename)
+function plus_signed_overflow(iN: typename)
 {
-	consteval size_in_bits = 8 * sizeof intN;
-	consteval max = ((1u64 << (size_in_bits - 1)) - 1) as intN;
-	consteval min = (((1u64 << (size_in_bits - 1)) as intN));
+	consteval size_in_bits = 8 * sizeof iN;
+	consteval max = ((1u64 << (size_in_bits - 1)) - 1) as iN;
+	consteval min = (((1u64 << (size_in_bits - 1)) as iN));
 
-	plus_test(max, 1 as intN);
-	plus_test(1 as intN, max);
+	plus_test(max, 1 as iN);
+	plus_test(1 as iN, max);
 	plus_test(max, max);
 
-	plus_test(min, -1 as intN);
-	plus_test(-1 as intN, min);
+	plus_test(min, -1 as iN);
+	plus_test(-1 as iN, min);
 	plus_test(min, min);
 }
 
-function plus_unsigned_overflow(uintN: typename)
+function plus_unsigned_overflow(uN: typename)
 {
-	consteval max = ~uintN(0);
+	consteval max = ~uN(0);
 
-	plus_test(max, 1 as uintN);
-	plus_test(1 as uintN, max);
+	plus_test(max, 1 as uN);
+	plus_test(1 as uN, max);
 	plus_test(max, max);
 }
 
@@ -64,17 +64,17 @@ function main()
 	plus_test(-inf_f32, -inf_f32);
 	plus_test(-inf_f64, -inf_f64);
 
-	plus_signed_overflow(int8);
-	plus_signed_overflow(int16);
-	plus_signed_overflow(int32);
-	plus_signed_overflow(int64);
+	plus_signed_overflow(i8);
+	plus_signed_overflow(i16);
+	plus_signed_overflow(i32);
+	plus_signed_overflow(i64);
 
-	plus_unsigned_overflow(uint8);
-	plus_unsigned_overflow(uint16);
-	plus_unsigned_overflow(uint32);
-	plus_unsigned_overflow(uint64);
+	plus_unsigned_overflow(u8);
+	plus_unsigned_overflow(u16);
+	plus_unsigned_overflow(u32);
+	plus_unsigned_overflow(u64);
 
-	let a = [10: int32]();
+	let a = [10: i32]();
 	let p1 = &a[0];
 	let p2 = &a[8];
 	if (p1 + 8 != p2) unreachable;
@@ -84,7 +84,7 @@ function main()
 	p += 5;
 	if (p != &a[5]) unreachable;
 
-	let a = [10: [int32, str, [3: float32]]]();
+	let a = [10: [i32, str, [3: f32]]]();
 	let p1 = &a[0];
 	let p2 = &a[8];
 	if (p1 + 8 != p2) unreachable;

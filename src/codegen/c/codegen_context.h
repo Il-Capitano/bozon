@@ -36,16 +36,16 @@ struct codegen_context
 	struct builtin_types_t
 	{
 		type::typedef_reference void_ = type::typedef_reference::invalid();
-		type::typedef_reference int8_ = type::typedef_reference::invalid();
-		type::typedef_reference int16_ = type::typedef_reference::invalid();
-		type::typedef_reference int32_ = type::typedef_reference::invalid();
-		type::typedef_reference int64_ = type::typedef_reference::invalid();
-		type::typedef_reference uint8_ = type::typedef_reference::invalid();
-		type::typedef_reference uint16_ = type::typedef_reference::invalid();
-		type::typedef_reference uint32_ = type::typedef_reference::invalid();
-		type::typedef_reference uint64_ = type::typedef_reference::invalid();
-		type::typedef_reference float32_ = type::typedef_reference::invalid();
-		type::typedef_reference float64_ = type::typedef_reference::invalid();
+		type::typedef_reference i8_ = type::typedef_reference::invalid();
+		type::typedef_reference i16_ = type::typedef_reference::invalid();
+		type::typedef_reference i32_ = type::typedef_reference::invalid();
+		type::typedef_reference i64_ = type::typedef_reference::invalid();
+		type::typedef_reference u8_ = type::typedef_reference::invalid();
+		type::typedef_reference u16_ = type::typedef_reference::invalid();
+		type::typedef_reference u32_ = type::typedef_reference::invalid();
+		type::typedef_reference u64_ = type::typedef_reference::invalid();
+		type::typedef_reference f32_ = type::typedef_reference::invalid();
+		type::typedef_reference f64_ = type::typedef_reference::invalid();
 		type::typedef_reference char_ = type::typedef_reference::invalid();
 		type::typedef_reference bool_ = type::typedef_reference::invalid();
 		type::struct_reference slice = type::struct_reference::invalid();

@@ -1,4 +1,4 @@
-function factorial(n: int32) -> int32
+function factorial(n: i32) -> i32
 {
 	return if (n <= 1) {
 		1

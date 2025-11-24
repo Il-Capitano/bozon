@@ -12,27 +12,27 @@ function minus_test(consteval a, consteval b)
 	if (&(dyn_a -= dyn_b) != &dyn_a) unreachable;
 }
 
-function minus_signed_overflow(intN: typename)
+function minus_signed_overflow(iN: typename)
 {
-	consteval size_in_bits = 8 * sizeof intN;
-	consteval max = ((1u64 << (size_in_bits - 1)) - 1) as intN;
-	consteval min = (((1u64 << (size_in_bits - 1)) as intN));
+	consteval size_in_bits = 8 * sizeof iN;
+	consteval max = ((1u64 << (size_in_bits - 1)) - 1) as iN;
+	consteval min = (((1u64 << (size_in_bits - 1)) as iN));
 
-	minus_test(max, -1 as intN);
-	minus_test(-1 as intN, max);
+	minus_test(max, -1 as iN);
+	minus_test(-1 as iN, max);
 
-	minus_test(min, 1 as intN);
-	minus_test(1 as intN, min);
+	minus_test(min, 1 as iN);
+	minus_test(1 as iN, min);
 
 	minus_test(max, min);
 	minus_test(min, max);
 }
 
-function minus_unsigned_overflow(uintN: typename)
+function minus_unsigned_overflow(uN: typename)
 {
-	consteval max = ~uintN(0);
+	consteval max = ~uN(0);
 
-	minus_test(0 as uintN, 1 as uintN);
+	minus_test(0 as uN, 1 as uN);
 	minus_test(max / 3, max);
 }
 
@@ -68,17 +68,17 @@ function main()
 	minus_test(-inf_f32, inf_f32);
 	minus_test(-inf_f64, inf_f64);
 
-	minus_signed_overflow(int8);
-	minus_signed_overflow(int16);
-	minus_signed_overflow(int32);
-	minus_signed_overflow(int64);
+	minus_signed_overflow(i8);
+	minus_signed_overflow(i16);
+	minus_signed_overflow(i32);
+	minus_signed_overflow(i64);
 
-	minus_unsigned_overflow(uint8);
-	minus_unsigned_overflow(uint16);
-	minus_unsigned_overflow(uint32);
-	minus_unsigned_overflow(uint64);
+	minus_unsigned_overflow(u8);
+	minus_unsigned_overflow(u16);
+	minus_unsigned_overflow(u32);
+	minus_unsigned_overflow(u64);
 
-	let a = [10: int32]();
+	let a = [10: i32]();
 	let p1 = &a[0];
 	let p2 = &a[8];
 	if (p1 != p2 - 8) unreachable;
@@ -87,7 +87,7 @@ function main()
 	p -= 5;
 	if (p != &a[0]) unreachable;
 
-	let a = [10: [int32, str, [3: float32]]]();
+	let a = [10: [i32, str, [3: f32]]]();
 	let p1 = &a[0];
 	let p2 = &a[8];
 	if (p1 != p2 - 8) unreachable;

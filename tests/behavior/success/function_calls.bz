@@ -64,7 +64,7 @@
 import std::format;
 import counting_resource;
 
-function value_arg1(n: int32)
+function value_arg1(n: i32)
 {
 	std::print("{}\n", n);
 }
@@ -79,7 +79,7 @@ function value_arg3(res: counting_resource_t)
 	std::print("{}\n", res.value);
 }
 
-function reference_arg1(n: &int32)
+function reference_arg1(n: &i32)
 {
 	std::print("{}\n", n);
 }
@@ -94,7 +94,7 @@ function reference_arg3(res: &counting_resource_t)
 	std::print("{}\n", res.value);
 }
 
-function mut_reference_arg1(n: &mut int32)
+function mut_reference_arg1(n: &mut i32)
 {
 	std::print("{}\n", n);
 }
@@ -109,7 +109,7 @@ function mut_reference_arg3(res: &mut counting_resource_t)
 	std::print("{}\n", res.value);
 }
 
-function move_reference_arg1(n: move int32)
+function move_reference_arg1(n: move i32)
 {
 	std::print("{}\n", n);
 }
@@ -187,7 +187,7 @@ function main()
 
 	{
 		std::print("value_arg\n");
-		let f: function(int32) = value_arg1;
+		let f: function(i32) = value_arg1;
 		f(0);
 		f(42);
 		let n = 123;
@@ -209,7 +209,7 @@ function main()
 		f(move res);
 
 		std::print("reference_arg\n");
-		let f: function(&int32) = reference_arg1;
+		let f: function(&i32) = reference_arg1;
 		let n = 123;
 		f(n);
 
@@ -222,7 +222,7 @@ function main()
 		f(res);
 
 		std::print("mut_reference_arg\n");
-		let f: function(&mut int32) = mut_reference_arg1;
+		let f: function(&mut i32) = mut_reference_arg1;
 		mut n = 123;
 		f(n);
 
@@ -235,7 +235,7 @@ function main()
 		f(res);
 
 		std::print("move_reference_arg\n");
-		let f: function(move int32) = move_reference_arg1;
+		let f: function(move i32) = move_reference_arg1;
 		f(0);
 		f(42);
 		let n = 123;

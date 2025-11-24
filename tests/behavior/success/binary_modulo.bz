@@ -12,12 +12,12 @@ function modulo_test(consteval a, consteval b)
 	if (&(dyn_a %= dyn_b) != &dyn_a) unreachable;
 }
 
-function modulo_signed_overflow(intN: typename)
+function modulo_signed_overflow(iN: typename)
 {
-	consteval size_in_bits = 8 * sizeof intN;
-	consteval min = (((1u64 << (size_in_bits - 1)) as intN));
+	consteval size_in_bits = 8 * sizeof iN;
+	consteval min = (((1u64 << (size_in_bits - 1)) as iN));
 
-	modulo_test(min, -1 as intN);
+	modulo_test(min, -1 as iN);
 }
 
 function main()
@@ -35,8 +35,8 @@ function main()
 	modulo_test(10i32, -3i32);
 	modulo_test(10i64, -3i64);
 
-	modulo_signed_overflow(int8);
-	modulo_signed_overflow(int16);
-	modulo_signed_overflow(int32);
-	modulo_signed_overflow(int64);
+	modulo_signed_overflow(i8);
+	modulo_signed_overflow(i16);
+	modulo_signed_overflow(i32);
+	modulo_signed_overflow(i64);
 }

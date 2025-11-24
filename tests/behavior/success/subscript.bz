@@ -3,7 +3,7 @@ import counting_resource;
 function main()
 {
 	{
-		mut arr = [10: int32]();
+		mut arr = [10: i32]();
 		for (let i in 0..arr.size())
 		{
 			if (arr[i] != 0) unreachable;
@@ -19,8 +19,8 @@ function main()
 	}
 
 	{
-		mut arr = [10: int32]();
-		let arr: [: mut int32] = arr;
+		mut arr = [10: i32]();
+		let arr: [: mut i32] = arr;
 		for (let i in 0..arr.size())
 		{
 			if (arr[i] != 0) unreachable;
@@ -37,7 +37,7 @@ function main()
 
 	{
 		mut i = 10;
-		mut t: [int32, &mut int32, float64, str] = [ 0, i, 0.0, "" ];
+		mut t: [i32, &mut i32, f64, str] = [ 0, i, 0.0, "" ];
 		if (&t[1] != &i) unreachable;
 		if (t[0] != 0 || i != 10 || t[1] != 10 || t[2] != 0.0 || t[3] != "") unreachable;
 

@@ -6,7 +6,7 @@
 function test()
 {
 	(consteval {
-		mut a = [10: int32]();
+		mut a = [10: i32]();
 
 		__builtin_trivially_copy_values(a.begin(), a.begin() + 2, 3);
 	});

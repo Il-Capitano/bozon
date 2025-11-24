@@ -1,4 +1,4 @@
-mut val_p: ?*int32 = null;
+mut val_p: ?*i32 = null;
 
 function set_val_p()
 {

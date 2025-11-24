@@ -1,6 +1,6 @@
 function main()
 {
-	mut i: ?int32 = null;
+	mut i: ?i32 = null;
 
 	__builtin_optional_get_mut_value_ref(i);
 }

@@ -7,45 +7,45 @@ function main()
 {
 	let end = 3i8;
 	let r = __builtin_integer_range_to_i8(end);
-	check(int8, r);
+	check(i8, r);
 	let end = -33i8;
 	let r = __builtin_integer_range_to_i8(end);
-	check(int8, r);
+	check(i8, r);
 
 	let end = 3i16;
 	let r = __builtin_integer_range_to_i16(end);
-	check(int16, r);
+	check(i16, r);
 	let end = -33i16;
 	let r = __builtin_integer_range_to_i16(end);
-	check(int16, r);
+	check(i16, r);
 
 	let end = 3i32;
 	let r = __builtin_integer_range_to_i32(end);
-	check(int32, r);
+	check(i32, r);
 	let end = -33i32;
 	let r = __builtin_integer_range_to_i32(end);
-	check(int32, r);
+	check(i32, r);
 
 	let end = 3i64;
 	let r = __builtin_integer_range_to_i64(end);
-	check(int64, r);
+	check(i64, r);
 	let end = -33i64;
 	let r = __builtin_integer_range_to_i64(end);
-	check(int64, r);
+	check(i64, r);
 
 	let end = 3u8;
 	let r = __builtin_integer_range_to_u8(end);
-	check(uint8, r);
+	check(u8, r);
 
 	let end = 3u16;
 	let r = __builtin_integer_range_to_u16(end);
-	check(uint16, r);
+	check(u16, r);
 
 	let end = 3u32;
 	let r = __builtin_integer_range_to_u32(end);
-	check(uint32, r);
+	check(u32, r);
 
 	let end = 3u64;
 	let r = __builtin_integer_range_to_u64(end);
-	check(uint64, r);
+	check(u64, r);
 }

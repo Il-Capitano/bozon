@@ -1,6 +1,6 @@
 function main()
 {
-	mut a = [10: int32]();
+	mut a = [10: i32]();
 	let begin = __builtin_array_begin_ptr(a);
 	if (__builtin_pointer_to_int(begin) != __builtin_pointer_to_int(&a)) unreachable;
 

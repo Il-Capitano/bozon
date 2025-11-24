@@ -12,11 +12,11 @@ function sizeof_type(T: typename) -> usize
 
 function main()
 {
-	if (sizeof_type(?*int32) != sizeof *int32) unreachable;
-	if (sizeof_type(?*int32) != sizeof_type(*int32)) unreachable;
-	if (sizeof_type(?&int32) != sizeof *int32) unreachable;
-	if (sizeof_type(?&int32) != sizeof_type(*int32)) unreachable;
+	if (sizeof_type(?*i32) != sizeof *i32) unreachable;
+	if (sizeof_type(?*i32) != sizeof_type(*i32)) unreachable;
+	if (sizeof_type(?&i32) != sizeof *i32) unreachable;
+	if (sizeof_type(?&i32) != sizeof_type(*i32)) unreachable;
 	if (sizeof_type(?function() -> void) != sizeof function() -> void) unreachable;
 	if (sizeof_type(?function() -> void) != sizeof_type(function() -> void)) unreachable;
-	if (sizeof_type(?function() -> void) != sizeof *int32) unreachable;
+	if (sizeof_type(?function() -> void) != sizeof *i32) unreachable;
 }

@@ -1,10 +1,10 @@
 function get_value(T: typename) -> T
 {
-	if consteval (T == int32)
+	if consteval (T == i32)
 	{
 		return 99;
 	}
-	else if consteval (T == float64)
+	else if consteval (T == f64)
 	{
 		return 1.0;
 	}
@@ -27,7 +27,7 @@ function main()
 	[ i, f, s ];
 	[ 99, f, s ];
 	[ 99, 1.0, "hello" ];
-	[ get_value(int32), get_value(float64), get_value(str) ];
+	[ get_value(i32), get_value(f64), get_value(str) ];
 
 	let t = [ i, f, s ];
 	if (t[0] != 99 || t[1] != 1.0 || t[2] != "hello") unreachable;
@@ -38,16 +38,16 @@ function main()
 	let t = [ 99, 1.0, "hello" ];
 	if (t[0] != 99 || t[1] != 1.0 || t[2] != "hello") unreachable;
 
-	let t = [ get_value(int32), get_value(float64), get_value(str) ];
+	let t = [ get_value(i32), get_value(f64), get_value(str) ];
 	if (t[0] != 99 || t[1] != 1.0 || t[2] != "hello") unreachable;
 
-	let a: [3: int32] = [ i, i, i ];
+	let a: [3: i32] = [ i, i, i ];
 	if (a[0] != 99 || a[1] != 99 || a[2] != 99) unreachable;
 
-	let a: [3: int32] = [ 99, 99, i ];
+	let a: [3: i32] = [ 99, 99, i ];
 	if (a[0] != 99 || a[1] != 99 || a[2] != 99) unreachable;
 
-	let a: [3: int32] = [ get_value(int32), get_value(int32), get_value(int32) ];
+	let a: [3: i32] = [ get_value(i32), get_value(i32), get_value(i32) ];
 	if (a[0] != 99 || a[1] != 99 || a[2] != 99) unreachable;
 
 	let a: [3: str] = [ s, s, s ];

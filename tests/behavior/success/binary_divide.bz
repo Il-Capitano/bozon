@@ -12,12 +12,12 @@ function divide_test(consteval a, consteval b)
 	if (&(dyn_a /= dyn_b) != &dyn_a) unreachable;
 }
 
-function divide_signed_overflow(intN: typename)
+function divide_signed_overflow(iN: typename)
 {
-	consteval size_in_bits = 8 * sizeof intN;
-	consteval min = (((1u64 << (size_in_bits - 1)) as intN));
+	consteval size_in_bits = 8 * sizeof iN;
+	consteval min = (((1u64 << (size_in_bits - 1)) as iN));
 
-	divide_test(min, -1 as intN);
+	divide_test(min, -1 as iN);
 }
 
 function main()
@@ -44,8 +44,8 @@ function main()
 	divide_test(-3.235f32, inf_f32);
 	divide_test(-3.235f64, inf_f64);
 
-	divide_signed_overflow(int8);
-	divide_signed_overflow(int16);
-	divide_signed_overflow(int32);
-	divide_signed_overflow(int64);
+	divide_signed_overflow(i8);
+	divide_signed_overflow(i16);
+	divide_signed_overflow(i32);
+	divide_signed_overflow(i64);
 }

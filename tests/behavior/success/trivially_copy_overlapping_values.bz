@@ -1,6 +1,6 @@
 function main()
 {
-	mut a = [10: int32]();
+	mut a = [10: i32]();
 
 	for (let i in 0..10)
 	{
@@ -39,7 +39,7 @@ function main()
 	}
 
 	let p = a.begin();
-	let np = null as ?*mut int32;
+	let np = null as ?*mut i32;
 
 	__builtin_trivially_copy_overlapping_values(p, p, 0);
 	__builtin_trivially_copy_overlapping_values(p, np, 0);

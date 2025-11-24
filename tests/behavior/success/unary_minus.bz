@@ -14,10 +14,10 @@ function main()
 	if (-f32 != -1.3f32) unreachable;
 	if (-f64 != -1.3f64) unreachable;
 
-	let i8_min  = (((1u8  <<  7) as int8));
-	let i16_min = (((1u16 << 15) as int16));
-	let i32_min = (((1u32 << 31) as int32));
-	let i64_min = (((1u64 << 63) as int64));
+	let i8_min  = (((1u8  <<  7) as ::i8));
+	let i16_min = (((1u16 << 15) as ::i16));
+	let i32_min = (((1u32 << 31) as ::i32));
+	let i64_min = (((1u64 << 63) as ::i64));
 
 	if (-i8_min  != i8_min) unreachable;
 	if (-i16_min != i16_min) unreachable;

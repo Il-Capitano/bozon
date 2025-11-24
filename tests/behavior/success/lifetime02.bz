@@ -5,7 +5,7 @@ function test()
 	counting_resource_t();
 }
 
-function main() -> int32
+function main() -> i32
 {
 	test();
 	return if (counting_resource_is_valid()) { 0 } else { 1 };

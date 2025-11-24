@@ -1,6 +1,6 @@
 function main()
 {
-	mut a = [10: uint32]();
+	mut a = [10: u32]();
 	__builtin_memset(&a, 0xab, sizeof a);
 
 	for (let v in a)

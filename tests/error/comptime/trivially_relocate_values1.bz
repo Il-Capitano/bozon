@@ -6,10 +6,10 @@ import malloc;
 function test()
 {
 	(consteval {
-		let p = malloc(int32, 1);
+		let p = malloc(i32, 1);
 		defer free(p);
 		__builtin_inplace_construct(p, 0);
 
-		__builtin_trivially_relocate_values(null as ?*mut int32, p, 1);
+		__builtin_trivially_relocate_values(null as ?*mut i32, p, 1);
 	});
 }

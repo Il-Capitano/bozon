@@ -113,7 +113,7 @@ function main()
 		defer {
 			if (!all_destructed()) unreachable;
 		};
-		let mut t = [A, int32, B, float32, C, float64, [10: int64], D, [e_size: E]]();
+		let mut t = [A, i32, B, f32, C, f64, [10: i64], D, [e_size: E]]();
 		for (let i in 0..e_size)
 		{
 			t[8][i].index = i;
@@ -129,7 +129,7 @@ function main()
 			if (!all_destructed()) unreachable;
 		};
 
-		let mut t = [A, int32, B, float32, C, float64, [10: int64], D, [e_size: E]]();
+		let mut t = [A, i32, B, f32, C, f64, [10: i64], D, [e_size: E]]();
 		for (let i in 0..e_size)
 		{
 			t[8][i].index = i;

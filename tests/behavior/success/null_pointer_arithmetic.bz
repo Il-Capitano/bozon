@@ -1,6 +1,6 @@
 function main()
 {
-	mut p: ?*int32 = null;
+	mut p: ?*i32 = null;
 
 	if (p + 0 != null) unreachable;
 	if (0 + p != null) unreachable;
@@ -9,6 +9,6 @@ function main()
 	if (p - 0 != null) unreachable;
 	p -= 0;
 	if (p != null) unreachable;
-	if (p - (null as ?*int32) != 0) unreachable;
-	if ((null as ?*int32) - p != 0) unreachable;
+	if (p - (null as ?*i32) != 0) unreachable;
+	if ((null as ?*i32) - p != 0) unreachable;
 }

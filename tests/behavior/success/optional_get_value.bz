@@ -1,9 +1,9 @@
 function foo()
 {}
 
-consteval global: int32 = 3;
+consteval global: i32 = 3;
 
-function get_ref() -> ?&int32
+function get_ref() -> ?&i32
 {
 	return global;
 }
@@ -11,8 +11,8 @@ function get_ref() -> ?&int32
 function main()
 {
 	let i = 3;
-	let oi: ?int32 = 3;
-	let pi: ?*int32 = &i;
+	let oi: ?i32 = 3;
+	let pi: ?*i32 = &i;
 	let f: ?function() -> void = foo;
 
 	let v = __builtin_optional_get_value(oi);

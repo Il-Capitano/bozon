@@ -1,6 +1,6 @@
 export struct counting_resource_t
 {
-	.value: int32;
+	.value: i32;
 
 	constructor()
 	{
@@ -8,7 +8,7 @@ export struct counting_resource_t
 		return counting_resource_t[ 0 ];
 	}
 
-	constructor(value: int32)
+	constructor(value: i32)
 	{
 		default_constructions += 1;
 		return counting_resource_t[ value ];
@@ -45,7 +45,7 @@ export struct counting_resource_t
 
 export struct relocatable_counting_resource_t
 {
-	.value: int32;
+	.value: i32;
 
 	constructor()
 	{
@@ -53,7 +53,7 @@ export struct relocatable_counting_resource_t
 		return relocatable_counting_resource_t[ 0 ];
 	}
 
-	constructor(value: int32)
+	constructor(value: i32)
 	{
 		default_constructions += 1;
 		return relocatable_counting_resource_t[ value ];

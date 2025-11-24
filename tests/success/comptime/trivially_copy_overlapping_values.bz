@@ -21,7 +21,7 @@ function test()
 	});
 
 	(consteval {
-		let vals = std::meta::malloc(int32, 10);
+		let vals = std::meta::malloc(i32, 10);
 		defer std::meta::free(vals);
 
 		for (let i in 0..8)
@@ -69,7 +69,7 @@ function test()
 	(consteval {
 		mut i = 0;
 		let p = &i;
-		let np = null as ?*mut int32;
+		let np = null as ?*mut i32;
 
 		__builtin_trivially_copy_overlapping_values(p, p, 0);
 		__builtin_trivially_copy_overlapping_values(p, np, 0);

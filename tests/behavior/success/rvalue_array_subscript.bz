@@ -13,8 +13,8 @@ function test(size: consteval usize, T: typename)
 
 function main()
 {
-	test(10, int32);
-	test(40, int32);
+	test(10, i32);
+	test(40, i32);
 
 	test(10, counting_resource_t);
 	if (!counting_resource_is_valid()) unreachable;

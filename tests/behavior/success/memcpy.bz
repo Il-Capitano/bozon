@@ -1,8 +1,8 @@
 function main()
 {
 	let f = 1.24335f64;
-	consteval expected = __builtin_bit_cast(uint64, 1.24335f64);
-	mut n: uint64;
+	consteval expected = __builtin_bit_cast(u64, 1.24335f64);
+	mut n: u64;
 	__builtin_memcpy(&n, &f, sizeof n);
 
 	if (n != expected) unreachable;
@@ -12,25 +12,25 @@ function main()
 	__builtin_memcpy(&n, null, 0);
 	__builtin_memcpy(null, null, 0);
 
-	mut a = [10: int32]();
-	for (let i in 0..a.size() as int32)
+	mut a = [10: i32]();
+	for (let i in 0..a.size() as i32)
 	{
 		a[i] = i;
 	}
 
-	__builtin_memcpy(a.begin() + 5, a.begin(), 5 * sizeof int32);
-	for (let i in 0..a.size() as int32)
+	__builtin_memcpy(a.begin() + 5, a.begin(), 5 * sizeof i32);
+	for (let i in 0..a.size() as i32)
 	{
 		if (a[i] != i % 5) unreachable;
 	}
 
-	for (let i in 0..a.size() as int32)
+	for (let i in 0..a.size() as i32)
 	{
 		a[i] = i;
 	}
 
-	__builtin_memcpy(a.begin(), a.begin() + 5, 5 * sizeof int32);
-	for (let i in 0..a.size() as int32)
+	__builtin_memcpy(a.begin(), a.begin() + 5, 5 * sizeof i32);
+	for (let i in 0..a.size() as i32)
 	{
 		if (a[i] != i % 5 + 5) unreachable;
 	}

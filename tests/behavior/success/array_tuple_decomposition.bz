@@ -1,11 +1,11 @@
 function main()
 {
-	let arr: [2: int32] = [ 0, 1 ];
+	let arr: [2: i32] = [ 0, 1 ];
 	let &[a, b] = arr;
 	if (a != 0 || &a != &arr[0]) unreachable;
 	if (b != 1 || &b != &arr[1]) unreachable;
 
-	let arr: [2, 2: int32] = [ [ 0, 1 ], [ 2, 3 ] ];
+	let arr: [2, 2: i32] = [ [ 0, 1 ], [ 2, 3 ] ];
 	let &[...[a, b]] = arr;
 	let [&a0, &a1] = [ ...a ];
 	let [&b0, &b1] = [ ...b ];
@@ -14,7 +14,7 @@ function main()
 	if (b0 != 1 || &b0 != &arr[0, 1]) unreachable;
 	if (b1 != 3 || &b1 != &arr[1, 1]) unreachable;
 
-	let arr: [2: [int32, int32]] = [ [ 0, 1 ], [ 2, 3 ] ];
+	let arr: [2: [i32, i32]] = [ [ 0, 1 ], [ 2, 3 ] ];
 	let &[...[a, b]] = arr;
 	let [&a0, &a1] = [ ...a ];
 	let [&b0, &b1] = [ ...b ];
@@ -23,7 +23,7 @@ function main()
 	if (b0 != 1 || &b0 != &arr[0, 1]) unreachable;
 	if (b1 != 3 || &b1 != &arr[1, 1]) unreachable;
 
-	let t: [[2: int32], [2: int32]] = [ [ 0, 1 ], [ 2, 3 ] ];
+	let t: [[2: i32], [2: i32]] = [ [ 0, 1 ], [ 2, 3 ] ];
 	let &[...[a, b]] = t;
 	let [&a0, &a1] = [ ...a ];
 	let [&b0, &b1] = [ ...b ];

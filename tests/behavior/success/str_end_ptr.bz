@@ -1,12 +1,12 @@
 function main()
 {
 	let s = "";
-	if (__builtin_bit_cast([2: ?*uint8], s)[1] != __builtin_str_end_ptr(s)) unreachable;
+	if (__builtin_bit_cast([2: ?*u8], s)[1] != __builtin_str_end_ptr(s)) unreachable;
 
 	let s = "hello";
-	if (__builtin_bit_cast([2: ?*uint8], s)[1] != __builtin_str_end_ptr(s)) unreachable;
+	if (__builtin_bit_cast([2: ?*u8], s)[1] != __builtin_str_end_ptr(s)) unreachable;
 
-	let a = [10: uint8]();
+	let a = [10: u8]();
 	let s = __builtin_str_from_ptrs(&a[0], &a[0] + 10);
 	if (__builtin_str_end_ptr(s) != &a[0] + 10) unreachable;
 }

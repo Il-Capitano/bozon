@@ -1,5 +1,5 @@
 function main()
 {
-	let x = __builtin_bit_cast(float64, 0u64);
+	let x = __builtin_bit_cast(f64, 0u64);
 	if (x != 0.0f64) unreachable;
 }

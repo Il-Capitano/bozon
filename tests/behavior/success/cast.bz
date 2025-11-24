@@ -7,24 +7,24 @@ function cast_test(consteval value, T: typename)
 
 function cast_to_int_test(consteval value)
 {
-	cast_test(value, int8);
-	cast_test(value, int16);
-	cast_test(value, int32);
-	cast_test(value, int64);
+	cast_test(value, i8);
+	cast_test(value, i16);
+	cast_test(value, i32);
+	cast_test(value, i64);
 }
 
 function cast_to_uint_test(consteval value)
 {
-	cast_test(value, uint8);
-	cast_test(value, uint16);
-	cast_test(value, uint32);
-	cast_test(value, uint64);
+	cast_test(value, u8);
+	cast_test(value, u16);
+	cast_test(value, u32);
+	cast_test(value, u64);
 }
 
 function cast_to_float_test(consteval value)
 {
-	cast_test(value, float32);
-	cast_test(value, float64);
+	cast_test(value, f32);
+	cast_test(value, f64);
 }
 
 function cast_arithmetic_test(consteval value)
@@ -68,24 +68,24 @@ function main()
 	cast_to_float_test(12412.3523f64);
 	cast_to_float_test(-12412.3523f32);
 	cast_to_float_test(-12412.3523f64);
-	cast_test(12412.3523f32, int16);
-	cast_test(12412.3523f32, int32);
-	cast_test(12412.3523f32, int64);
-	cast_test(12412.3523f64, int16);
-	cast_test(12412.3523f64, int32);
-	cast_test(12412.3523f64, int64);
-	cast_test(12412.3523f32, uint16);
-	cast_test(12412.3523f32, uint32);
-	cast_test(12412.3523f32, uint64);
-	cast_test(12412.3523f64, uint16);
-	cast_test(12412.3523f64, uint32);
-	cast_test(12412.3523f64, uint64);
-	cast_test(-12412.3523f32, int16);
-	cast_test(-12412.3523f32, int32);
-	cast_test(-12412.3523f32, int64);
-	cast_test(-12412.3523f64, int16);
-	cast_test(-12412.3523f64, int32);
-	cast_test(-12412.3523f64, int64);
+	cast_test(12412.3523f32, i16);
+	cast_test(12412.3523f32, i32);
+	cast_test(12412.3523f32, i64);
+	cast_test(12412.3523f64, i16);
+	cast_test(12412.3523f64, i32);
+	cast_test(12412.3523f64, i64);
+	cast_test(12412.3523f32, u16);
+	cast_test(12412.3523f32, u32);
+	cast_test(12412.3523f32, u64);
+	cast_test(12412.3523f64, u16);
+	cast_test(12412.3523f64, u32);
+	cast_test(12412.3523f64, u64);
+	cast_test(-12412.3523f32, i16);
+	cast_test(-12412.3523f32, i32);
+	cast_test(-12412.3523f32, i64);
+	cast_test(-12412.3523f64, i16);
+	cast_test(-12412.3523f64, i32);
+	cast_test(-12412.3523f64, i64);
 
 	cast_to_int_test(false);
 	cast_to_uint_test(false);
@@ -132,8 +132,8 @@ function main()
 	cast_test(235u64, char);
 	cast_test(2135u64, char);
 
-	let a: [??: int32] = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ];
-	let s = a as [: int32];
+	let a: [??: i32] = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ];
+	let s = a as [: i32];
 	if (&a[0] != &s[0]) unreachable;
 	if (a.size() != s.size()) unreachable;
 
@@ -142,11 +142,11 @@ function main()
 	if (&a[0] != &s[0]) unreachable;
 	if (a.size() != s.size()) unreachable;
 
-	let init_value: [int32, float64, [2: float32]] = [ 0, 0.0, [ 0.0f32, 0.0f32 ] ];
+	let init_value: [i32, f64, [2: f32]] = [ 0, 0.0, [ 0.0f32, 0.0f32 ] ];
 	let a = __builtin_create_initialized_array([10: typeof init_value], init_value);
 	let s = a as [: typeof init_value];
 	if (&a[0] != &s[0]) unreachable;
 	if (a.size() != s.size()) unreachable;
 
-	if (slice_size([10: int32]()) != 10) unreachable;
+	if (slice_size([10: i32]()) != 10) unreachable;
 }

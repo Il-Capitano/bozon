@@ -20,11 +20,11 @@ function test(T: typename)
 function test()
 {
 	(consteval {
-		test(uint32);
-		test(int32);
-		test(uint8);
-		test(int8);
-		test(float32);
-		test(float64);
+		test(u32);
+		test(i32);
+		test(u8);
+		test(i8);
+		test(f32);
+		test(f64);
 	});
 }
