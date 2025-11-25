@@ -251,7 +251,7 @@
 	"rules": {
 		"generate_config.exe": {
 			"dependencies": [ "scripts/generate_config.cpp" ],
-			"command": "clang++ -std=c++20 -Isrc -Iinclude scripts/generate_config.cpp -o generate_config.exe -stdlib=libstdc++ -pthread"
+			"command": "clang++ -std=c++20 -Isrc -Iinclude scripts/generate_config.cpp -o generate_config.exe"
 		},
 		"generate_config.out": {
 			"dependencies": [ "scripts/generate_config.cpp" ],
