@@ -1,0 +1,34 @@
+import resource;
+import counting_resource;
+
+function test_value_assign(T: typename)
+{
+	let mut a: ?T = null;
+	a = T();
+	if (a == null) unreachable;
+
+	let mut a: ?T = T();
+	a = T();
+	if (a == null) unreachable;
+
+	let a = T();
+	let mut p: ?*T = null;
+	p = &a;
+	if (p != &a) unreachable;
+
+	let mut p: ?*T = &a;
+	p = &a;
+	if (p != &a) unreachable;
+}
+
+function main()
+{
+	test_value_assign(i32);
+	test_value_assign(resource_t);
+	test_value_assign(complex_resource_t);
+	test_value_assign(counting_resource_t);
+	test_value_assign(relocatable_counting_resource_t);
+
+	if (!counting_resource_is_valid()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}
