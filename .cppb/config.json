@@ -313,6 +313,38 @@
 				"is_file": false
 			}
 		},
+		"run_tests.exe": {
+			"dependencies": [ "scripts/run_tests.cpp", "ryu_format.windows.o" ],
+			"command": "g++ -std=c++20 -Isrc -Iinclude scripts/run_tests.cpp ryu_format.windows.o -o run_tests.exe"
+		},
+		"run_tests.out": {
+			"dependencies": [ "scripts/run_tests.cpp", "ryu_format.linux.o" ],
+			"command": "clang++-21 -std=c++20 -Isrc -Iinclude scripts/run_tests.cpp ryu_format.linux.o -o run_tests.out"
+		},
+		"run-tests": {
+			"windows": {
+				"dependencies": [ "run_tests.exe" ],
+				"command": "./run_tests.exe -- -g -fsanitize=address,undefined -fuse-ld=lld",
+				"is_file": false
+			},
+			"linux": {
+				"dependencies": [ "run_tests.out" ],
+				"command": "./run_tests.out -- -g -fsanitize=address,undefined -fuse-ld=lld-21 -lm",
+				"is_file": false
+			}
+		},
+		"run-tests-no-sanitize": {
+			"windows": {
+				"dependencies": [ "run_tests.exe" ],
+				"command": "./run_tests.exe --bozon=bin/windows-debug/no-sanitize-bozon.exe -- -fuse-ld=lld",
+				"is_file": false
+			},
+			"linux": {
+				"dependencies": [ "run_tests.out" ],
+				"command": "./run_tests.out --bozon=bin/linux-debug/no-sanitize-bozon -- -fuse-ld=lld-21 -lm",
+				"is_file": false
+			}
+		},
 		"ryu_format.windows.o": {
 			"dependencies": [ "ryu_format.windows.bc" ],
 			"command": "llc ryu_format.windows.bc --filetype=obj -o ryu_format.windows.o"
@@ -323,27 +355,27 @@
 		},
 		"ryu_format.windows.bc": {
 			"dependencies": [ "ryu_format.bz" ],
-			"command": "bin/windows-debug/bozon.exe --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.windows.bc --emit=llvm-bc -Cno-panic-on-unreachable -Cno-panic-on-null-pointer-arithmetic -Cno-panic-on-null-get-value"
+			"command": "bin/windows-debug/bozon.exe --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.windows.bc --emit=llvm-bc -Cno-panic-on-unreachable -Cno-panic-on-null-pointer-arithmetic -Cno-panic-on-null-get-value -Cno-panic-on-int-divide-by-zero"
 		},
 		"ryu_format.windows.ll": {
 			"dependencies": [ "ryu_format.bz" ],
-			"command": "bin/windows-debug/bozon.exe --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.windows.ll --emit=llvm-ir -Cno-panic-on-unreachable -Cno-panic-on-null-pointer-arithmetic -Cno-panic-on-null-get-value"
+			"command": "bin/windows-debug/bozon.exe --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.windows.ll --emit=llvm-ir -Cno-panic-on-unreachable -Cno-panic-on-null-pointer-arithmetic -Cno-panic-on-null-get-value -Cno-panic-on-int-divide-by-zero"
 		},
 		"ryu_format.linux.bc": {
 			"dependencies": [ "ryu_format.bz" ],
-			"command": "bin/linux-debug/bozon --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.linux.bc --emit=llvm-bc -Cno-panic-on-unreachable -Cno-panic-on-null-pointer-arithmetic -Cno-panic-on-null-get-value"
+			"command": "bin/linux-debug/bozon --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.linux.bc --emit=llvm-bc -Cno-panic-on-unreachable -Cno-panic-on-null-pointer-arithmetic -Cno-panic-on-null-get-value -Cno-panic-on-int-divide-by-zero"
 		},
 		"ryu_format.linux.ll": {
 			"dependencies": [ "ryu_format.bz" ],
-			"command": "bin/linux-debug/bozon --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.linux.ll --emit=llvm-ir -Cno-panic-on-unreachable -Cno-panic-on-null-pointer-arithmetic -Cno-panic-on-null-get-value"
+			"command": "bin/linux-debug/bozon --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.linux.ll --emit=llvm-ir -Cno-panic-on-unreachable -Cno-panic-on-null-pointer-arithmetic -Cno-panic-on-null-get-value -Cno-panic-on-int-divide-by-zero"
 		},
 		"ryu_format.windows.gcc.bc": {
 			"dependencies": [ "ryu_format.bz" ],
-			"command": "bin/windows-debug/gcc-bozon.exe --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.windows.gcc.bc --emit=llvm-bc -Cno-panic-on-unreachable -Cno-panic-on-null-pointer-arithmetic -Cno-panic-on-null-get-value"
+			"command": "bin/windows-debug/gcc-bozon.exe --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.windows.gcc.bc --emit=llvm-bc -Cno-panic-on-unreachable -Cno-panic-on-null-pointer-arithmetic -Cno-panic-on-null-get-value -Cno-panic-on-int-divide-by-zero"
 		},
 		"ryu_format.linux.gcc.bc": {
 			"dependencies": [ "ryu_format.bz" ],
-			"command": "bin/linux-debug/gcc-bozon --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.linux.gcc.bc --emit=llvm-bc -Cno-panic-on-unreachable -Cno-panic-on-null-pointer-arithmetic -Cno-panic-on-null-get-value"
+			"command": "bin/linux-debug/gcc-bozon --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.linux.gcc.bc --emit=llvm-bc -Cno-panic-on-unreachable -Cno-panic-on-null-pointer-arithmetic -Cno-panic-on-null-get-value -Cno-panic-on-int-divide-by-zero"
 		},
 		"a.exe": {
 			"dependencies": [ "bitcode_test.o" ],
@@ -352,10 +384,6 @@
 		"a.out": {
 			"dependencies": [ "bitcode_test.o" ],
 			"command": "clang-21 bitcode_test.o -lm -o a.out -fuse-ld=lld-21"
-		},
-		"run-tests": {
-			"command": "python3 scripts/run_tests.py",
-			"is_file": false
 		},
 		"fuzz-test/lex/fuzz.o": {
 			"dependencies": [ "fuzz-test/lex/fuzz.cpp" ],

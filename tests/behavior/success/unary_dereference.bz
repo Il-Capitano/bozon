@@ -1,0 +1,16 @@
+function main()
+{
+	mut i = 0;
+	if (i != 0) unreachable;
+
+	*&i = 3;
+	if (i != 3) unreachable;
+
+	let p = &i;
+	let j = *p;
+	*p = 5;
+	if (j != 3 || i != 5) unreachable;
+
+	*&*&*&i = 0;
+	if (i != 0) unreachable;
+}

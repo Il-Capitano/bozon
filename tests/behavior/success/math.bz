@@ -1,0 +1,2181 @@
+function isnan = __builtin_isnan_f32;
+function isnan = __builtin_isnan_f64;
+function isinf = __builtin_isinf_f32;
+function isinf = __builtin_isinf_f64;
+function isfinite = __builtin_isfinite_f32;
+function isfinite = __builtin_isfinite_f64;
+function isnormal = __builtin_isnormal_f32;
+function isnormal = __builtin_isnormal_f64;
+function issubnormal = __builtin_issubnormal_f32;
+function issubnormal = __builtin_issubnormal_f64;
+function iszero = __builtin_iszero_f32;
+function iszero = __builtin_iszero_f64;
+
+function nextafter = __builtin_nextafter_f32;
+function nextafter = __builtin_nextafter_f64;
+function nextup = __builtin_nextup_f32;
+function nextup = __builtin_nextup_f64;
+function nextdown = __builtin_nextdown_f32;
+function nextdown = __builtin_nextdown_f64;
+
+function abs_int = __builtin_abs_i8;
+function abs_int = __builtin_abs_i16;
+function abs_int = __builtin_abs_i32;
+function abs_int = __builtin_abs_i64;
+function abs_float = __builtin_abs_f32;
+function abs_float = __builtin_abs_f64;
+
+function min_int = __builtin_min_i8;
+function min_int = __builtin_min_i16;
+function min_int = __builtin_min_i32;
+function min_int = __builtin_min_i64;
+function min_int = __builtin_min_u8;
+function min_int = __builtin_min_u16;
+function min_int = __builtin_min_u32;
+function min_int = __builtin_min_u64;
+function min_float = __builtin_min_f32;
+function min_float = __builtin_min_f64;
+
+function max_int = __builtin_max_i8;
+function max_int = __builtin_max_i16;
+function max_int = __builtin_max_i32;
+function max_int = __builtin_max_i64;
+function max_int = __builtin_max_u8;
+function max_int = __builtin_max_u16;
+function max_int = __builtin_max_u32;
+function max_int = __builtin_max_u64;
+function max_float = __builtin_max_f32;
+function max_float = __builtin_max_f64;
+
+function exp = __builtin_exp_f32;
+function exp = __builtin_exp_f64;
+function exp2 = __builtin_exp2_f32;
+function exp2 = __builtin_exp2_f64;
+function expm1 = __builtin_expm1_f32;
+function expm1 = __builtin_expm1_f64;
+
+function log = __builtin_log_f32;
+function log = __builtin_log_f64;
+function log2 = __builtin_log2_f32;
+function log2 = __builtin_log2_f64;
+function log10 = __builtin_log10_f32;
+function log10 = __builtin_log10_f64;
+function log1p = __builtin_log1p_f32;
+function log1p = __builtin_log1p_f64;
+
+function sqrt = __builtin_sqrt_f32;
+function sqrt = __builtin_sqrt_f64;
+function cbrt = __builtin_cbrt_f32;
+function cbrt = __builtin_cbrt_f64;
+function pow = __builtin_pow_f32;
+function pow = __builtin_pow_f64;
+function hypot = __builtin_hypot_f32;
+function hypot = __builtin_hypot_f64;
+
+function sin = __builtin_sin_f32;
+function sin = __builtin_sin_f64;
+function cos = __builtin_cos_f32;
+function cos = __builtin_cos_f64;
+function tan = __builtin_tan_f32;
+function tan = __builtin_tan_f64;
+function asin = __builtin_asin_f32;
+function asin = __builtin_asin_f64;
+function acos = __builtin_acos_f32;
+function acos = __builtin_acos_f64;
+function atan = __builtin_atan_f32;
+function atan = __builtin_atan_f64;
+function atan2 = __builtin_atan2_f32;
+function atan2 = __builtin_atan2_f64;
+
+function sinh = __builtin_sinh_f32;
+function sinh = __builtin_sinh_f64;
+function cosh = __builtin_cosh_f32;
+function cosh = __builtin_cosh_f64;
+function tanh = __builtin_tanh_f32;
+function tanh = __builtin_tanh_f64;
+function asinh = __builtin_asinh_f32;
+function asinh = __builtin_asinh_f64;
+function acosh = __builtin_acosh_f32;
+function acosh = __builtin_acosh_f64;
+function atanh = __builtin_atanh_f32;
+function atanh = __builtin_atanh_f64;
+
+function erf = __builtin_erf_f32;
+function erf = __builtin_erf_f64;
+function erfc = __builtin_erfc_f32;
+function erfc = __builtin_erfc_f64;
+
+function tgamma = __builtin_tgamma_f32;
+function tgamma = __builtin_tgamma_f64;
+function lgamma = __builtin_lgamma_f32;
+function lgamma = __builtin_lgamma_f64;
+
+function bits(x: f32) -> u32
+{
+	return __builtin_bit_cast(u32, x);
+}
+
+function bits(x: f64) -> u64
+{
+	return __builtin_bit_cast(u64, x);
+}
+
+function isnan_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let zero = 0.0 as T;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	if (isnan(min)) unreachable;
+	if (isnan(-min)) unreachable;
+	if (isnan(denorm_min)) unreachable;
+	if (isnan(-denorm_min)) unreachable;
+	if (isnan(zero)) unreachable;
+	if (isnan(-zero)) unreachable;
+	if (isnan(inf)) unreachable;
+	if (isnan(-inf)) unreachable;
+	if (!isnan(nan)) unreachable;
+	if (!isnan(-nan)) unreachable;
+
+	let _ = isnan(zero);
+}
+
+function isinf_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let zero = 0.0 as T;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	if (isinf(min)) unreachable;
+	if (isinf(-min)) unreachable;
+	if (isinf(denorm_min)) unreachable;
+	if (isinf(-denorm_min)) unreachable;
+	if (isinf(zero)) unreachable;
+	if (isinf(-zero)) unreachable;
+	if (!isinf(inf)) unreachable;
+	if (!isinf(-inf)) unreachable;
+	if (isinf(nan)) unreachable;
+	if (isinf(-nan)) unreachable;
+
+	let _ = isinf(zero);
+}
+
+function isfinite_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let zero = 0.0 as T;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	if (!isfinite(min)) unreachable;
+	if (!isfinite(-min)) unreachable;
+	if (!isfinite(denorm_min)) unreachable;
+	if (!isfinite(-denorm_min)) unreachable;
+	if (!isfinite(zero)) unreachable;
+	if (!isfinite(-zero)) unreachable;
+	if (isfinite(inf)) unreachable;
+	if (isfinite(-inf)) unreachable;
+	if (isfinite(nan)) unreachable;
+	if (isfinite(-nan)) unreachable;
+}
+
+function isnormal_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let zero = 0.0 as T;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	if (!isnormal(min)) unreachable;
+	if (!isnormal(-min)) unreachable;
+	if (isnormal(denorm_min)) unreachable;
+	if (isnormal(-denorm_min)) unreachable;
+	if (isnormal(zero)) unreachable;
+	if (isnormal(-zero)) unreachable;
+	if (isnormal(inf)) unreachable;
+	if (isnormal(-inf)) unreachable;
+	if (isnormal(nan)) unreachable;
+	if (isnormal(-nan)) unreachable;
+}
+
+function issubnormal_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let zero = 0.0 as T;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	if (issubnormal(min)) unreachable;
+	if (issubnormal(-min)) unreachable;
+	if (!issubnormal(denorm_min)) unreachable;
+	if (!issubnormal(-denorm_min)) unreachable;
+	if (issubnormal(zero)) unreachable;
+	if (issubnormal(-zero)) unreachable;
+	if (issubnormal(inf)) unreachable;
+	if (issubnormal(-inf)) unreachable;
+	if (issubnormal(nan)) unreachable;
+	if (issubnormal(-nan)) unreachable;
+}
+
+function iszero_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let zero = 0.0 as T;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	if (iszero(min)) unreachable;
+	if (iszero(-min)) unreachable;
+	if (iszero(denorm_min)) unreachable;
+	if (iszero(-denorm_min)) unreachable;
+	if (!iszero(zero)) unreachable;
+	if (!iszero(-zero)) unreachable;
+	if (iszero(inf)) unreachable;
+	if (iszero(-inf)) unreachable;
+	if (iszero(nan)) unreachable;
+	if (iszero(-nan)) unreachable;
+}
+
+function nextafter_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let max = T.max;
+	let epsilon = T.epsilon;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	if (!isnan(nextafter(nan, nan))) unreachable;
+	if (!isnan(nextafter(zero, nan))) unreachable;
+	if (!isnan(nextafter(nan, zero))) unreachable;
+	if (nextafter(zero, inf) != denorm_min) unreachable;
+	if (nextafter(-zero, inf) != denorm_min) unreachable;
+	if (nextafter(zero, -inf) != -denorm_min) unreachable;
+	if (nextafter(-zero, -inf) != -denorm_min) unreachable;
+	if (nextafter(zero, zero).bits() != zero_bits) unreachable;
+	if (nextafter(-zero, zero).bits() != zero_bits) unreachable;
+	if (nextafter(zero, -zero).bits() != negative_zero_bits) unreachable;
+	if (nextafter(-zero, -zero).bits() != negative_zero_bits) unreachable;
+	if (nextafter(max, inf) != inf) unreachable;
+	if (nextafter(-max, -inf) != -inf) unreachable;
+	if (nextafter(inf, inf) != inf) unreachable;
+	if (nextafter(-inf, -inf) != -inf) unreachable;
+	if (nextafter(inf, -inf) != max) unreachable;
+	if (nextafter(-inf, inf) != -max) unreachable;
+	if (!issubnormal(nextafter(min, zero))) unreachable;
+	if (!issubnormal(nextafter(-min, zero))) unreachable;
+	if (nextafter(one, inf) - one != epsilon) unreachable;
+	if (one - nextafter(one, -inf) != epsilon / (2.0 as T)) unreachable;
+}
+
+function nextup_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let max = T.max;
+	let epsilon = T.epsilon;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	if (!isnan(nextup(nan))) unreachable;
+	if (nextup(zero) != denorm_min) unreachable;
+	if (nextup(-zero) != denorm_min) unreachable;
+	if (nextup(max) != inf) unreachable;
+	if (nextup(inf) != inf) unreachable;
+	if (nextup(-inf) != -max) unreachable;
+	if (!issubnormal(nextup(-min))) unreachable;
+	if (nextup(one) - one != epsilon) unreachable;
+	if (nextup(-one) + one != epsilon / (2.0 as T)) unreachable;
+}
+
+function nextdown_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let max = T.max;
+	let epsilon = T.epsilon;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	if (!isnan(nextdown(nan))) unreachable;
+	if (nextdown(zero) != -denorm_min) unreachable;
+	if (nextdown(-zero) != -denorm_min) unreachable;
+	if (nextdown(-max) != -inf) unreachable;
+	if (nextdown(-inf) != -inf) unreachable;
+	if (nextdown(inf) != max) unreachable;
+	if (!issubnormal(nextdown(min))) unreachable;
+	if (-one - nextdown(-one) != epsilon) unreachable;
+	if (one - nextdown(one) != epsilon / (2.0 as T)) unreachable;
+}
+
+function abs_test_int(T: typename)
+{
+	let min = T.min;
+	let max = T.max;
+
+	let n = 0 as T;
+	if (abs_int(n) != 0) unreachable;
+	let n = 123 as T;
+	if (abs_int(n) != 123) unreachable;
+	let n = -123 as T;
+	if (abs_int(n) != 123) unreachable;
+
+	if (abs_int(max) != max) unreachable;
+	if (abs_int(min) != min) unreachable; // overflow
+}
+
+function abs_test_float(T: typename)
+{
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	let zero_bits = (0.0 as  T).bits();
+	let inf_bits = inf.bits();
+	let nan_bits = nan.bits();
+
+	let x = 0.0 as T;
+	if (abs_float(x) != 0.0 as T) unreachable;
+	if (abs_float(x).bits() != zero_bits) unreachable;
+	let x = -0.0 as T;
+	if (abs_float(x) != 0.0 as T) unreachable;
+	if (abs_float(x).bits() != zero_bits) unreachable;
+
+	let x = 1.2345 as T;
+	if (abs_float(x) != 1.2345 as T) unreachable;
+	let x = -1.2345 as T;
+	if (abs_float(x) != 1.2345 as T) unreachable;
+
+	let x = 1.2345e20 as T;
+	if (abs_float(x) != 1.2345e20 as T) unreachable;
+	let x = -1.2345e20 as T;
+	if (abs_float(x) != 1.2345e20 as T) unreachable;
+
+	if (abs_float(denorm_min) != denorm_min) unreachable;
+	if (abs_float(-denorm_min) != denorm_min) unreachable;
+
+	if (abs_float(inf) != inf) unreachable;
+	if (abs_float(-inf) != inf) unreachable;
+	if (abs_float(inf).bits() != inf_bits) unreachable;
+	if (abs_float(-inf).bits() != inf_bits) unreachable;
+	if (abs_float(nan).bits() != nan_bits) unreachable;
+	if (abs_float(-nan).bits() != nan_bits) unreachable;
+}
+
+function min_test_int(T: typename)
+{
+	consteval is_signed = T.min < 0;
+
+	let min = T.min;
+	let max = T.max;
+
+	let a = 0 as T;
+	let b = 0 as T;
+	if (min_int(a, b) != 0) unreachable;
+	let a = 0 as T;
+	let b = 123 as T;
+	if (min_int(a, b) != 0) unreachable;
+	let a = 123 as T;
+	let b = 0 as T;
+	if (min_int(a, b) != 0) unreachable;
+	let a = 33 as T;
+	let b = 123 as T;
+	if (min_int(a, b) != 33) unreachable;
+	let a = 123 as T;
+	let b = 33 as T;
+	if (min_int(a, b) != 33) unreachable;
+	let a = 123 as T;
+	let b = 123 as T;
+	if (min_int(a, b) != 123) unreachable;
+	let a = 33 as T;
+	let b = 33 as T;
+	if (min_int(a, b) != 33) unreachable;
+
+	if consteval (is_signed)
+	{
+		let a = -1 as T;
+		let b = 0 as T;
+		if (min_int(a, b) != -1) unreachable;
+		let a = 0 as T;
+		let b = -1 as T;
+		if (min_int(a, b) != -1) unreachable;
+		let a = 123 as T;
+		let b = -123 as T;
+		if (min_int(a, b) != -123) unreachable;
+		let a = -123 as T;
+		let b = 123 as T;
+		if (min_int(a, b) != -123) unreachable;
+		let a = -33;
+		let b = -123;
+		if (min_int(a, b) != -123) unreachable;
+		let a = -123;
+		let b = -33;
+		if (min_int(a, b) != -123) unreachable;
+	}
+
+	if (min_int(min, max) != min) unreachable;
+	if (min_int(max, min) != min) unreachable;
+	if (min_int(min, min) != min) unreachable;
+	if (min_int(max, max) != max) unreachable;
+}
+
+function min_test_float(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = 0.0 as T;
+	let y = 0.0 as T;
+	if (min_float(x, y) != 0.0 as T) unreachable;
+	if (min_float(x, y).bits() != zero_bits) unreachable;
+	let x = -0.0 as T;
+	let y = -0.0 as T;
+	if (min_float(x, y) != 0.0 as T) unreachable;
+	if (min_float(x, y).bits() != negative_zero_bits) unreachable;
+	let x = 0.0 as T;
+	let y = -0.0 as T;
+	if (min_float(x, y) != 0.0 as T) unreachable;
+	if (min_float(y, x) != 0.0 as T) unreachable;
+
+	let x = 1.234 as T;
+	let y = 34.325e-35 as T;
+	if (min_float(x, y) != y) unreachable;
+	let x = -1.234 as T;
+	let y = 34.325e-35 as T;
+	if (min_float(x, y) != x) unreachable;
+	let x = 1.234 as T;
+	let y = -34.325e-35 as T;
+	if (min_float(x, y) != y) unreachable;
+	let x = -1.234 as T;
+	let y = -34.325e-35 as T;
+	if (min_float(x, y) != x) unreachable;
+
+	let x = denorm_min;
+	let y = 0.0 as T;
+	if (min_float(x, y) != y) unreachable;
+	if (min_float(-x, y) != -x) unreachable;
+
+	let x = denorm_min;
+	let y = min;
+	if (min_float(x, y) != x) unreachable;
+	if (min_float(-x, y) != -x) unreachable;
+	if (min_float(x, -y) != -y) unreachable;
+	if (min_float(-x, -y) != -y) unreachable;
+
+	let x = 1.234 as T;
+	if (min_float(x, inf) != x) unreachable;
+	if (min_float(inf, x) != x) unreachable;
+	if (min_float(x, -inf) != -inf) unreachable;
+	if (min_float(-inf, x) != -inf) unreachable;
+	if (min_float(x, nan) != x) unreachable;
+	if (min_float(nan, x) != x) unreachable;
+	if (min_float(x, -nan) != x) unreachable;
+	if (min_float(-nan, x) != x) unreachable;
+
+	if (min_float(inf, inf) != inf) unreachable;
+	if (min_float(-inf, inf) != -inf) unreachable;
+	if (min_float(inf, -inf) != -inf) unreachable;
+	if (min_float(-inf, -inf) != -inf) unreachable;
+
+	if (min_float(inf, nan) != inf) unreachable;
+	if (min_float(nan, inf) != inf) unreachable;
+	if (min_float(-inf, nan) != -inf) unreachable;
+	if (min_float(nan, -inf) != -inf) unreachable;
+
+	if (!isnan(min_float(nan, nan))) unreachable;
+	if (!isnan(min_float(-nan, nan))) unreachable;
+	if (!isnan(min_float(nan, -nan))) unreachable;
+	if (!isnan(min_float(-nan, -nan))) unreachable;
+}
+
+function max_test_int(T: typename)
+{
+	consteval is_signed = T.min < 0;
+
+	let min = T.min;
+	let max = T.max;
+
+	let a = 0 as T;
+	let b = 0 as T;
+	if (max_int(a, b) != 0) unreachable;
+	let a = 0 as T;
+	let b = 123 as T;
+	if (max_int(a, b) != 123) unreachable;
+	let a = 123 as T;
+	let b = 0 as T;
+	if (max_int(a, b) != 123) unreachable;
+	let a = 33 as T;
+	let b = 123 as T;
+	if (max_int(a, b) != 123) unreachable;
+	let a = 123 as T;
+	let b = 33 as T;
+	if (max_int(a, b) != 123) unreachable;
+	let a = 123 as T;
+	let b = 123 as T;
+	if (max_int(a, b) != 123) unreachable;
+	let a = 33 as T;
+	let b = 33 as T;
+	if (max_int(a, b) != 33) unreachable;
+
+	if consteval (is_signed)
+	{
+		let a = -1 as T;
+		let b = 0 as T;
+		if (max_int(a, b) != 0) unreachable;
+		let a = 0 as T;
+		let b = -1 as T;
+		if (max_int(a, b) != 0) unreachable;
+		let a = 123 as T;
+		let b = -123 as T;
+		if (max_int(a, b) != 123) unreachable;
+		let a = -123 as T;
+		let b = 123 as T;
+		if (max_int(a, b) != 123) unreachable;
+		let a = -33;
+		let b = -123;
+		if (max_int(a, b) != -33) unreachable;
+		let a = -123;
+		let b = -33;
+		if (max_int(a, b) != -33) unreachable;
+	}
+
+	if (max_int(min, max) != max) unreachable;
+	if (max_int(max, min) != max) unreachable;
+	if (max_int(min, min) != min) unreachable;
+	if (max_int(max, max) != max) unreachable;
+}
+
+function max_test_float(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = 0.0 as T;
+	let y = 0.0 as T;
+	if (max_float(x, y) != 0.0 as T) unreachable;
+	if (max_float(x, y).bits() != zero_bits) unreachable;
+	let x = -0.0 as T;
+	let y = -0.0 as T;
+	if (max_float(x, y) != 0.0 as T) unreachable;
+	if (max_float(x, y).bits() != negative_zero_bits) unreachable;
+	let x = 0.0 as T;
+	let y = -0.0 as T;
+	if (max_float(x, y) != 0.0 as T) unreachable;
+	if (max_float(y, x) != 0.0 as T) unreachable;
+
+	let x = 1.234 as T;
+	let y = 34.325e-35 as T;
+	if (max_float(x, y) != x) unreachable;
+	let x = -1.234 as T;
+	let y = 34.325e-35 as T;
+	if (max_float(x, y) != y) unreachable;
+	let x = 1.234 as T;
+	let y = -34.325e-35 as T;
+	if (max_float(x, y) != x) unreachable;
+	let x = -1.234 as T;
+	let y = -34.325e-35 as T;
+	if (max_float(x, y) != y) unreachable;
+
+	let x = denorm_min;
+	let y = 0.0 as T;
+	if (max_float(x, y) != x) unreachable;
+	if (max_float(-x, y) != y) unreachable;
+
+	let x = denorm_min;
+	let y = min;
+	if (max_float(x, y) != y) unreachable;
+	if (max_float(-x, y) != y) unreachable;
+	if (max_float(x, -y) != x) unreachable;
+	if (max_float(-x, -y) != -x) unreachable;
+
+	let x = 1.234 as T;
+	if (max_float(x, inf) != inf) unreachable;
+	if (max_float(inf, x) != inf) unreachable;
+	if (max_float(x, -inf) != x) unreachable;
+	if (max_float(-inf, x) != x) unreachable;
+	if (max_float(x, nan) != x) unreachable;
+	if (max_float(nan, x) != x) unreachable;
+	if (max_float(x, -nan) != x) unreachable;
+	if (max_float(-nan, x) != x) unreachable;
+
+	if (max_float(inf, inf) != inf) unreachable;
+	if (max_float(-inf, inf) != inf) unreachable;
+	if (max_float(inf, -inf) != inf) unreachable;
+	if (max_float(-inf, -inf) != -inf) unreachable;
+
+	if (max_float(inf, nan) != inf) unreachable;
+	if (max_float(nan, inf) != inf) unreachable;
+	if (max_float(-inf, nan) != -inf) unreachable;
+	if (max_float(nan, -inf) != -inf) unreachable;
+
+	if (!isnan(max_float(nan, nan))) unreachable;
+	if (!isnan(max_float(-nan, nan))) unreachable;
+	if (!isnan(max_float(nan, -nan))) unreachable;
+	if (!isnan(max_float(-nan, -nan))) unreachable;
+}
+
+function exp_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == f32) { 2.7182817f32 } else { 2.718281828459045f64 };
+	if (exp(x) != expected) unreachable;
+
+	let x = -1.0 as T;
+	let expected = if consteval (T == f32) { 0.36787945f32 } else { 0.36787944117144233f64 };
+	if (exp(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 30.876644f32 } else { 30.876642749677046f64 };
+	if (exp(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+	let expected = if consteval (T == f32) { 0.03238694f32 } else { 0.03238694077290704f64 };
+	if (exp(x) != expected) unreachable;
+
+	if (exp(zero) != 1.0 as T) unreachable;
+	if (exp(-zero) != 1.0 as T) unreachable;
+	if (exp(-inf) != 0.0 as T) unreachable;
+	if (exp(-inf).bits() != zero_bits) unreachable;
+	if (exp(inf) != inf) unreachable;
+	if (!isnan(exp(nan))) unreachable;
+}
+
+function exp2_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == f32) { 2.0f32 } else { 2.0f64 };
+	if (exp2(x) != expected) unreachable;
+
+	let x = -1.0 as T;
+	let expected = if consteval (T == f32) { 0.5f32 } else { 0.5f64 };
+	if (exp2(x) != expected) unreachable;
+
+	// FIXME: exp2f on windows doesn't produce the same values as glibc on linux
+	// this could potentially be fixed by using LLVM libc's implementation of math functions everywhere
+	if (T != f32)
+	{
+		let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+		let expected = if consteval (T == f32) { 10.777869f32 } else { 10.777868614925524f64 };
+		if (exp2(x) != expected) unreachable;
+
+		let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+		let expected = if consteval (T == f32) { 0.09278272f32 } else { 0.09278272316431556f64 };
+		if (exp2(x) != expected) unreachable;
+	}
+
+	if (exp2(zero) != 1.0 as T) unreachable;
+	if (exp2(-zero) != 1.0 as T) unreachable;
+	if (exp2(-inf) != 0.0 as T) unreachable;
+	if (exp2(-inf).bits() != zero_bits) unreachable;
+	if (exp2(inf) != inf) unreachable;
+	if (!isnan(exp2(nan))) unreachable;
+}
+
+function expm1_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == f32) { 1.7182817f32 } else { 1.718281828459045f64 };
+	if (expm1(x) != expected) unreachable;
+
+	let x = -1.0 as T;
+	let expected = if consteval (T == f32) { -0.63212055f32 } else { -0.6321205588285577f64 };
+	if (expm1(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 29.876644f32 } else { 29.876642749677046f64 };
+	if (expm1(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+	let expected = if consteval (T == f32) { -0.96761304f32 } else { -0.967613059227093f64 };
+	if (expm1(x) != expected) unreachable;
+
+	if (expm1(zero) != 0.0 as T) unreachable;
+	if (expm1(zero).bits() != zero_bits) unreachable;
+	if (expm1(-zero) != 0.0 as T) unreachable;
+	if (expm1(-zero).bits() != negative_zero_bits) unreachable;
+	if (expm1(-inf) != -1.0 as T) unreachable;
+	if (expm1(inf) != inf) unreachable;
+	if (!isnan(expm1(nan))) unreachable;
+}
+
+function log_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = exp(1.0 as T);
+	let expected = if consteval (T == f32) { 0.99999994f32 } else { 1.0f64 };
+	if (log(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 1.2325603f32 } else { 1.2325602611778486f64 };
+	if (log(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { -1.2325603f32 } else { -1.2325602611778488f64 };
+	if (log(x) != expected) unreachable;
+
+	if (log(zero) != -inf) unreachable;
+	if (log(-zero) != -inf) unreachable;
+	if (log(one) != 0.0 as T) unreachable;
+	if (log(one).bits() != zero_bits) unreachable;
+	if (log(inf) != inf) unreachable;
+	if (!isnan(log(nan))) unreachable;
+
+	let x = -1.0 as T;
+	if (!isnan(log(x))) unreachable;
+	let x = -min;
+	if (!isnan(log(x))) unreachable;
+	let x = -denorm_min;
+	if (!isnan(log(x))) unreachable;
+	let x = -inf;
+	if (!isnan(log(x))) unreachable;
+}
+
+function log2_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = 2.0 as T;
+	if (log2(x) != 1.0 as T) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 1.7782086f32 } else { 1.7782085763980877f64 };
+	if (log2(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { -1.7782086f32 } else { -1.778208576398088f64 };
+	if (log2(x) != expected) unreachable;
+
+	if (log2(zero) != -inf) unreachable;
+	if (log2(-zero) != -inf) unreachable;
+	if (log2(one) != 0.0 as T) unreachable;
+	if (log2(one).bits() != zero_bits) unreachable;
+	if (log2(inf) != inf) unreachable;
+	if (!isnan(log2(nan))) unreachable;
+
+	let x = -1.0 as T;
+	if (!isnan(log2(x))) unreachable;
+	let x = -min;
+	if (!isnan(log2(x))) unreachable;
+	let x = -denorm_min;
+	if (!isnan(log2(x))) unreachable;
+	let x = -inf;
+	if (!isnan(log2(x))) unreachable;
+}
+
+function log10_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = 10.0 as T;
+	if (log10(x) != 1.0 as T) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 0.5352941f32 } else { 0.5352941200427705f64 };
+	if (log10(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { -0.5352941f32 } else { -0.5352941200427705f64 };
+	if (log10(x) != expected) unreachable;
+
+	if (log10(zero) != -inf) unreachable;
+	if (log10(-zero) != -inf) unreachable;
+	if (log10(one) != 0.0 as T) unreachable;
+	if (log10(one).bits() != zero_bits) unreachable;
+	if (log10(inf) != inf) unreachable;
+	if (!isnan(log10(nan))) unreachable;
+
+	let x = -1.0 as T;
+	if (!isnan(log10(x))) unreachable;
+	let x = -min;
+	if (!isnan(log10(x))) unreachable;
+	let x = -denorm_min;
+	if (!isnan(log10(x))) unreachable;
+	let x = -inf;
+	if (!isnan(log10(x))) unreachable;
+}
+
+function log1p_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	// FIXME: log1pf on windows doesn't produce the same values as glibc on linux
+	if (T != f32)
+	{
+		let x = expm1(1.0 as T);
+		if (log1p(x) != 1.0 as T) unreachable;
+	}
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 1.4883996f32 } else { 1.4883995840570443f64 };
+	if (log1p(x) != expected) unreachable;
+
+	// FIXME: log1p on windows doesn't produce the same values as glibc on linux
+	if (T != f64)
+	{
+		let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == f32) { 0.25583932f32 } else { 0.2558393228791957f64 };
+		if (log1p(x) != expected) unreachable;
+	}
+
+	if (log1p(zero) != 0.0 as T) unreachable;
+	if (log1p(zero).bits() != zero_bits) unreachable;
+	if (log1p(-zero) != 0.0 as T) unreachable;
+	if (log1p(-zero).bits() != negative_zero_bits) unreachable;
+	if (log1p(-one) != -inf) unreachable;
+	if (log1p(inf) != inf) unreachable;
+	if (!isnan(log1p(nan))) unreachable;
+
+	let x = -2.0 as T;
+	if (!isnan(log1p(x))) unreachable;
+	let x = -inf;
+	if (!isnan(log1p(x))) unreachable;
+}
+
+function sqrt_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = 1.0 as T;
+	if (sqrt(x) != 1.0 as T) unreachable;
+
+	let x = 2.0 as T;
+	let expected = if consteval (T == f32) { 1.4142135f32 } else { 1.4142135623730951f64 };
+	if (sqrt(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 1.852026f32 } else { 1.8520259177452134f64 };
+	if (sqrt(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.53994924f32 } else { 0.5399492471560389f64 };
+	if (sqrt(x) != expected) unreachable;
+
+	if (sqrt(zero) != 0.0 as T) unreachable;
+	if (sqrt(zero).bits() != zero_bits) unreachable;
+	if (sqrt(-zero) != 0.0 as T) unreachable;
+	if (sqrt(-zero).bits() != negative_zero_bits) unreachable;
+	if (sqrt(inf) != inf) unreachable;
+	if (!isnan(sqrt(nan))) unreachable;
+
+	let x = -1.0 as T;
+	if (!isnan(sqrt(x))) unreachable;
+	let x = -min;
+	if (!isnan(sqrt(x))) unreachable;
+	let x = -denorm_min;
+	if (!isnan(sqrt(x))) unreachable;
+	let x = -inf;
+	if (!isnan(sqrt(x))) unreachable;
+}
+
+function cbrt_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = 1.0 as T;
+	if (cbrt(x) != 1.0 as T) unreachable;
+
+	let x = -1.0 as T;
+	if (cbrt(x) != -1.0 as T) unreachable;
+
+	// FIXME: cbrt on windows doesn't produce the same values as glibc on linux
+	if (T != f64)
+	{
+		let x = 2.0 as T;
+		let expected = if consteval (T == f32) { 1.2599211f32 } else { 1.2599210498948734f64 };
+		if (cbrt(x) != expected) unreachable;
+
+		let x = -2.0 as T;
+		let expected = if consteval (T == f32) { -1.2599211f32 } else { -1.2599210498948734f64 };
+		if (cbrt(x) != expected) unreachable;
+
+		let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+		let expected = if consteval (T == f32) { 1.5081043f32 } else { 1.508104283022319f64 };
+		if (cbrt(x) != expected) unreachable;
+
+		let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+		let expected = if consteval (T == f32) { -1.5081043f32 } else { -1.508104283022319f64 };
+		if (cbrt(x) != expected) unreachable;
+	}
+
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.6630841f32 } else { 0.6630841190875398f64 };
+	if (cbrt(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { -0.6630841f32 } else { -0.6630841190875398f64 };
+	if (cbrt(x) != expected) unreachable;
+
+	if (cbrt(zero) != 0.0 as T) unreachable;
+	if (cbrt(zero).bits() != zero_bits) unreachable;
+	if (cbrt(-zero) != 0.0 as T) unreachable;
+	if (cbrt(-zero).bits() != negative_zero_bits) unreachable;
+	if (cbrt(inf) != inf) unreachable;
+	if (cbrt(-inf) != -inf) unreachable;
+	if (!isnan(cbrt(nan))) unreachable;
+}
+
+function pow_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let epsilon = T.epsilon;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let y = if consteval (T == f32) { 0.3533f32 } else { 0.3533f64 };
+	let expected = if consteval (T == f32) { 1.5456795f32 } else { 1.5456793775596471f64 };
+	if (pow(x, y) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let y = if consteval (T == f32) { -0.3533f32 } else { -0.3533f64 };
+	let expected = if consteval (T == f32) { 0.64696467f32 } else { 0.646964703364822f64 };
+	if (pow(x, y) != expected) unreachable;
+
+	let x = min;
+	let y = if consteval (T == f32) { -0.123f32 } else { -0.123f64 };
+	let expected = if consteval (T == f32) { 46276.766f32 } else { 6.9386764195714765e+37f64 };
+	if (pow(x, y) != expected) unreachable;
+
+	let x = denorm_min;
+	let y = if consteval (T == f32) { -0.123f32 } else { -0.123f64 };
+	let expected = if consteval (T == f32) { 328834.12f32 } else { 5.84338480921933e+39f64 };
+	if (pow(x, y) != expected) unreachable;
+
+	let x = min;
+	let y = min;
+	let expected = 1.0 as T;
+	if (pow(x, y) != expected) unreachable;
+
+	let x = denorm_min;
+	let y = denorm_min;
+	let expected = 1.0 as T;
+	if (pow(x, y) != expected) unreachable;
+
+	// https://en.cppreference.com/w/c/numeric/math/pow
+	// pow(+0, exponent), where exponent is a negative odd integer, returns +∞ and raises FE_DIVBYZERO
+	// pow(-0, exponent), where exponent is a negative odd integer, returns -∞ and raises FE_DIVBYZERO
+	// pow(±0, exponent), where exponent is negative, finite, and is an even integer or a non-integer, returns +∞ and raises FE_DIVBYZERO
+	if (pow(zero, -1.0 as T) != inf) unreachable;
+	if (pow(zero, -1.3 as T) != inf) unreachable;
+	if (pow(zero, -2.0 as T) != inf) unreachable;
+	if (pow(zero, -123.0 as T) != inf) unreachable;
+	if (pow(zero, -124.0 as T) != inf) unreachable;
+	if (pow(-zero, -1.0 as T) != -inf) unreachable;
+	if (pow(-zero, -1.3 as T) != inf) unreachable;
+	if (pow(-zero, -2.0 as T) != inf) unreachable;
+	if (pow(-zero, -123.0 as T) != -inf) unreachable;
+	if (pow(-zero, -124.0 as T) != inf) unreachable;
+	// pow(±0, -∞) returns +∞ and may raise FE_DIVBYZERO
+	if (pow(zero, -inf) != inf) unreachable;
+	if (pow(-zero, -inf) != inf) unreachable;
+	// pow(+0, exponent), where exponent is a positive odd integer, returns +0
+	// pow(-0, exponent), where exponent is a positive odd integer, returns -0
+	// pow(±0, exponent), where exponent is positive non-integer or a positive even integer, returns +0
+	if (pow(zero, 1.0 as T).bits() != zero_bits) unreachable;
+	if (pow(zero, 1.3 as T).bits() != zero_bits) unreachable;
+	if (pow(zero, 2.0 as T).bits() != zero_bits) unreachable;
+	if (pow(zero, 123.0 as T).bits() != zero_bits) unreachable;
+	if (pow(zero, 124.0 as T).bits() != zero_bits) unreachable;
+	if (pow(zero, inf).bits() != zero_bits) unreachable;
+	if (pow(-zero, 1.0 as T).bits() != negative_zero_bits) unreachable;
+	if (pow(-zero, 1.3 as T).bits() != zero_bits) unreachable;
+	if (pow(-zero, 2.0 as T).bits() != zero_bits) unreachable;
+	if (pow(-zero, 123.0 as T).bits() != negative_zero_bits) unreachable;
+	if (pow(-zero, 124.0 as T).bits() != zero_bits) unreachable;
+	if (pow(-zero, inf).bits() != zero_bits) unreachable;
+	// pow(-1, ±∞) returns 1
+	if (pow(-one, inf) != 1.0 as T) unreachable;
+	if (pow(-one, -inf) != 1.0 as T) unreachable;
+	// pow(+1, exponent) returns 1 for any exponent, even when exponent is NaN
+	if (pow(one, inf) != 1.0 as T) unreachable;
+	if (pow(one, -inf) != 1.0 as T) unreachable;
+	if (pow(one, nan) != 1.0 as T) unreachable;
+	if (pow(one, 1.0 as T) != 1.0 as T) unreachable;
+	if (pow(one, 123.123 as T) != 1.0 as T) unreachable;
+	// pow(base, ±0) returns 1 for any base, even when base is NaN
+	if (pow(inf, zero) != 1.0 as T) unreachable;
+	if (pow(inf, -zero) != 1.0 as T) unreachable;
+	if (pow(-inf, zero) != 1.0 as T) unreachable;
+	if (pow(-inf, -zero) != 1.0 as T) unreachable;
+	if (pow(nan, zero) != 1.0 as T) unreachable;
+	if (pow(nan, -zero) != 1.0 as T) unreachable;
+	if (pow(1.0 as T, zero) != 1.0 as T) unreachable;
+	if (pow(1.0 as T, -zero) != 1.0 as T) unreachable;
+	if (pow(-1.0 as T, zero) != 1.0 as T) unreachable;
+	if (pow(-1.0 as T, -zero) != 1.0 as T) unreachable;
+	if (pow(123.123 as T, zero) != 1.0 as T) unreachable;
+	if (pow(123.123 as T, -zero) != 1.0 as T) unreachable;
+	if (pow(-123.123 as T, zero) != 1.0 as T) unreachable;
+	if (pow(-123.123 as T, -zero) != 1.0 as T) unreachable;
+	// pow(base, exponent) returns NaN and raises FE_INVALID if base is finite and negative and exponent is finite and non-integer.
+	if (!isnan(pow(-one, 1.3 as T))) unreachable;
+	if (!isnan(pow(-one, -1.3 as T))) unreachable;
+	if (!isnan(pow(-one, min))) unreachable;
+	if (!isnan(pow(-one, -min))) unreachable;
+	if (!isnan(pow(-one, denorm_min))) unreachable;
+	if (!isnan(pow(-one, -denorm_min))) unreachable;
+	// pow(base, -∞) returns +∞ for any |base|<1
+	if (pow(0.5 as T, -inf) != inf) unreachable;
+	if (pow(-0.5 as T, -inf) != inf) unreachable;
+	if (pow(min, -inf) != inf) unreachable;
+	if (pow(-min, -inf) != inf) unreachable;
+	if (pow(denorm_min, -inf) != inf) unreachable;
+	if (pow(-denorm_min, -inf) != inf) unreachable;
+	// pow(base, -∞) returns +0 for any |base|>1
+	if (pow(1.5 as T, -inf).bits() != zero_bits) unreachable;
+	if (pow(-1.5 as T, -inf).bits() != zero_bits) unreachable;
+	if (pow(one + epsilon, -inf).bits() != zero_bits) unreachable;
+	if (pow(-one - epsilon, -inf).bits() != zero_bits) unreachable;
+	if (pow(inf, -inf).bits() != zero_bits) unreachable;
+	if (pow(-inf, -inf).bits() != zero_bits) unreachable;
+	// pow(base, +∞) returns +0 for any |base|<1
+	if (pow(0.5 as T, inf).bits() != zero_bits) unreachable;
+	if (pow(-0.5 as T, inf).bits() != zero_bits) unreachable;
+	if (pow(min, inf).bits() != zero_bits) unreachable;
+	if (pow(-min, inf).bits() != zero_bits) unreachable;
+	if (pow(denorm_min, inf).bits() != zero_bits) unreachable;
+	if (pow(-denorm_min, inf).bits() != zero_bits) unreachable;
+	// pow(base, +∞) returns +∞ for any |base|>1
+	if (pow(1.5 as T, inf) != inf) unreachable;
+	if (pow(-1.5 as T, inf) != inf) unreachable;
+	if (pow(one + epsilon, inf) != inf) unreachable;
+	if (pow(-one - epsilon, inf) != inf) unreachable;
+	if (pow(inf, inf) != inf) unreachable;
+	if (pow(-inf, inf) != inf) unreachable;
+	// pow(-∞, exponent) returns -0 if exponent is a negative odd integer
+	if (pow(-inf, -1.0 as T).bits() != negative_zero_bits) unreachable;
+	if (pow(-inf, -123.0 as T).bits() != negative_zero_bits) unreachable;
+	// pow(-∞, exponent) returns +0 if exponent is a negative non-integer or negative even integer
+	if (pow(-inf, -1.5 as T).bits() != zero_bits) unreachable;
+	if (pow(-inf, -2.0 as T).bits() != zero_bits) unreachable;
+	if (pow(-inf, -124.0 as T).bits() != zero_bits) unreachable;
+	if (pow(-inf, -min).bits() != zero_bits) unreachable;
+	if (pow(-inf, -denorm_min).bits() != zero_bits) unreachable;
+	// pow(-∞, exponent) returns -∞ if exponent is a positive odd integer
+	if (pow(-inf, 1.0 as T) != -inf) unreachable;
+	if (pow(-inf, 123.0 as T) != -inf) unreachable;
+	// pow(-∞, exponent) returns +∞ if exponent is a positive non-integer or positive even integer
+	if (pow(-inf, 1.5 as T) != inf) unreachable;
+	if (pow(-inf, 2.0 as T) != inf) unreachable;
+	if (pow(-inf, 124.0 as T) != inf) unreachable;
+	if (pow(-inf, min) != inf) unreachable;
+	if (pow(-inf, denorm_min) != inf) unreachable;
+	// pow(+∞, exponent) returns +0 for any negative exponent
+	if (pow(inf, -1.0 as T).bits() != zero_bits) unreachable;
+	if (pow(inf, -1.5 as T).bits() != zero_bits) unreachable;
+	if (pow(inf, -2.0 as T).bits() != zero_bits) unreachable;
+	if (pow(inf, -123.0 as T).bits() != zero_bits) unreachable;
+	if (pow(inf, -124.0 as T).bits() != zero_bits) unreachable;
+	if (pow(inf, -min).bits() != zero_bits) unreachable;
+	if (pow(inf, -denorm_min).bits() != zero_bits) unreachable;
+	// pow(+∞, exponent) returns +∞ for any positive exponent
+	if (pow(inf, 1.0 as T) != inf) unreachable;
+	if (pow(inf, 1.5 as T) != inf) unreachable;
+	if (pow(inf, 2.0 as T) != inf) unreachable;
+	if (pow(inf, 123.0 as T) != inf) unreachable;
+	if (pow(inf, 124.0 as T) != inf) unreachable;
+	if (pow(inf, min) != inf) unreachable;
+	if (pow(inf, denorm_min) != inf) unreachable;
+	// except where specified above, if any argument is NaN, NaN is returned
+	if (!isnan(pow(nan, nan))) unreachable;
+	if (!isnan(pow(nan, 1.0 as T))) unreachable;
+	if (!isnan(pow(nan, -1.0 as T))) unreachable;
+	if (!isnan(pow(nan, min))) unreachable;
+	if (!isnan(pow(nan, -min))) unreachable;
+	if (!isnan(pow(nan, denorm_min))) unreachable;
+	if (!isnan(pow(nan, -denorm_min))) unreachable;
+	if (!isnan(pow(nan, inf))) unreachable;
+	if (!isnan(pow(nan, -inf))) unreachable;
+	if (!isnan(pow(-1.0 as T, nan))) unreachable;
+	if (!isnan(pow(min, nan))) unreachable;
+	if (!isnan(pow(-min, nan))) unreachable;
+	if (!isnan(pow(denorm_min, nan))) unreachable;
+	if (!isnan(pow(-denorm_min, nan))) unreachable;
+	if (!isnan(pow(zero, nan))) unreachable;
+	if (!isnan(pow(-zero, nan))) unreachable;
+	if (!isnan(pow(inf, nan))) unreachable;
+	if (!isnan(pow(-inf, nan))) unreachable;
+}
+
+function hypot_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = 1.0 as T;
+	let y = 1.0 as T;
+	let expected = if consteval (T == f32) { 1.4142135f32 } else { 1.4142135623730951f64 };
+	if (hypot(x, y) != expected) unreachable;
+	if (hypot(-x, y) != expected) unreachable;
+	if (hypot(x, -y) != expected) unreachable;
+	if (hypot(-x, -y) != expected) unreachable;
+	if (hypot(y, x) != expected) unreachable;
+	if (hypot(-y, x) != expected) unreachable;
+	if (hypot(y, -x) != expected) unreachable;
+	if (hypot(-y, -x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let y = if consteval (T == f32) { 0.3533f32 } else { 0.3533f64 };
+	let expected = if consteval (T == f32) { 3.4481475f32 } else { 3.4481474576937687f64 };
+	if (hypot(x, y) != expected) unreachable;
+	if (hypot(-x, y) != expected) unreachable;
+	if (hypot(x, -y) != expected) unreachable;
+	if (hypot(-x, -y) != expected) unreachable;
+	if (hypot(y, x) != expected) unreachable;
+	if (hypot(-y, x) != expected) unreachable;
+	if (hypot(y, -x) != expected) unreachable;
+	if (hypot(-y, -x) != expected) unreachable;
+
+	let x = min;
+	let y = min;
+	let expected = if consteval (T == f32) { 1.6624e-38f32 } else { 3.1467296279827175e-308f64 };
+	if (hypot(x, y) != expected) unreachable;
+	if (hypot(-x, y) != expected) unreachable;
+	if (hypot(x, -y) != expected) unreachable;
+	if (hypot(-x, -y) != expected) unreachable;
+	if (hypot(y, x) != expected) unreachable;
+	if (hypot(-y, x) != expected) unreachable;
+	if (hypot(y, -x) != expected) unreachable;
+	if (hypot(-y, -x) != expected) unreachable;
+
+	let x = denorm_min;
+	let y = denorm_min;
+	let expected = if consteval (T == f32) { 1e-45f32 } else { 5e-324f64 };
+	if (hypot(x, y) != expected) unreachable;
+	if (hypot(-x, y) != expected) unreachable;
+	if (hypot(x, -y) != expected) unreachable;
+	if (hypot(-x, -y) != expected) unreachable;
+	if (hypot(y, x) != expected) unreachable;
+	if (hypot(-y, x) != expected) unreachable;
+	if (hypot(y, -x) != expected) unreachable;
+	if (hypot(-y, -x) != expected) unreachable;
+
+	let x = 234.234 as T;
+	if (hypot(zero, x) != x) unreachable;
+	if (hypot(zero, -x) != x) unreachable;
+	if (hypot(x, zero) != x) unreachable;
+	if (hypot(-x, zero) != x) unreachable;
+	if (hypot(-zero, x) != x) unreachable;
+	if (hypot(-zero, -x) != x) unreachable;
+	if (hypot(x, -zero) != x) unreachable;
+	if (hypot(-x, -zero) != x) unreachable;
+
+	if (hypot(zero, zero).bits() != zero_bits) unreachable;
+	if (hypot(-zero, zero).bits() != zero_bits) unreachable;
+	if (hypot(zero, -zero).bits() != zero_bits) unreachable;
+	if (hypot(-zero, -zero).bits() != zero_bits) unreachable;
+
+	if (hypot(inf, zero) != inf) unreachable;
+	if (hypot(-inf, zero) != inf) unreachable;
+	if (hypot(inf, nan) != inf) unreachable;
+	if (hypot(-inf, nan) != inf) unreachable;
+
+	if (!isnan(hypot(zero, nan))) unreachable;
+	if (!isnan(hypot(nan, zero))) unreachable;
+}
+
+function sin_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = if consteval (T == f32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	let expected = if consteval (T == f32) { -8.742278e-08f32 } else { 1.2246467991473532e-16f64 };
+	if (sin(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { -3.1415927f32 } else { -3.141592653589793f64 };
+	let expected = if consteval (T == f32) { 8.742278e-08f32 } else { -1.2246467991473532e-16f64 };
+	if (sin(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	let expected = 1.0 as T;
+	if (sin(x) != expected) unreachable;
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == f32) { 0.84147096f32 } else { 0.8414709848078965f64 };
+	if (sin(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { -0.56537485f32 } else { -0.5653739196973395f64 };
+	if (sin(x) != expected) unreachable;
+
+	if (sin(zero).bits() != zero_bits) unreachable;
+	if (sin(-zero).bits() != negative_zero_bits) unreachable;
+	if (!isnan(sin(inf))) unreachable;
+	if (!isnan(sin(-inf))) unreachable;
+	if (!isnan(sin(nan))) unreachable;
+}
+
+function cos_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let x = if consteval (T == f32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	let expected = -1.0 as T;
+	if (cos(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { -3.1415927f32 } else { -3.141592653589793f64 };
+	let expected = -1.0 as T;
+	if (cos(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	let expected = if consteval (T == f32) { -4.371139e-08f32 } else { 6.123233995736766e-17f64 };
+	if (cos(x) != expected) unreachable;
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == f32) { 0.5403023f32 } else { 0.5403023058681398f64 };
+	if (cos(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { -0.8248341f32 } else { -0.8248347294616457f64 };
+	if (cos(x) != expected) unreachable;
+
+	if (cos(zero) != 1.0 as T) unreachable;
+	if (cos(-zero) != 1.0 as T) unreachable;
+	if (!isnan(cos(inf))) unreachable;
+	if (!isnan(cos(-inf))) unreachable;
+	if (!isnan(cos(nan))) unreachable;
+}
+
+function tan_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = if consteval (T == f32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	let expected = if consteval (T == f32) { 8.742278e-08f32 } else { -1.2246467991473532e-16f64 };
+	if (tan(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { -3.1415927f32 } else { -3.141592653589793f64 };
+	let expected = if consteval (T == f32) { -8.742278e-08f32 } else { 1.2246467991473532e-16f64 };
+	if (tan(x) != expected) unreachable;
+
+	// FIXME: tanf on windows doesn't produce the same values as glibc on linux
+	if (T != f32)
+	{
+		let x = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+		let expected = if consteval (T == f32) { -2.2877334e+07f32 } else { 1.633123935319537e+16f64 };
+		if (tan(x) != expected) unreachable;
+	}
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == f32) { 1.5574077f32 } else { 1.5574077246549023f64 };
+	if (tan(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { 0.68544066f32 } else { 0.6854390334247306f64 };
+	if (tan(x) != expected) unreachable;
+
+	if (tan(zero).bits() != zero_bits) unreachable;
+	if (tan(-zero).bits() != negative_zero_bits) unreachable;
+	if (!isnan(tan(inf))) unreachable;
+	if (!isnan(tan(-inf))) unreachable;
+	if (!isnan(tan(nan))) unreachable;
+}
+
+function asin_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+	let epsilon = T.epsilon;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	if (asin(x) != expected) unreachable;
+
+	let x = -1.0 as T;
+	let expected = if consteval (T == f32) { -1.5707964f32 } else { -1.5707963267948966f64 };
+	if (asin(x) != expected) unreachable;
+
+	let x = 0.5 as T;
+	let expected = if consteval (T == f32) { 0.5235988f32 } else { 0.5235987755982989f64 };
+	if (asin(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.2958418f32 } else { 0.2958418067382629f64 };
+	if (asin(x) != expected) unreachable;
+
+	if (asin(zero).bits() != zero_bits) unreachable;
+	if (asin(-zero).bits() != negative_zero_bits) unreachable;
+	if (!isnan(asin(one + epsilon))) unreachable;
+	if (!isnan(asin(-one - epsilon))) unreachable;
+	let x = 123.123 as T;
+	if (!isnan(asin(x))) unreachable;
+	if (!isnan(asin(-x))) unreachable;
+	if (!isnan(asin(inf))) unreachable;
+	if (!isnan(asin(-inf))) unreachable;
+	if (!isnan(asin(nan))) unreachable;
+}
+
+function acos_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let one = 1.0 as T;
+	let epsilon = T.epsilon;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = -1.0 as T;
+	let expected = if consteval (T == f32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	if (acos(x) != expected) unreachable;
+
+	let x = 0.5 as T;
+	let expected = if consteval (T == f32) { 1.0471976f32 } else { 1.0471975511965979f64 };
+	if (acos(x) != expected) unreachable;
+
+	let x = -0.5 as T;
+	let expected = if consteval (T == f32) { 2.0943952f32 } else { 2.0943951023931957f64 };
+	if (acos(x) != expected) unreachable;
+
+	let x = 0.0 as T;
+	let expected = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	if (acos(x) != expected) unreachable;
+	if (acos(-x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 1.2749546f32 } else { 1.2749545200566337f64 };
+	if (acos(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 1.8666382f32 } else { 1.8666381335331594f64 };
+	if (acos(x) != expected) unreachable;
+
+	if (acos(one).bits() != zero_bits) unreachable;
+	if (!isnan(acos(one + epsilon))) unreachable;
+	if (!isnan(acos(-one - epsilon))) unreachable;
+	let x = 123.123 as T;
+	if (!isnan(acos(x))) unreachable;
+	if (!isnan(acos(-x))) unreachable;
+	if (!isnan(acos(inf))) unreachable;
+	if (!isnan(acos(-inf))) unreachable;
+	if (!isnan(acos(nan))) unreachable;
+}
+
+function atan_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == f32) { 0.7853982f32 } else { 0.7853981633974483f64 };
+	if (atan(x) != expected) unreachable;
+
+	let x = -1.0 as T;
+	let expected = if consteval (T == f32) { -0.7853982f32 } else { -0.7853981633974483f64 };
+	if (atan(x) != expected) unreachable;
+
+	let x = 0.5 as T;
+	let expected = if consteval (T == f32) { 0.4636476f32 } else { 0.4636476090008061f64 };
+	if (atan(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { 1.5626745f32 } else { 1.5626745460380187f64 };
+	if (atan(x) != expected) unreachable;
+
+	let x = inf;
+	let expected = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	if (atan(x) != expected) unreachable;
+
+	let x = -inf;
+	let expected = if consteval (T == f32) { -1.5707964f32 } else { -1.5707963267948966f64 };
+	if (atan(x) != expected) unreachable;
+
+	if (atan(zero).bits() != zero_bits) unreachable;
+	if (atan(-zero).bits() != negative_zero_bits) unreachable;
+	if (!isnan(atan(nan))) unreachable;
+}
+
+function atan2_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let pi = if consteval (T == f32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	let pi_half = if consteval (T == f32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	let pi_quarter = if consteval (T == f32) { 0.7853982f32 } else { 0.7853981633974483f64 };
+	let pi_three_quarters = if consteval (T == f32) { 2.3561945f32 } else { 2.356194490192345f64 };
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let y = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 0.027851118f32 } else { 0.027851117077518864f64 };
+	if (atan2(y, x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let y = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { 1.5429453f32 } else { 1.5429452097173777f64 };
+	if (atan2(y, x) != expected) unreachable;
+
+	// https://en.cppreference.com/w/c/numeric/math/atan2
+	// If y is ±0 and x is negative or -0, ±π is returned;
+	if (atan2(zero, -zero) != pi) unreachable;
+	if (atan2(-zero, -zero) != -pi) unreachable;
+	if (atan2(zero, -denorm_min) != pi) unreachable;
+	if (atan2(-zero, -denorm_min) != -pi) unreachable;
+	if (atan2(zero, -min) != pi) unreachable;
+	if (atan2(-zero, -min) != -pi) unreachable;
+	if (atan2(zero, -1.0 as T) != pi) unreachable;
+	if (atan2(-zero, -1.0 as T) != -pi) unreachable;
+	if (atan2(zero, -inf) != pi) unreachable;
+	if (atan2(-zero, -inf) != -pi) unreachable;
+	// If y is ±0 and x is positive or +0, ±0 is returned;
+	if (atan2(zero, zero).bits() != zero_bits) unreachable;
+	if (atan2(-zero, zero).bits() != negative_zero_bits) unreachable;
+	if (atan2(zero, denorm_min).bits() != zero_bits) unreachable;
+	if (atan2(-zero, denorm_min).bits() != negative_zero_bits) unreachable;
+	if (atan2(zero, min).bits() != zero_bits) unreachable;
+	if (atan2(-zero, min).bits() != negative_zero_bits) unreachable;
+	if (atan2(zero, 1.0 as T).bits() != zero_bits) unreachable;
+	if (atan2(-zero, 1.0 as T).bits() != negative_zero_bits) unreachable;
+	if (atan2(zero, inf).bits() != zero_bits) unreachable;
+	if (atan2(-zero, inf).bits() != negative_zero_bits) unreachable;
+	// If y is ±∞ and x is finite, ±π/2 is returned;
+	if (atan2(inf, zero) != pi_half) unreachable;
+	if (atan2(-inf, zero) != -pi_half) unreachable;
+	if (atan2(inf, -zero) != pi_half) unreachable;
+	if (atan2(-inf, -zero) != -pi_half) unreachable;
+	if (atan2(inf, 1.0 as T) != pi_half) unreachable;
+	if (atan2(-inf, 1.0 as T) != -pi_half) unreachable;
+	if (atan2(inf, -1.0 as T) != pi_half) unreachable;
+	if (atan2(-inf, -1.0 as T) != -pi_half) unreachable;
+	if (atan2(inf, 123.123 as T) != pi_half) unreachable;
+	if (atan2(-inf, 123.123 as T) != -pi_half) unreachable;
+	if (atan2(inf, -123.123 as T) != pi_half) unreachable;
+	if (atan2(-inf, -123.123 as T) != -pi_half) unreachable;
+	// If y is ±∞ and x is -∞, ±3π/4 is returned;
+	if (atan2(inf, -inf) != pi_three_quarters) unreachable;
+	if (atan2(-inf, -inf) != -pi_three_quarters) unreachable;
+	// If y is ±∞ and x is +∞, ±π/4 is returned;
+	if (atan2(inf, inf) != pi_quarter) unreachable;
+	if (atan2(-inf, inf) != -pi_quarter) unreachable;
+	// If x is ±0 and y is negative, -π/2 is returned;
+	if (atan2(-denorm_min, zero) != -pi_half) unreachable;
+	if (atan2(-denorm_min, -zero) != -pi_half) unreachable;
+	if (atan2(-min, zero) != -pi_half) unreachable;
+	if (atan2(-min, -zero) != -pi_half) unreachable;
+	if (atan2(-1.0 as T, zero) != -pi_half) unreachable;
+	if (atan2(-1.0 as T, -zero) != -pi_half) unreachable;
+	if (atan2(-123.123 as T, zero) != -pi_half) unreachable;
+	if (atan2(-123.123 as T, -zero) != -pi_half) unreachable;
+	// If x is ±0 and y is positive, +π/2 is returned;
+	if (atan2(denorm_min, zero) != pi_half) unreachable;
+	if (atan2(denorm_min, -zero) != pi_half) unreachable;
+	if (atan2(min, zero) != pi_half) unreachable;
+	if (atan2(min, -zero) != pi_half) unreachable;
+	if (atan2(1.0 as T, zero) != pi_half) unreachable;
+	if (atan2(1.0 as T, -zero) != pi_half) unreachable;
+	if (atan2(123.123 as T, zero) != pi_half) unreachable;
+	if (atan2(123.123 as T, -zero) != pi_half) unreachable;
+	// If x is -∞ and y is finite and positive, +π is returned;
+	if (atan2(denorm_min, -inf) != pi) unreachable;
+	if (atan2(min, -inf) != pi) unreachable;
+	if (atan2(1.0 as T, -inf) != pi) unreachable;
+	if (atan2(123.123 as T, -inf) != pi) unreachable;
+	// If x is -∞ and y is finite and negative, -π is returned;
+	if (atan2(-denorm_min, -inf) != -pi) unreachable;
+	if (atan2(-min, -inf) != -pi) unreachable;
+	if (atan2(-1.0 as T, -inf) != -pi) unreachable;
+	if (atan2(-123.123 as T, -inf) != -pi) unreachable;
+	// If x is +∞ and y is finite and positive, +0 is returned;
+	if (atan2(denorm_min, inf).bits() != zero_bits) unreachable;
+	if (atan2(min, inf).bits() != zero_bits) unreachable;
+	if (atan2(1.0 as T, inf).bits() != zero_bits) unreachable;
+	if (atan2(123.123 as T, inf).bits() != zero_bits) unreachable;
+	// If x is +∞ and y is finite and negative, -0 is returned;
+	if (atan2(-denorm_min, inf).bits() != negative_zero_bits) unreachable;
+	if (atan2(-min, inf).bits() != negative_zero_bits) unreachable;
+	if (atan2(-1.0 as T, inf).bits() != negative_zero_bits) unreachable;
+	if (atan2(-123.123 as T, inf).bits() != negative_zero_bits) unreachable;
+	// If either x is NaN or y is NaN, NaN is returned.
+	if (!isnan(atan2(nan, nan))) unreachable;
+	if (!isnan(atan2(nan, zero))) unreachable;
+	if (!isnan(atan2(zero, nan))) unreachable;
+	if (!isnan(atan2(nan, inf))) unreachable;
+	if (!isnan(atan2(inf, nan))) unreachable;
+}
+
+function sinh_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { inf } else { 1.4811856630877337e+53f64 };
+	if (sinh(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 15.422129f32 } else { 15.42212790445207f64 };
+	if (sinh(x) != expected) unreachable;
+	if (sinh(-x) != -expected) unreachable;
+
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.29569292f32 } else { 0.29569293331053953f64 };
+	if (sinh(x) != expected) unreachable;
+	if (sinh(-x) != -expected) unreachable;
+
+	if (sinh(zero).bits() != zero_bits) unreachable;
+	if (sinh(-zero).bits() != negative_zero_bits) unreachable;
+	if (sinh(inf) != inf) unreachable;
+	if (sinh(-inf) != -inf) unreachable;
+	if (!isnan(sinh(nan))) unreachable;
+}
+
+function cosh_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { inf } else { 1.4811856630877337e+53f64 };
+	if (cosh(x) != expected) unreachable;
+
+	// FIXME: cosh on windows doesn't produce the same values as glibc on linux
+	if (T != f64)
+	{
+		let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+		let expected = if consteval (T == f32) { 15.454515f32 } else { 15.454514845224976f64 };
+		if (cosh(x) != expected) unreachable;
+		if (cosh(-x) != expected) unreachable;
+	}
+
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 1.0428011f32 } else { 1.0428011846990735f64 };
+	if (cosh(x) != expected) unreachable;
+	if (cosh(-x) != expected) unreachable;
+
+	if (cosh(zero) != 1.0 as T) unreachable;
+	if (cosh(-zero) != 1.0 as T) unreachable;
+	if (cosh(inf) != inf) unreachable;
+	if (cosh(-inf) != inf) unreachable;
+	if (!isnan(cosh(nan))) unreachable;
+}
+
+function tanh_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = 1.0 as T;
+	if (tanh(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 0.99790436f32 } else { 0.9979043702699659f64 };
+	if (tanh(x) != expected) unreachable;
+	if (tanh(-x) != -expected) unreachable;
+
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.28355637f32 } else { 0.28355638414034706f64 };
+	if (tanh(x) != expected) unreachable;
+	if (tanh(-x) != -expected) unreachable;
+
+	if (tanh(zero).bits() != zero_bits) unreachable;
+	if (tanh(-zero).bits() != negative_zero_bits) unreachable;
+	if (tanh(inf) != 1.0 as T) unreachable;
+	if (tanh(-inf) != -1.0 as T) unreachable;
+	if (!isnan(tanh(nan))) unreachable;
+}
+
+function asinh_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { 5.5063477f32 } else { 5.50634752741339f64 };
+	if (asinh(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 1.94631f32 } else { 1.9463100722741329f64 };
+	if (asinh(x) != expected) unreachable;
+	if (asinh(-x) != -expected) unreachable;
+
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.28756544f32 } else { 0.28756545247221277f64 };
+	if (asinh(x) != expected) unreachable;
+	if (asinh(-x) != -expected) unreachable;
+
+	if (asinh(zero).bits() != zero_bits) unreachable;
+	if (asinh(-zero).bits() != negative_zero_bits) unreachable;
+	if (asinh(inf) != inf) unreachable;
+	if (asinh(-inf) != -inf) unreachable;
+	if (!isnan(asinh(nan))) unreachable;
+}
+
+function acosh_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+	let epsilon = T.epsilon;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { 5.5063148f32 } else { 5.506314544301588f64 };
+	if (acosh(x) != expected) unreachable;
+
+	// FIXME: acosh on windows doesn't produce the same values as glibc on linux
+	if (T != f64)
+	{
+		let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+		let expected = if consteval (T == f32) { 1.9037466f32 } else { 1.9037465859926774f64 };
+		if (acosh(x) != expected) unreachable;
+	}
+
+	let x = one + epsilon;
+	let expected = if consteval (T == f32) { 0.00048828122f32 } else { 2.1073424255447017e-08f64 };
+	if (acosh(x) != expected) unreachable;
+
+	if (acosh(one).bits() != zero_bits) unreachable;
+	if (acosh(inf) != inf) unreachable;
+	if (!isnan(acosh(one - epsilon / 2.0 as T))) unreachable;
+	if (!isnan(acosh(zero))) unreachable;
+	if (!isnan(acosh(-zero))) unreachable;
+	if (!isnan(acosh(-one))) unreachable;
+	if (!isnan(acosh(-inf))) unreachable;
+	if (!isnan(acosh(nan))) unreachable;
+}
+
+function atanh_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+	let epsilon = T.epsilon;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	// FIXME: atanhf on windows doesn't produce the same values as glibc on linux
+	if (T != f32)
+	{
+		let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == f32) { 0.30025417f32 } else { 0.30025416335229355f64 };
+		if (atanh(x) != expected) unreachable;
+		if (atanh(-x) != -expected) unreachable;
+
+		let x = if consteval (T == f32) { 0.321123f32 } else { 0.321123f64 };
+		let expected = if consteval (T == f32) { 0.33289874f32 } else { 0.3328987245329761f64 };
+		if (atanh(x) != expected) unreachable;
+		if (atanh(-x) != -expected) unreachable;
+	}
+
+	let x = one - epsilon / 2.0 as T;
+	let expected = if consteval (T == f32) { 8.66434f32 } else { 18.714973875118524f64 };
+	if (atanh(x) != expected) unreachable;
+	if (atanh(-x) != -expected) unreachable;
+
+	if (atanh(zero).bits() != zero_bits) unreachable;
+	if (atanh(-zero).bits() != negative_zero_bits) unreachable;
+	if (atanh(one) != inf) unreachable;
+	if (atanh(-one) != -inf) unreachable;
+	if (!isnan(atanh(one + epsilon))) unreachable;
+	if (!isnan(atanh(-one - epsilon))) unreachable;
+	if (!isnan(atanh(1.234 as T))) unreachable;
+	if (!isnan(atanh(-1.234 as T))) unreachable;
+	if (!isnan(atanh(inf))) unreachable;
+	if (!isnan(atanh(-inf))) unreachable;
+	if (!isnan(atanh(nan))) unreachable;
+}
+
+function erf_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = 1.0 as T;
+	if (erf(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 0.99999875f32 } else { 0.9999987700606605f64 };
+	if (erf(x) != expected) unreachable;
+	if (erf(-x) != -expected) unreachable;
+
+	let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 0.3198857f32 } else { 0.31988569945795137f64 };
+	if (erf(x) != expected) unreachable;
+	if (erf(-x) != -expected) unreachable;
+
+	if (erf(zero).bits() != zero_bits) unreachable;
+	if (erf(-zero).bits() != negative_zero_bits) unreachable;
+	if (erf(inf) != 1.0 as T) unreachable;
+	if (erf(-inf) != -1.0 as T) unreachable;
+	if (!isnan(erf(nan))) unreachable;
+}
+
+function erfc_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = 0.0 as T;
+	if (erfc(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { -123.123f32 } else { -123.123f64 };
+	let expected = 2.0 as T;
+	if (erfc(x) != expected) unreachable;
+
+	// FIXME: erfcf and erfc on windows don't produce the same values as glibc on linux
+	// let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	// let expected = if consteval (T == f32) { 1.2299388e-06f32 } else { 1.22993933946727e-06f64 };
+	// if (erfc(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+	let expected = if consteval (T == f32) { 1.9999988f32 } else { 1.9999987700606605f64 };
+	if (erfc(x) != expected) unreachable;
+
+	// FIXME: erfcf on windows doesn't produce the same values as glibc on linux
+	if (T != f32)
+	{
+		let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == f32) { 0.6801143f32 } else { 0.6801143005420487f64 };
+		if (erfc(x) != expected) unreachable;
+	}
+
+	let x = if consteval (T == f32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+	let expected = if consteval (T == f32) { 1.3198857f32 } else { 1.3198856994579513f64 };
+	if (erfc(x) != expected) unreachable;
+
+	if (erfc(inf).bits() != zero_bits) unreachable;
+	if (erfc(-inf) != 2.0 as T) unreachable;
+	if (!isnan(erfc(nan))) unreachable;
+}
+
+function tgamma_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let epsilon = T.epsilon;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let x = min;
+	let expected = if consteval (T == f32) { 8.507059e+37f32 } else { 4.49423283715579e+307f64 };
+	if (tgamma(x) != expected) unreachable;
+
+	let x = denorm_min;
+	let expected = inf;
+	if (tgamma(x) != expected) unreachable;
+
+	let x = -one - epsilon;
+	let expected = if consteval (T == f32) { 8388607.5f32 } else { 4503599627370495.5f64 };
+	if (tgamma(x) != expected) unreachable;
+
+	let x = -one + epsilon / 2.0 as T;
+	let expected = if consteval (T == f32) { -16777218.0f32 } else { -9007199254740994.0f64 };
+	if (tgamma(x) != expected) unreachable;
+
+	// FIXME: tgammaf on windows doesn't produce the same values as glibc on linux
+	if (T != f32)
+	{
+		let x = 0.5 as T;
+		let expected = if consteval (T == f32) { 1.7724538f32 } else { 1.772453850905516f64 };
+		if (tgamma(x) != expected) unreachable;
+	}
+
+	// FIXME: tgammaf and tgamma on windows don't produce the same values as glibc on linux
+	// let x = 10.0 as T;
+	// let expected = if consteval (T == f32) { 362880.03f32 } else { 362879.99999999994f64 };
+	// if (tgamma(x) != expected) unreachable;
+
+	// FIXME: tgammaf and tgamma on windows don't produce the same values as glibc on linux
+	// let x = 25.0 as T;
+	// let expected = if consteval (T == f32) { 6.204484e+23f32 } else { 6.204484017332395e+23f64 };
+	// if (tgamma(x) != expected) unreachable;
+
+	// FIXME: tgammaf on windows doesn't produce the same values as glibc on linux
+	if (T != f64)
+	{
+		let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+		let expected = if consteval (T == f32) { inf } else { 1.78404886066154e+203f64 };
+		if (tgamma(x) != expected) unreachable;
+
+		let x = if consteval (T == f32) { -123.123f32 } else { -123.123f64 };
+		let expected = if consteval (T == f32) { 0.0f32 } else { 3.794994993510893e-205f64 };
+		if (tgamma(x) != expected) unreachable;
+	}
+
+	// FIXME: tgammaf on windows doesn't produce the same values as glibc on linux
+	if (T != f32)
+	{
+		let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+		let expected = if consteval (T == f32) { 3.0788875f32 } else { 3.078887316908918f64 };
+		if (tgamma(x) != expected) unreachable;
+
+		let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+		let expected = if consteval (T == f32) { 0.304824f32 } else { 0.30482401613041793f64 };
+		if (tgamma(x) != expected) unreachable;
+
+		let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == f32) { 3.0828564f32 } else { 3.0828564628345165f64 };
+		if (tgamma(x) != expected) unreachable;
+	}
+
+	// FIXME: tgammaf and tgamma on windows don't produce the same values as glibc on linux
+	// let x = if consteval (T == f32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+	// let expected = if consteval (T == f32) { -4.407084f32 } else { -4.407083317294696f64 };
+	// if (tgamma(x) != expected) unreachable;
+
+	if (tgamma(zero) != inf) unreachable;
+	if (tgamma(-zero) != -inf) unreachable;
+	if (!isnan(tgamma(-1.0 as T))) unreachable;
+	if (!isnan(tgamma(-2.0 as T))) unreachable;
+	if (!isnan(tgamma(-3.0 as T))) unreachable;
+	if (!isnan(tgamma(-122.0 as T))) unreachable;
+	if (!isnan(tgamma(-9828.0 as T))) unreachable;
+	if (!isnan(tgamma(-inf))) unreachable;
+	if (tgamma(inf) != inf) unreachable;
+	if (!isnan(tgamma(nan))) unreachable;
+}
+
+function lgamma_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let epsilon = T.epsilon;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = min;
+	let expected = if consteval (T == f32) { 87.33655f32 } else { 708.3964185322641f64 };
+	if (lgamma(x) != expected) unreachable;
+
+	// FIXME: lgamma on windows doesn't produce the same values as glibc on linux
+	if (T != f64)
+	{
+		let x = denorm_min;
+		let expected = if consteval (T == f32) { 103.27893f32 } else { 744.4400719213812f64 };
+		if (lgamma(x) != expected) unreachable;
+
+		let x = -one - epsilon;
+		let expected = if consteval (T == f32) { 15.942385f32 } else { 36.04365338911715f64 };
+		if (lgamma(x) != expected) unreachable;
+	}
+
+	let x = -one + epsilon / 2.0 as T;
+	let expected = if consteval (T == f32) { 16.635532f32 } else { 36.7368005696771f64 };
+	if (lgamma(x) != expected) unreachable;
+
+	// FIXME: lgamma on windows doesn't produce the same values as glibc on linux
+	if (T != f64)
+	{
+		let x = 0.5 as T;
+		let expected = if consteval (T == f32) { 0.5723649f32 } else { 0.5723649429247001f64 };
+		if (lgamma(x) != expected) unreachable;
+
+		let x = 10.0 as T;
+		let expected = if consteval (T == f32) { 12.801827f32 } else { 12.80182748008147f64 };
+		if (lgamma(x) != expected) unreachable;
+
+		let x = 25.0 as T;
+		let expected = if consteval (T == f32) { 54.78473f32 } else { 54.78472939811231f64 };
+		if (lgamma(x) != expected) unreachable;
+	}
+
+	let x = if consteval (T == f32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == f32) { 468.00366f32 } else { 468.0036592998372f64 };
+	if (lgamma(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { -123.123f32 } else { -123.123f64 };
+	let expected = if consteval (T == f32) { -470.69626f32 } else { -470.69626097216553f64 };
+	if (lgamma(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == f32) { 1.1245683f32 } else { 1.1245682709712426f64 };
+	if (lgamma(x) != expected) unreachable;
+
+	let x = if consteval (T == f32) { -3.43f32 } else { -3.43f64 };
+	let expected = if consteval (T == f32) { -1.1880208f32 } else { -1.1880206651948586f64 };
+	if (lgamma(x) != expected) unreachable;
+
+	// FIXME: lgamma on windows doesn't produce the same values as glibc on linux
+	if (T != f64)
+	{
+		let x = if consteval (T == f32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == f32) { 1.1258566f32 } else { 1.1258565901927058f64 };
+		if (lgamma(x) != expected) unreachable;
+
+		let x = if consteval (T == f32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+		let expected = if consteval (T == f32) { 1.4832132f32 } else { 1.4832130913527293f64 };
+		if (lgamma(x) != expected) unreachable;
+	}
+
+	if (lgamma(one).bits() != zero_bits) unreachable;
+	if (lgamma(2.0 as T * one).bits() != zero_bits) unreachable;
+	if (lgamma(zero) != inf) unreachable;
+	if (lgamma(-zero) != inf) unreachable;
+	if (lgamma(-1.0 as T) != inf) unreachable;
+	if (lgamma(-2.0 as T) != inf) unreachable;
+	if (lgamma(-3.0 as T) != inf) unreachable;
+	if (lgamma(-122.0 as T) != inf) unreachable;
+	if (lgamma(-9828.0 as T) != inf) unreachable;
+	if (lgamma(inf) != inf) unreachable;
+	if (lgamma(-inf) != inf) unreachable;
+	if (!isnan(lgamma(nan))) unreachable;
+}
+
+function main()
+{
+	isnan_test(f32);
+	isnan_test(f64);
+	isinf_test(f32);
+	isinf_test(f64);
+	isfinite_test(f32);
+	isfinite_test(f64);
+	isnormal_test(f32);
+	isnormal_test(f64);
+	issubnormal_test(f32);
+	issubnormal_test(f64);
+	iszero_test(f32);
+	iszero_test(f64);
+
+	nextafter_test(f32);
+	nextafter_test(f64);
+	nextup_test(f32);
+	nextup_test(f64);
+	nextdown_test(f32);
+	nextdown_test(f64);
+
+	abs_test_int(i8);
+	abs_test_int(i16);
+	abs_test_int(i32);
+	abs_test_int(i64);
+	abs_test_float(f32);
+	abs_test_float(f64);
+
+	min_test_int(i8);
+	min_test_int(i16);
+	min_test_int(i32);
+	min_test_int(i64);
+	min_test_int(u8);
+	min_test_int(u16);
+	min_test_int(u32);
+	min_test_int(u64);
+	min_test_float(f32);
+	min_test_float(f64);
+
+	max_test_int(i8);
+	max_test_int(i16);
+	max_test_int(i32);
+	max_test_int(i64);
+	max_test_int(u8);
+	max_test_int(u16);
+	max_test_int(u32);
+	max_test_int(u64);
+	max_test_float(f32);
+	max_test_float(f64);
+
+	exp_test(f32);
+	exp_test(f64);
+	exp2_test(f32);
+	exp2_test(f64);
+	expm1_test(f32);
+	expm1_test(f64);
+
+	log_test(f32);
+	log_test(f64);
+	log2_test(f32);
+	log2_test(f64);
+	log10_test(f32);
+	log10_test(f64);
+	log1p_test(f32);
+	log1p_test(f64);
+
+	sqrt_test(f32);
+	sqrt_test(f64);
+	cbrt_test(f32);
+	cbrt_test(f64);
+	pow_test(f32);
+	pow_test(f64);
+	hypot_test(f32);
+	hypot_test(f64);
+
+	sin_test(f32);
+	sin_test(f64);
+	cos_test(f32);
+	cos_test(f64);
+	tan_test(f32);
+	tan_test(f64);
+	asin_test(f32);
+	asin_test(f64);
+	acos_test(f32);
+	acos_test(f64);
+	atan_test(f32);
+	atan_test(f64);
+	atan2_test(f32);
+	atan2_test(f64);
+
+	sinh_test(f32);
+	sinh_test(f64);
+	cosh_test(f32);
+	cosh_test(f64);
+	tanh_test(f32);
+	tanh_test(f64);
+	asinh_test(f32);
+	asinh_test(f64);
+	acosh_test(f32);
+	acosh_test(f64);
+	atanh_test(f32);
+	atanh_test(f64);
+
+	erf_test(f32);
+	erf_test(f64);
+	erfc_test(f32);
+	erfc_test(f64);
+
+	tgamma_test(f32);
+	tgamma_test(f64);
+	lgamma_test(f32);
+	lgamma_test(f64);
+}

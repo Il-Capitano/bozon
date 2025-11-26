@@ -1,0 +1,6 @@
+let v = 42;
+
+function main()
+{
+	if (v != 42) unreachable;
+}

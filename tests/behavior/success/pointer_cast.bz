@@ -1,0 +1,11 @@
+function main()
+{
+	let i = 0;
+	let p = &i;
+
+	if (__builtin_pointer_cast(*u32, p) as *void != p as *void) unreachable;
+	if (__builtin_pointer_cast(*void, p) as *void != p as *void) unreachable;
+	if (__builtin_pointer_cast(*[4: i8], p) as *void != p as *void) unreachable;
+	if (__builtin_pointer_cast(*[100: i32], p) as *void != p as *void) unreachable;
+	if (__builtin_pointer_cast(*mut i32, p) != p) unreachable;
+}

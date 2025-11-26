@@ -681,7 +681,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(__builtin_remove_optional(typeof begin)),
 			"' and '",
 			__builtin_typename_as_str(__builtin_remove_optional(typeof end)),
-			"' in 'function __builtin_slice_from_ptrs'"
+			"' in 'function __builtin_slice_from_ptrs'",
 		)));
 	} else {}, [: __builtin_remove_pointer(__builtin_remove_optional(typeof begin))]);
 @__builtin export function __builtin_slice_from_mut_ptrs(begin: ?*mut auto, end: ?*mut auto)
@@ -691,7 +691,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(__builtin_remove_optional(typeof begin)),
 			"' and '",
 			__builtin_typename_as_str(__builtin_remove_optional(typeof end)),
-			"' in 'function __builtin_slice_from_mut_ptrs'"
+			"' in 'function __builtin_slice_from_mut_ptrs'",
 		)));
 	} else {}, [: __builtin_remove_pointer(__builtin_remove_optional(typeof begin))]);
 
@@ -773,9 +773,9 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched iterator types '",
 			__builtin_typename_as_str(typeof lhs),
-			"' and '"
+			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in 'function __builtin_integer_range_iterator_equals'"
+			"' in 'function __builtin_integer_range_iterator_equals'",
 		)));
 	} else {}, bool);
 @__builtin function __builtin_integer_range_iterator_not_equals(lhs: __integer_range_iterator, rhs: __integer_range_iterator)
@@ -785,7 +785,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(typeof lhs),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in 'function __builtin_integer_range_iterator_not_equals'"
+			"' in 'function __builtin_integer_range_iterator_not_equals'",
 		)));
 	} else {}, bool);
 @__builtin function __builtin_integer_range_iterator_plus_plus(it: &mut __integer_range_iterator) -> typeof it;
@@ -838,7 +838,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(typeof val),
 			"' doesn't match the pointer type '",
 			__builtin_typename_as_str(typeof ptr),
-			"' in 'function __builtin_inplace_construct'"
+			"' in 'function __builtin_inplace_construct'",
 		)));
 	} else {}, void);
 @__builtin export function __builtin_swap(lhs: &mut auto, rhs: &mut auto)
@@ -848,7 +848,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(typeof lhs),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in 'function __builtin_swap'"
+			"' in 'function __builtin_swap'",
 		)));
 	} else {}, void);
 
@@ -872,7 +872,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(typeof begin),
 			"' and '",
 			__builtin_typename_as_str(typeof end),
-			"' in '__builtin_comptime_add_global_data'"
+			"' in '__builtin_comptime_add_global_data'",
 		)));
 	} else {}, typeof begin);
 @__builtin export consteval function __builtin_comptime_create_global_string(s: str) -> str
@@ -935,7 +935,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(T),
 			"' and value type '",
 			__builtin_typename_as_str(__builtin_remove_mut(__builtin_remove_reference(typeof value))),
-			"' in '__builtin_create_initialized_array'"
+			"' in '__builtin_create_initialized_array'",
 		)));
 	} else {}, T);
 
@@ -946,13 +946,13 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(typeof dest),
 			"' and '",
 			__builtin_typename_as_str(typeof source),
-			"' in '__builtin_trivially_copy_values'"
+			"' in '__builtin_trivially_copy_values'",
 		)));
 	} else if consteval (!__builtin_is_trivially_copy_constructible(__builtin_remove_pointer(__builtin_remove_optional(typeof dest)))) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"value type '",
 			__builtin_typename_as_str(__builtin_remove_pointer(__builtin_remove_optional(typeof dest))),
-			"' is not trivially copy constructible in '__builtin_trivially_copy_values'"
+			"' is not trivially copy constructible in '__builtin_trivially_copy_values'",
 		)));
 	} else {}, void);
 
@@ -963,19 +963,19 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(typeof dest),
 			"' and '",
 			__builtin_typename_as_str(typeof source),
-			"' in '__builtin_trivially_copy_overlapping_values'"
+			"' in '__builtin_trivially_copy_overlapping_values'",
 		)));
 	} else if consteval (!__builtin_is_trivially_copy_constructible(__builtin_remove_pointer(__builtin_remove_optional(typeof dest)))) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"value type '",
 			__builtin_typename_as_str(__builtin_remove_pointer(__builtin_remove_optional(typeof dest))),
-			"' is not trivially copy constructible in '__builtin_trivially_copy_overlapping_values'"
+			"' is not trivially copy constructible in '__builtin_trivially_copy_overlapping_values'",
 		)));
 	} else if consteval (!__builtin_is_trivially_destructible(__builtin_remove_pointer(__builtin_remove_optional(typeof dest)))) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"value type '",
 			__builtin_typename_as_str(__builtin_remove_pointer(__builtin_remove_optional(typeof dest))),
-			"' is not trivially destructible in '__builtin_trivially_copy_overlapping_values'"
+			"' is not trivially destructible in '__builtin_trivially_copy_overlapping_values'",
 		)));
 	} else {}, void);
 
@@ -986,13 +986,13 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(typeof dest),
 			"' and '",
 			__builtin_typename_as_str(typeof source),
-			"' in '__builtin_trivially_relocate_values'"
+			"' in '__builtin_trivially_relocate_values'",
 		)));
 	} else if consteval (!__builtin_is_trivially_relocatable(__builtin_remove_pointer(__builtin_remove_optional(typeof dest)))) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"value type '",
 			__builtin_typename_as_str(__builtin_remove_pointer(__builtin_remove_optional(typeof dest))),
-			"' is not trivially relocatable in '__builtin_trivially_relocate_values'"
+			"' is not trivially relocatable in '__builtin_trivially_relocate_values'",
 		)));
 	} else {}, void);
 
@@ -1003,19 +1003,19 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(typeof dest),
 			"' and value type '",
 			__builtin_typename_as_str(typeof value),
-			"' in '__builtin_trivially_set_values'"
+			"' in '__builtin_trivially_set_values'",
 		)));
 	} else if consteval (!__builtin_is_trivially_copy_constructible(typeof value)) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"value type '",
 			__builtin_typename_as_str(typeof value),
-			"' is not trivially copy constructible in '__builtin_trivially_set_values'"
+			"' is not trivially copy constructible in '__builtin_trivially_set_values'",
 		)));
 	} else if consteval (!__builtin_is_trivially_destructible(typeof value)) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"value type '",
 			__builtin_typename_as_str(typeof value),
-			"' is not trivially destructible in '__builtin_trivially_set_values'"
+			"' is not trivially destructible in '__builtin_trivially_set_values'",
 		)));
 	} else {}, void);
 
@@ -1136,19 +1136,19 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin @symbol_name("expm1")  export function __builtin_expm1_f64(x: f64) -> f64;
 @__builtin @symbol_name("logf") export function __builtin_log_f32(x: f32) -> f32;
 @__builtin @symbol_name("log")  export function __builtin_log_f64(x: f64) -> f64;
-@__builtin @symbol_name("log10f") export function __builtin_log10_f32(x: f32) -> f32;
-@__builtin @symbol_name("log10")  export function __builtin_log10_f64(x: f64) -> f64;
 @__builtin @symbol_name("log2f") export function __builtin_log2_f32(x: f32) -> f32;
 @__builtin @symbol_name("log2")  export function __builtin_log2_f64(x: f64) -> f64;
+@__builtin @symbol_name("log10f") export function __builtin_log10_f32(x: f32) -> f32;
+@__builtin @symbol_name("log10")  export function __builtin_log10_f64(x: f64) -> f64;
 @__builtin @symbol_name("log1pf") export function __builtin_log1p_f32(x: f32) -> f32;
 @__builtin @symbol_name("log1p")  export function __builtin_log1p_f64(x: f64) -> f64;
 
 @__builtin @symbol_name("sqrtf") export function __builtin_sqrt_f32(x: f32) -> f32;
 @__builtin @symbol_name("sqrt")  export function __builtin_sqrt_f64(x: f64) -> f64;
-@__builtin @symbol_name("powf") export function __builtin_pow_f32(x: f32, y: f32) -> f32;
-@__builtin @symbol_name("pow")  export function __builtin_pow_f64(x: f64, y: f64) -> f64;
 @__builtin @symbol_name("cbrtf") export function __builtin_cbrt_f32(x: f32) -> f32;
 @__builtin @symbol_name("cbrt")  export function __builtin_cbrt_f64(x: f64) -> f64;
+@__builtin @symbol_name("powf") export function __builtin_pow_f32(x: f32, y: f32) -> f32;
+@__builtin @symbol_name("pow")  export function __builtin_pow_f64(x: f64, y: f64) -> f64;
 @__builtin @symbol_name("hypotf") export function __builtin_hypot_f32(x: f32, y: f32) -> f32;
 @__builtin @symbol_name("hypot")  export function __builtin_hypot_f64(x: f64, y: f64) -> f64;
 
@@ -1254,7 +1254,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in assignment"
+			"' in assignment",
 		)));
 	} else {}, typeof lhs);
 @__builtin_assign export operator = (lhs: &mut *mut auto, rhs: *mut auto)
@@ -1264,7 +1264,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in assignment"
+			"' in assignment",
 		)));
 	} else {}, typeof lhs);
 @__builtin_assign export operator = (lhs: &mut function(...##auto) -> ##auto, rhs: function(...##auto) -> ##auto)
@@ -1274,7 +1274,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in assignment"
+			"' in assignment",
 		)));
 	} else {}, typeof lhs);
 @__builtin_assign export operator = (lhs: &mut ?##auto, rhs: ##auto) -> typeof lhs;
@@ -1286,7 +1286,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in assignment"
+			"' in assignment",
 		)));
 	} else {}, typeof lhs);
 @__builtin_assign export operator = (lhs: &mut [: mut auto], rhs: [: mut auto])
@@ -1296,7 +1296,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in assignment"
+			"' in assignment",
 		)));
 	} else {}, typeof lhs);
 @__builtin_assign export operator = (lhs: &mut [...auto], rhs: ##[...auto]) -> typeof lhs;
@@ -1361,7 +1361,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in 'operator -'"
+			"' in 'operator -'",
 		)));
 	} else {}, isize);
 @__builtin export operator - (lhs: ?*auto, rhs: ?*auto)
@@ -1371,7 +1371,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in 'operator -'"
+			"' in 'operator -'",
 		)));
 	} else {}, isize);
 
@@ -1418,7 +1418,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 @__builtin export operator == (lhs: ?*auto, rhs: ?*auto)
@@ -1428,7 +1428,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 @__builtin export operator == (lhs: function(...##auto) -> ##auto, rhs: function(...##auto) -> ##auto)
@@ -1438,7 +1438,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 @__builtin export operator == (lhs: ?function(...##auto) -> ##auto, rhs: ?function(...##auto) -> ##auto)
@@ -1448,7 +1448,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 @__builtin export operator == (lhs: #?auto, rhs: __null_t) -> bool;
@@ -1488,7 +1488,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 @__builtin export operator != (lhs: ?*auto, rhs: ?*auto)
@@ -1498,7 +1498,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 @__builtin export operator != (lhs: function(...##auto) -> ##auto, rhs: function(...##auto) -> ##auto)
@@ -1508,7 +1508,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 @__builtin export operator != (lhs: ?function(...##auto) -> ##auto, rhs: ?function(...##auto) -> ##auto)
@@ -1518,7 +1518,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 @__builtin export operator != (lhs: #?auto, rhs: __null_t) -> bool;
@@ -1531,7 +1531,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 @__builtin export operator < (lhs: ?*auto, rhs: ?*auto)
@@ -1541,7 +1541,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 
@@ -1552,7 +1552,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 @__builtin export operator <= (lhs: ?*auto, rhs: ?*auto)
@@ -1562,7 +1562,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 
@@ -1573,7 +1573,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 @__builtin export operator > (lhs: ?*auto, rhs: ?*auto)
@@ -1583,7 +1583,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 
@@ -1594,7 +1594,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 @__builtin export operator >= (lhs: ?*auto, rhs: ?*auto)
@@ -1604,7 +1604,7 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
-			"' in comparison operator"
+			"' in comparison operator",
 		)));
 	} else {}, bool);
 

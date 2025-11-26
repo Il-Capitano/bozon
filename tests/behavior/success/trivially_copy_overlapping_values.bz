@@ -1,0 +1,48 @@
+function main()
+{
+	mut a = [10: i32]();
+
+	for (let i in 0..10)
+	{
+		a[i] = 42 + i;
+	}
+
+	__builtin_trivially_copy_overlapping_values(a.begin(), a.begin(), 10);
+
+	for (let i in 0..10)
+	{
+		if (a[i] != 42 + i) unreachable;
+	}
+
+	__builtin_trivially_copy_overlapping_values(a.begin() + 3, a.begin(), 7);
+
+	for (let i in 0..3)
+	{
+		if (a[i] != 42 + i) unreachable;
+	}
+
+	for (let i in 3..10)
+	{
+		if (a[i] != 42 + i - 3) unreachable;
+	}
+
+	__builtin_trivially_copy_overlapping_values(a.begin(), a.begin() + 3, 7);
+
+	for (let i in 0..7)
+	{
+		if (a[i] != 42 + i) unreachable;
+	}
+
+	for (let i in 7..10)
+	{
+		if (a[i] != 42 + i - 3) unreachable;
+	}
+
+	let p = a.begin();
+	let np = null as ?*mut i32;
+
+	__builtin_trivially_copy_overlapping_values(p, p, 0);
+	__builtin_trivially_copy_overlapping_values(p, np, 0);
+	__builtin_trivially_copy_overlapping_values(np, p, 0);
+	__builtin_trivially_copy_overlapping_values(np, np, 0);
+}

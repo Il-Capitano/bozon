@@ -1,0 +1,93 @@
+import resource;
+import counting_resource;
+
+function test_self_swap(T: typename)
+{
+	let mut a: ?T = null;
+	__builtin_swap(a, a);
+	if (a != null) unreachable;
+
+	let mut a: ?T = T();
+	__builtin_swap(a, a);
+	if (a == null) unreachable;
+
+	let mut p: ?*T = null;
+	__builtin_swap(p, p);
+	if (p != null) unreachable;
+
+	let a = T();
+	let mut p: ?*T = &a;
+	__builtin_swap(p, p);
+	if (p != &a) unreachable;
+}
+
+function test_swap(T: typename)
+{
+	let mut a: ?T = null;
+	let mut b: ?T = null;
+	__builtin_swap(a, b);
+	if (a != null) unreachable;
+	if (b != null) unreachable;
+
+	let mut a: ?T = T();
+	let mut b: ?T = null;
+	__builtin_swap(a, b);
+	if (a != null) unreachable;
+	if (b == null) unreachable;
+
+	let mut a: ?T = null;
+	let mut b: ?T = T();
+	__builtin_swap(a, b);
+	if (a == null) unreachable;
+	if (b != null) unreachable;
+
+	let mut a: ?T = T();
+	let mut b: ?T = T();
+	__builtin_swap(a, b);
+	if (a == null) unreachable;
+	if (b == null) unreachable;
+
+	let a = T();
+	let b = T();
+	let mut p: ?*T = null;
+	let mut q: ?*T = null;
+	__builtin_swap(p, q);
+	if (p != null) unreachable;
+	if (q != null) unreachable;
+
+	let mut p: ?*T = &a;
+	let mut q: ?*T = null;
+	__builtin_swap(p, q);
+	if (p != null) unreachable;
+	if (q != &a) unreachable;
+
+	let mut p: ?*T = null;
+	let mut q: ?*T = &b;
+	__builtin_swap(p, q);
+	if (p != &b) unreachable;
+	if (q != null) unreachable;
+
+	let mut p: ?*T = &a;
+	let mut q: ?*T = &b;
+	__builtin_swap(p, q);
+	if (p != &b) unreachable;
+	if (q != &a) unreachable;
+}
+
+function main()
+{
+	test_self_swap(i32);
+	test_self_swap(resource_t);
+	test_self_swap(complex_resource_t);
+	test_self_swap(counting_resource_t);
+	test_self_swap(relocatable_counting_resource_t);
+
+	test_swap(i32);
+	test_swap(resource_t);
+	test_swap(complex_resource_t);
+	test_swap(counting_resource_t);
+	test_swap(relocatable_counting_resource_t);
+
+	if (!counting_resource_is_valid()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}

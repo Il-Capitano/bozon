@@ -1,0 +1,26 @@
+function main()
+{
+	let b = false;
+	let u8 = 0u8;
+	let u16 = 0u16;
+	let u32 = 0u32;
+	let u64 = 0u64;
+
+	if (~b != ~false) unreachable;
+	if (~u8 != ~0u8) unreachable;
+	if (~u16 != ~0u16) unreachable;
+	if (~u32 != ~0u32) unreachable;
+	if (~u64 != ~0u64) unreachable;
+
+	let b = true;
+	let u8 = 99u8;
+	let u16 = 999u16;
+	let u32 = 9999u32;
+	let u64 = 99999u64;
+
+	if (~b != ~true) unreachable;
+	if (~u8 != ~99u8) unreachable;
+	if (~u16 != ~999u16) unreachable;
+	if (~u32 != ~9999u32) unreachable;
+	if (~u64 != ~99999u64) unreachable;
+}

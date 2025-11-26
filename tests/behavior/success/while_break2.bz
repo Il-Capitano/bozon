@@ -1,0 +1,14 @@
+function main() -> i32
+{
+	let i = 0;
+	while (true)
+	{
+		switch (i)
+		{
+			0 => break,
+			else => {},
+		}
+		return 1;
+	}
+	return 0;
+}

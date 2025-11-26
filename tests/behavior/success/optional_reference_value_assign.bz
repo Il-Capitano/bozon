@@ -1,0 +1,25 @@
+import std::format;
+
+let global0: i32 = 42;
+let global1: i32 = -99;
+
+function get_global_ref(i: i32) -> &i32
+{
+	return if (i == 0) { global0 } else { global1 };
+}
+
+function main()
+{
+	let mut o: ?&i32 = null;
+	o = get_global_ref(0);
+	if (&o.get_value() != &global0) unreachable;
+	o = get_global_ref(1);
+	if (&o.get_value() != &global1) unreachable;
+
+	let mut o: ?&i32 = get_global_ref(1);
+	if (&o.get_value() != &global1) unreachable;
+	o = get_global_ref(0);
+	if (&o.get_value() != &global0) unreachable;
+	o = get_global_ref(1);
+	if (&o.get_value() != &global1) unreachable;
+}

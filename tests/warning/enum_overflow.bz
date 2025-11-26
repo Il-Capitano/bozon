@@ -1,3 +1,4 @@
+// warning: implicit enum value overflowed from 127 to -128 [-W enum-value-overflow]
 enum E: i8
 {
 	a = 127,

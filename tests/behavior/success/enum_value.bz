@@ -1,0 +1,26 @@
+enum E
+{
+	a = 0,
+	b = 1,
+	c = 2,
+	d = .a,
+	e = 14,
+}
+
+function main()
+{
+	mut v = E.a;
+	if (__builtin_enum_value(v) != 0) unreachable;
+
+	v = .b;
+	if (__builtin_enum_value(v) != 1) unreachable;
+
+	v = .c;
+	if (__builtin_enum_value(v) != 2) unreachable;
+
+	v = .d;
+	if (__builtin_enum_value(v) != 0) unreachable;
+
+	v = .e;
+	if (__builtin_enum_value(v) != 14) unreachable;
+}

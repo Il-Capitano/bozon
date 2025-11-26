@@ -1,0 +1,81 @@
+function foo()
+{}
+
+function compare_equals(o: ?auto, expected: bool) -> bool
+{
+	return (o == null) == expected && (null == o) == expected;
+}
+
+function compare_equals_ref(o: &?auto, expected: bool) -> bool
+{
+	return (o == null) == expected && (null == o) == expected;
+}
+
+function compare_equals_mut_ref(o: &mut ?auto, expected: bool) -> bool
+{
+	return (o == null) == expected && (null == o) == expected;
+}
+
+function compare_not_equals(o: ?auto, expected: bool) -> bool
+{
+	return (o != null) == expected && (null != o) == expected;
+}
+
+function compare_not_equals_ref(o: &?auto, expected: bool) -> bool
+{
+	return (o != null) == expected && (null != o) == expected;
+}
+
+function compare_not_equals_mut_ref(o: &mut ?auto, expected: bool) -> bool
+{
+	return (o != null) == expected && (null != o) == expected;
+}
+
+function main()
+{
+	mut i = 3;
+	mut oi: ?i32 = 3;
+	mut pi: ?*i32 = &i;
+	mut f: ?function() -> void = foo;
+
+	if (!compare_equals(oi, false)) unreachable;
+	if (!compare_equals(pi, false)) unreachable;
+	if (!compare_equals(f, false)) unreachable;
+	if (!compare_equals_ref(oi, false)) unreachable;
+	if (!compare_equals_ref(pi, false)) unreachable;
+	if (!compare_equals_ref(f, false)) unreachable;
+	if (!compare_equals_mut_ref(oi, false)) unreachable;
+	if (!compare_equals_mut_ref(pi, false)) unreachable;
+	if (!compare_equals_mut_ref(f, false)) unreachable;
+	if (!compare_not_equals(oi, true)) unreachable;
+	if (!compare_not_equals(pi, true)) unreachable;
+	if (!compare_not_equals(f, true)) unreachable;
+	if (!compare_not_equals_ref(oi, true)) unreachable;
+	if (!compare_not_equals_ref(pi, true)) unreachable;
+	if (!compare_not_equals_ref(f, true)) unreachable;
+	if (!compare_not_equals_mut_ref(oi, true)) unreachable;
+	if (!compare_not_equals_mut_ref(pi, true)) unreachable;
+	if (!compare_not_equals_mut_ref(f, true)) unreachable;
+
+	oi = null;
+	pi = null;
+	f = null;
+	if (!compare_equals(oi, true)) unreachable;
+	if (!compare_equals(pi, true)) unreachable;
+	if (!compare_equals(f, true)) unreachable;
+	if (!compare_equals_ref(oi, true)) unreachable;
+	if (!compare_equals_ref(pi, true)) unreachable;
+	if (!compare_equals_ref(f, true)) unreachable;
+	if (!compare_equals_mut_ref(oi, true)) unreachable;
+	if (!compare_equals_mut_ref(pi, true)) unreachable;
+	if (!compare_equals_mut_ref(f, true)) unreachable;
+	if (!compare_not_equals(oi, false)) unreachable;
+	if (!compare_not_equals(pi, false)) unreachable;
+	if (!compare_not_equals(f, false)) unreachable;
+	if (!compare_not_equals_ref(oi, false)) unreachable;
+	if (!compare_not_equals_ref(pi, false)) unreachable;
+	if (!compare_not_equals_ref(f, false)) unreachable;
+	if (!compare_not_equals_mut_ref(oi, false)) unreachable;
+	if (!compare_not_equals_mut_ref(pi, false)) unreachable;
+	if (!compare_not_equals_mut_ref(f, false)) unreachable;
+}

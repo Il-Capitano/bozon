@@ -1,0 +1,33 @@
+let mut s_destructed = false;
+struct S
+{
+	destructor(&mut self)
+	{
+		s_destructed = true;
+	}
+}
+
+function main()
+{
+	{
+		s_destructed = false;
+		defer {
+			if (s_destructed) unreachable;
+		};
+		let _: ?S = null;
+		defer {
+			if (s_destructed) unreachable;
+		};
+	}
+
+	{
+		s_destructed = false;
+		defer {
+			if (!s_destructed) unreachable;
+		};
+		let _: ?S = S();
+		defer {
+			if (s_destructed) unreachable;
+		};
+	}
+}
