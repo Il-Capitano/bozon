@@ -1,4 +1,4 @@
-// error: invalid value of type 'consteval *i32' returned from compile time execution
+// error: invalid value of type '*i32' returned from compile time execution
 // note: a pointer of type '*i32' is not a constant expression
 // error: expression must be a constant expression
 consteval p = {

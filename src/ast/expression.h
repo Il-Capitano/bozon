@@ -327,7 +327,8 @@ constexpr bool is_rvalue(expression_type_kind kind)
 		|| kind == expression_type_kind::moved_lvalue
 		|| kind == expression_type_kind::integer_literal
 		|| kind == expression_type_kind::null_literal
-		|| kind == expression_type_kind::enum_literal;
+		|| kind == expression_type_kind::enum_literal
+		|| kind == expression_type_kind::function_name;
 }
 
 constexpr bool is_rvalue_or_literal(expression_type_kind kind)
@@ -335,7 +336,8 @@ constexpr bool is_rvalue_or_literal(expression_type_kind kind)
 	return kind == expression_type_kind::rvalue
 		|| kind == expression_type_kind::integer_literal
 		|| kind == expression_type_kind::null_literal
-		|| kind == expression_type_kind::enum_literal;
+		|| kind == expression_type_kind::enum_literal
+		|| kind == expression_type_kind::function_name;
 }
 
 struct unresolved_expression
