@@ -3309,7 +3309,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		);
 	}
 	else if (
-		dest.is<ast::ts_optional>()
+		dest.is_optional()
 		&& !(
 			bare_expr_type.is<ast::ts_base_type>()
 			&& bare_expr_type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_
@@ -3318,11 +3318,11 @@ static match_function_result_t<kind> generic_type_match_base_case(
 	{
 		if constexpr (kind == type_match_function_kind::can_match)
 		{
-			return generic_type_match_base_case(change_dest(match_context, dest.get<ast::ts_optional>()));
+			return generic_type_match_base_case(change_dest(match_context, dest.get_optional()));
 		}
 		else if constexpr (kind == type_match_function_kind::match_level)
 		{
-			auto result = generic_type_match_base_case(change_dest(match_context, dest.get<ast::ts_optional>()), parent_reference_kind);
+			auto result = generic_type_match_base_case(change_dest(match_context, dest.get_optional()), parent_reference_kind);
 			if (result.not_null())
 			{
 				bz_assert(result.is_single());
@@ -3333,7 +3333,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		}
 		else if constexpr (kind == type_match_function_kind::matched_type)
 		{
-			auto result = generic_type_match_base_case(change_dest(match_context, dest.get<ast::ts_optional>()));
+			auto result = generic_type_match_base_case(change_dest(match_context, dest.get_optional()));
 			if (result.not_empty())
 			{
 				result.template add_layer<ast::ts_optional>();
@@ -3342,12 +3342,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		}
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
-			auto const is_good = generic_type_match(change_dest(match_context, dest.get<ast::ts_optional>()));
-			if (is_good && !match_context.dest_container.remove_any_mut_reference().is_optional_pointer())
-			{
-				expr = match_context.context.make_optional_cast_expression(std::move(expr));
-			}
-			return is_good;
+			return generic_type_match_base_case(change_dest(match_context, dest.get_optional()));
 		}
 		else
 		{
@@ -3664,7 +3659,6 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 	{
 		if constexpr (kind == type_match_function_kind::match_expression)
 		{
-			auto const dest_is_optional = match_context.dest.is_optional();
 			auto const good = generic_type_match_base_case(match_context);
 			if (!good)
 			{
@@ -3672,7 +3666,7 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 			}
 
 			auto const [expr_type_temp, expr_type_kind] = expr.get_expr_type_and_kind();
-			ast::typespec_view const dest = match_context.dest_container;
+			ast::typespec_view const dest = match_context.dest_container.remove_any_mut();
 
 			auto const bare_dest = dest.remove_any_reference();
 			auto const bare_dest_without_mut = bare_dest.remove_any_mut();
@@ -3720,8 +3714,15 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 					expr = match_context.context.make_move_construction(std::move(expr));
 				}
 			}
+			else if (dest.is_optional_reference() && dest.get_optional() == expr_type)
+			{
+				expr = match_context.context.make_optional_cast_expression(std::move(expr));
+			}
 			else if (
-				(dest.is<ast::ts_lvalue_reference>() || (!dest_is_optional && dest.is_optional_reference()))
+				(
+					dest.is_reference()
+					|| (dest.is_optional_reference() && !expr_type.remove_mut_reference().is_optional())
+				)
 				&& !expr_type.is_reference()
 			)
 			{
@@ -3732,6 +3733,10 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 					ast::make_expr_take_reference(std::move(expr)),
 					ast::destruct_operation()
 				);
+				if (dest.is_optional_reference())
+				{
+					expr = match_context.context.make_optional_cast_expression(std::move(expr));
+				}
 			}
 			else if (dest.is<ast::ts_move_reference>() && ast::is_rvalue_or_literal(expr_type_kind))
 			{
@@ -3744,7 +3749,10 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 					ast::destruct_operation()
 				);
 			}
-			else if (!dest.is_any_reference() && (!dest.is_optional_reference() || expr_type_kind == ast::expression_type_kind::lvalue))
+			else if (
+				!dest.is_any_reference()
+				&& (!dest.is_optional_reference() || expr_type_kind == ast::expression_type_kind::lvalue)
+			)
 			{
 				if (expr_type_kind == ast::expression_type_kind::lvalue || expr_type.is_reference())
 				{
@@ -3756,6 +3764,11 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 				)
 				{
 					expr = match_context.context.make_move_construction(std::move(expr));
+				}
+				if (dest.is_optional() && !expr.get_expr_type().is_optional())
+				{
+					bz_assert(dest.get_optional() == expr.get_expr_type());
+					expr = match_context.context.make_optional_cast_expression(std::move(expr));
 				}
 			}
 
