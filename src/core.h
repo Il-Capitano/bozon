@@ -90,11 +90,13 @@ constexpr size_t hash_combine(size_t a, size_t b)
 template<
 	typename Stream,
 	typename Context,
-	auto const &parsers,
+	auto const &parsers_,
 	auto default_parser
 >
 constexpr auto create_parse_fn() -> decltype(default_parser)
 {
+	// FIXME: Using the template parameter causes an ICE in Clang 22: https://github.com/llvm/llvm-project/issues/177807
+	constexpr auto const &parsers = parsers_;
 	static_assert(bz::meta::is_same<decltype(parsers[0].parse_fn), decltype(default_parser)>);
 	using parse_fn_t = decltype(default_parser);
 	using ret_t = bz::meta::fn_return_type<parse_fn_t>;

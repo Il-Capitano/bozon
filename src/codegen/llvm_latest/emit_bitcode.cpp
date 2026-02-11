@@ -5585,10 +5585,9 @@ static val_ptr emit_bitcode(
 	context.builder.CreateCondBr(are_equal, ptr_eq_bb, neq_bb);
 	context.builder.SetInsertPoint(neq_bb);
 
-	auto const size = context.get_size(type);
 	auto const temp = val_ptr::get_reference(context.create_alloca_without_lifetime_start(type), type);
 
-	context.start_lifetime(temp.val, size);
+	context.start_lifetime(temp.val);
 
 	// temp = move lhs
 	{
@@ -5615,7 +5614,7 @@ static val_ptr emit_bitcode(
 		context.pop_expression_scope(prev_info);
 	}
 
-	context.end_lifetime(temp.val, size);
+	context.end_lifetime(temp.val);
 
 	context.builder.CreateBr(ptr_eq_bb);
 	context.builder.SetInsertPoint(ptr_eq_bb);
@@ -5656,11 +5655,11 @@ static val_ptr emit_bitcode(
 		auto const size = context.get_size(type);
 		auto const temp = context.create_alloca_without_lifetime_start(type);
 
-		context.start_lifetime(temp, size);
+		context.start_lifetime(temp);
 		emit_memcpy(temp, lhs.val, size, context);
 		emit_memcpy(lhs.val, rhs.val, size, context);
 		emit_memcpy(rhs.val, temp, size, context);
-		context.end_lifetime(temp, size);
+		context.end_lifetime(temp);
 	}
 
 	context.builder.CreateBr(ptr_eq_bb);

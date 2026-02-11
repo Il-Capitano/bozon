@@ -112,8 +112,8 @@ struct bitcode_context
 	bool has_terminator(void) const;
 	static bool has_terminator(llvm::BasicBlock *bb);
 
-	void start_lifetime(llvm::Value *ptr, size_t size);
-	void end_lifetime(llvm::Value *ptr, size_t size);
+	void start_lifetime(llvm::Value *ptr);
+	void end_lifetime(llvm::Value *ptr);
 
 	struct expression_scope_info_t
 	{
@@ -133,7 +133,7 @@ struct bitcode_context
 	void emit_loop_destruct_operations(void);
 	void emit_all_destruct_operations(void);
 
-	void push_end_lifetime_call(llvm::Value *ptr, size_t size);
+	void push_end_lifetime_call(llvm::Value *ptr);
 	void emit_end_lifetime_calls(void);
 	void emit_loop_end_lifetime_calls(void);
 	void emit_all_end_lifetime_calls(void);
@@ -185,14 +185,8 @@ struct bitcode_context
 		llvm::Value *rvalue_array_elem_ptr;
 	};
 
-	struct end_lifetime_info_t
-	{
-		llvm::Value *ptr;
-		size_t size;
-	};
-
 	bz::vector<bz::vector<destruct_operation_info_t>> destructor_calls{};
-	bz::vector<bz::vector<end_lifetime_info_t>> end_lifetime_calls{};
+	bz::vector<bz::vector<llvm::Value *>> end_lifetime_calls{};
 
 	std::pair<ast::function_body const *, llvm::Function *> current_function = { nullptr, nullptr };
 	llvm::BasicBlock *alloca_bb = nullptr;
