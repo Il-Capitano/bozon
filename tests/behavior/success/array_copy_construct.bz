@@ -1,0 +1,222 @@
+import resource;
+import counting_resource;
+
+struct S
+{
+	.i: i32;
+	.j: usize;
+	.x: f32;
+	.y: f64;
+	.a: [20: u32];
+	.s: str;
+}
+
+struct complex_S
+{
+	.r0: resource_t;
+	.r1: complex_resource_t;
+	.cr0: relocatable_counting_resource_t;
+	.cr1: counting_resource_t;
+}
+
+function main()
+{
+	{
+		mut a = [1: i32]();
+		a[0] = 42;
+		let a_copy = a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != a_copy[i]) unreachable;
+		}
+		mut a = [10: i32]();
+		a[0] = 42;
+		a[4] = 99;
+		a[8] = 10;
+		let a_copy = a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != a_copy[i]) unreachable;
+		}
+		mut a = [100: i32]();
+		a[0] = 42;
+		a[4] = 99;
+		a[8] = 10;
+		a[66] = 33;
+		a[90] = 90;
+		let a_copy = a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != a_copy[i]) unreachable;
+		}
+	}
+
+	{
+		mut a = [1: f64]();
+		a[0] = 42.42;
+		let a_copy = a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != a_copy[i]) unreachable;
+		}
+		mut a = [10: f64]();
+		a[0] = 42.42;
+		a[4] = 99.99;
+		a[8] = 10.10;
+		let a_copy = a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != a_copy[i]) unreachable;
+		}
+		mut a = [100: f64]();
+		a[0] = 42.42;
+		a[4] = 99.99;
+		a[8] = 10.10;
+		a[66] = 33.33;
+		a[90] = 90.90;
+		let a_copy = a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != a_copy[i]) unreachable;
+		}
+	}
+
+	{
+		mut a = [1: str]();
+		a[0] = "hello";
+		let a_copy = a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != a_copy[i]) unreachable;
+		}
+		mut a = [10: str]();
+		a[0] = "hello";
+		a[4] = "there";
+		a[8] = "hi";
+		let a_copy = a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != a_copy[i]) unreachable;
+		}
+		mut a = [100: str]();
+		a[0] = "hello";
+		a[4] = "there";
+		a[8] = "hi";
+		a[66] = "test";
+		a[90] = "testing a longer string as well as short strings before this";
+		let a_copy = a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != a_copy[i]) unreachable;
+		}
+	}
+
+	{
+		let a = [1: resource_t]();
+		let _ = a;
+		let a = [10: resource_t]();
+		let _ = a;
+		let a = [100: resource_t]();
+		let _ = a;
+		let a = [1: complex_resource_t]();
+		let _ = a;
+		let a = [10: complex_resource_t]();
+		let _ = a;
+		let a = [100: complex_resource_t]();
+		let _ = a;
+		let a = [1: relocatable_counting_resource_t]();
+		let _ = a;
+		let a = [10: relocatable_counting_resource_t]();
+		let _ = a;
+		let a = [100: relocatable_counting_resource_t]();
+		let _ = a;
+		let a = [1: counting_resource_t]();
+		let _ = a;
+		let a = [10: counting_resource_t]();
+		let _ = a;
+		let a = [100: counting_resource_t]();
+		let _ = a;
+		let a = [1: [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]]();
+		let _ = a;
+		let a = [10: [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]]();
+		let _ = a;
+		let a = [100: [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]]();
+		let _ = a;
+	}
+
+	{
+		let a = [10, 10: resource_t]();
+		let _ = a;
+		let a = [10, 10: complex_resource_t]();
+		let _ = a;
+		let a = [10, 10: relocatable_counting_resource_t]();
+		let _ = a;
+		let a = [10, 10: counting_resource_t]();
+		let _ = a;
+		let a = [10, 10: [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]]();
+		let _ = a;
+	}
+
+	{
+		mut a = [1: S]();
+		a[0].x = 3.14159265f32;
+		a[0].a[3] = 99;
+		let a_copy = a;
+		for (let i in 0..a.size())
+		{
+			if (a[i].i != a_copy[i].i) unreachable;
+			if (a[i].j != a_copy[i].j) unreachable;
+			if (a[i].x != a_copy[i].x) unreachable;
+			if (a[i].y != a_copy[i].y) unreachable;
+			if (a[i].a != a_copy[i].a) unreachable;
+			if (a[i].s != a_copy[i].s) unreachable;
+		}
+		mut a = [10: S]();
+		a[0].x = 3.14159265f32;
+		a[0].a[3] = 99;
+		a[3].i = -42;
+		a[3].y = 2.71828;
+		a[7].s = "hello";
+		let a_copy = a;
+		for (let i in 0..a.size())
+		{
+			if (a[i].i != a_copy[i].i) unreachable;
+			if (a[i].j != a_copy[i].j) unreachable;
+			if (a[i].x != a_copy[i].x) unreachable;
+			if (a[i].y != a_copy[i].y) unreachable;
+			if (a[i].a != a_copy[i].a) unreachable;
+			if (a[i].s != a_copy[i].s) unreachable;
+		}
+		mut a = [100: S]();
+		a[0].x = 3.14159265f32;
+		a[0].a[3] = 99;
+		a[3].i = -42;
+		a[3].y = 2.71828;
+		a[7].s = "hello";
+		a[66].x = 3.14159265f32;
+		a[66].a[3] = 99;
+		a[84].i = -42;
+		a[84].y = 2.71828;
+		a[90].s = "hello";
+		let a_copy = a;
+		for (let i in 0..a.size())
+		{
+			if (a[i].i != a_copy[i].i) unreachable;
+			if (a[i].j != a_copy[i].j) unreachable;
+			if (a[i].x != a_copy[i].x) unreachable;
+			if (a[i].y != a_copy[i].y) unreachable;
+			if (a[i].a != a_copy[i].a) unreachable;
+			if (a[i].s != a_copy[i].s) unreachable;
+		}
+
+		let a = [1: complex_S]();
+		let _ = a;
+		let a = [10: complex_S]();
+		let _ = a;
+		let a = [100: complex_S]();
+		let _ = a;
+	}
+
+	if (!counting_resource_is_valid()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}

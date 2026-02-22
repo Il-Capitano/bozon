@@ -21,6 +21,7 @@ enum class emit_type
 	asm_,
 	llvm_bc,
 	llvm_ir,
+	c,
 	null,
 };
 
@@ -98,11 +99,16 @@ inline bool panic_on_null_dereference = true;
 inline bool panic_on_null_pointer_arithmetic = true;
 inline bool panic_on_null_get_value = true;
 inline bool panic_on_invalid_switch = true;
+inline bool panic_on_int_divide_by_zero = true;
 inline bool discard_llvm_value_names = true;
 inline bool return_zero_on_error = false;
 inline bool freestanding = false;
 inline uint64_t target_pointer_size = 0;
 inline target_endianness_kind target_endianness = target_endianness_kind::little;
+inline uint32_t target_c_short_size = 0;
+inline uint32_t target_c_int_size = 0;
+inline uint32_t target_c_long_size = 0;
+inline uint32_t target_c_long_long_size = 0;
 
 inline bz::u8string target;
 extern emit_type emit_file_type;

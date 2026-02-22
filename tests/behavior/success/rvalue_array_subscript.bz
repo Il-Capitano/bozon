@@ -1,0 +1,23 @@
+import counting_resource;
+
+function get_array(size: consteval usize, T: typename) -> [size: T]
+{
+	return [size: T]();
+}
+
+function test(size: consteval usize, T: typename)
+{
+	get_array(size, counting_resource_t)[size / 3];
+	let _ = get_array(size, T)[size / 3];
+}
+
+function main()
+{
+	test(10, i32);
+	test(40, i32);
+
+	test(10, counting_resource_t);
+	if (!counting_resource_is_valid()) unreachable;
+	test(40, counting_resource_t);
+	if (!counting_resource_is_valid()) unreachable;
+}

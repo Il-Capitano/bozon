@@ -1,0 +1,51 @@
+function check(r, end)
+{
+	if (__builtin_integer_range_to_inclusive_end_value(r) != end) unreachable;
+}
+
+function main()
+{
+	let end = 3i8;
+	let r = __builtin_integer_range_to_inclusive_i8(end);
+	check(r, end);
+	let end = -33i8;
+	let r = __builtin_integer_range_to_inclusive_i8(end);
+	check(r, end);
+
+	let end = 3i16;
+	let r = __builtin_integer_range_to_inclusive_i16(end);
+	check(r, end);
+	let end = -33i16;
+	let r = __builtin_integer_range_to_inclusive_i16(end);
+	check(r, end);
+
+	let end = 3i32;
+	let r = __builtin_integer_range_to_inclusive_i32(end);
+	check(r, end);
+	let end = -33i32;
+	let r = __builtin_integer_range_to_inclusive_i32(end);
+	check(r, end);
+
+	let end = 3i64;
+	let r = __builtin_integer_range_to_inclusive_i64(end);
+	check(r, end);
+	let end = -33i64;
+	let r = __builtin_integer_range_to_inclusive_i64(end);
+	check(r, end);
+
+	let end = 3u8;
+	let r = __builtin_integer_range_to_inclusive_u8(end);
+	check(r, end);
+
+	let end = 3u16;
+	let r = __builtin_integer_range_to_inclusive_u16(end);
+	check(r, end);
+
+	let end = 3u32;
+	let r = __builtin_integer_range_to_inclusive_u32(end);
+	check(r, end);
+
+	let end = 3u64;
+	let r = __builtin_integer_range_to_inclusive_u64(end);
+	check(r, end);
+}

@@ -1,0 +1,21 @@
+function main()
+{
+	let i = 3;
+	switch (i)
+	{
+		0, 1 => { 0; },
+		2, 3 => 3,
+		4 => unreachable,
+		else => {},
+	}
+
+	mut j = 0;
+	switch (i)
+	{
+		0, 1 => { 0; },
+		2, 3 => j = 3,
+		4 => unreachable,
+		else => {},
+	}
+	if (j != 3) unreachable;
+}

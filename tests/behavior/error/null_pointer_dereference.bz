@@ -1,0 +1,5 @@
+function main()
+{
+	let p: ?*i32 = null;
+	let _ = *p;
+}

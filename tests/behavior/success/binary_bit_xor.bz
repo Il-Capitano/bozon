@@ -1,0 +1,75 @@
+function bit_xor_test(consteval a, consteval b, consteval result)
+{
+	let dyn_a = a;
+	let dyn_b = b;
+	if ((dyn_a ^ dyn_b) != result) unreachable;
+
+	mut dyn_a = a;
+	dyn_a ^= b;
+	if (dyn_a != result) unreachable;
+	if (&(dyn_a ^= b) != &dyn_a) unreachable;
+
+	let dyn_a = a;
+	let dyn_b = b;
+	if (((dyn_a | dyn_b) & ~(dyn_a & dyn_b)) != (dyn_a ^ dyn_b)) unreachable;
+}
+
+function main()
+{
+	bit_xor_test(false, false, false);
+	bit_xor_test(true, false, true);
+	bit_xor_test(false, true, true);
+	bit_xor_test(true, true, false);
+
+	bit_xor_test(~0u8, 0u8, ~0u8);
+	bit_xor_test(~0u8, 213u8, ~213u8);
+	bit_xor_test(
+		0b1101'0010u8,
+		0b0101'1011u8,
+		0b1000'1001u8,
+	);
+
+	bit_xor_test(~0u16, 0u16, ~0u16);
+	bit_xor_test(~0u16, 13913u16, ~13913u16);
+	bit_xor_test(
+		0b0111'0110'1011'0011u16,
+		0b1011'0010'1110'0110u16,
+		0b1100'0100'0101'0101u16,
+	);
+
+	bit_xor_test(~0u32, 0u32, ~0u32);
+	bit_xor_test(~0u32, 1391003u32, ~1391003u32);
+	bit_xor_test(
+		0b0111'0110'1011'0011u32,
+		0b1011'0010'1110'0110u32,
+		0b1100'0100'0101'0101u32,
+	);
+	bit_xor_test(
+		0b0111'0110'1011'0011u32 << 16,
+		0b1011'0010'1110'0110u32 << 16,
+		0b1100'0100'0101'0101u32 << 16,
+	);
+
+	bit_xor_test(~0u64, 0u64, ~0u64);
+	bit_xor_test(~0u64, 1391301249876u64, ~1391301249876u64);
+	bit_xor_test(
+		0b0111'0110'1011'0011u64,
+		0b1011'0010'1110'0110u64,
+		0b1100'0100'0101'0101u64,
+	);
+	bit_xor_test(
+		0b0111'0110'1011'0011u64 << 16,
+		0b1011'0010'1110'0110u64 << 16,
+		0b1100'0100'0101'0101u64 << 16,
+	);
+	bit_xor_test(
+		0b0111'0110'1011'0011u64 << 32,
+		0b1011'0010'1110'0110u64 << 32,
+		0b1100'0100'0101'0101u64 << 32,
+	);
+	bit_xor_test(
+		0b0111'0110'1011'0011u64 << 48,
+		0b1011'0010'1110'0110u64 << 48,
+		0b1100'0100'0101'0101u64 << 48,
+	);
+}

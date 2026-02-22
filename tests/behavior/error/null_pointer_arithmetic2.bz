@@ -1,0 +1,5 @@
+function main()
+{
+	mut p: ?*i32 = null;
+	--p;
+}

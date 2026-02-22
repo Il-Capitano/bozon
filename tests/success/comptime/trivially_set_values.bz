@@ -1,0 +1,30 @@
+function test(T: typename)
+{
+	mut a = [10: T]();
+
+	__builtin_trivially_set_values(a.begin(), 42 as T, a.size());
+	for (let v in a)
+	{
+		if (v != 42 as T) unreachable;
+	}
+
+	__builtin_trivially_set_values(a.begin(), ((-42 as T)), a.size());
+	for (let v in a)
+	{
+		if (v != ((-42 as T))) unreachable;
+	}
+
+	__builtin_trivially_set_values(null as ?*mut T, 0 as T, 0);
+}
+
+function test()
+{
+	(consteval {
+		test(u32);
+		test(i32);
+		test(u8);
+		test(i8);
+		test(f32);
+		test(f64);
+	});
+}

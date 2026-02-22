@@ -1,0 +1,6 @@
+function main()
+{
+	let f: ?function() -> void = null;
+
+	__builtin_optional_get_value_ref(f);
+}

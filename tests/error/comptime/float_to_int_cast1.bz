@@ -1,0 +1,8 @@
+// error: invalid cast in expression '-1.0 as u8', floating-point value of type 'f64' is outside the representable range of integer type 'u8'
+// error: invalid cast in expression '-1.0 as u8', floating-point value of type 'f64' is outside the representable range of integer type 'u8'
+// note: while evaluating expression at compile time
+// error: expression must be a constant expression
+function test()
+{
+	consteval _ = -1.0f64 as u8;
+}

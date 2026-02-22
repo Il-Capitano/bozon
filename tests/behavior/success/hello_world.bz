@@ -1,0 +1,7 @@
+// Hello world!
+import std::format;
+
+function main()
+{
+	std::print("Hello world!\n");
+}

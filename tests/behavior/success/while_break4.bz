@@ -1,0 +1,13 @@
+function main() -> i32
+{
+	while (true)
+	{
+		while (true)
+		{
+			break;
+			return 1;
+		}
+		return 0;
+	}
+	return 1;
+}

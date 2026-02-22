@@ -1,0 +1,22 @@
+import counting_resource;
+
+function test(a: bool, b: bool, result: bool)
+{
+	let a_or_b = (counting_resource_t(), a) ^^ (counting_resource_t(), b);
+	if (a_or_b != result) unreachable;
+}
+
+function main()
+{
+	test(false, false, false);
+	if (!counting_resource_is_valid()) unreachable;
+
+	test(true, false, true);
+	if (!counting_resource_is_valid()) unreachable;
+
+	test(false, true, true);
+	if (!counting_resource_is_valid()) unreachable;
+
+	test(true, true, false);
+	if (!counting_resource_is_valid()) unreachable;
+}

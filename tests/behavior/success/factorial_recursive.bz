@@ -1,0 +1,15 @@
+function factorial(n: i32) -> i32
+{
+	return if (n <= 1) {
+		1
+	} else {
+		n * factorial(n - 1)
+	};
+}
+
+function main()
+{
+	if (factorial(3) != 6) unreachable;
+	if (factorial(5) != 120) unreachable;
+	if (factorial(-10) != 1) unreachable;
+}

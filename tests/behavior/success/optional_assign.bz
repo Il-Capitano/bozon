@@ -1,0 +1,93 @@
+import resource;
+import counting_resource;
+
+function test_self_assign(T: typename)
+{
+	let mut a: ?T = null;
+	a = a;
+	if (a != null) unreachable;
+
+	let mut a: ?T = T();
+	a = a;
+	if (a == null) unreachable;
+
+	let mut p: ?*T = null;
+	p = p;
+	if (p != null) unreachable;
+
+	let a = T();
+	let mut p: ?*T = &a;
+	p = p;
+	if (p != &a) unreachable;
+}
+
+function test_assign(T: typename)
+{
+	let mut a: ?T = null;
+	let mut b: ?T = null;
+	a = b;
+	if (a != null) unreachable;
+	if (b != null) unreachable;
+
+	let mut a: ?T = T();
+	let mut b: ?T = null;
+	a = b;
+	if (a != null) unreachable;
+	if (b != null) unreachable;
+
+	let mut a: ?T = null;
+	let mut b: ?T = T();
+	a = b;
+	if (a == null) unreachable;
+	if (b == null) unreachable;
+
+	let mut a: ?T = T();
+	let mut b: ?T = T();
+	a = b;
+	if (a == null) unreachable;
+	if (b == null) unreachable;
+
+	let a = T();
+	let b = T();
+	let mut p: ?*T = null;
+	let mut q: ?*T = null;
+	p = q;
+	if (p != null) unreachable;
+	if (q != null) unreachable;
+
+	let mut p: ?*T = &a;
+	let mut q: ?*T = null;
+	p = q;
+	if (p != null) unreachable;
+	if (q != null) unreachable;
+
+	let mut p: ?*T = null;
+	let mut q: ?*T = &b;
+	p = q;
+	if (p != &b) unreachable;
+	if (q != &b) unreachable;
+
+	let mut p: ?*T = &a;
+	let mut q: ?*T = &b;
+	p = q;
+	if (p != &b) unreachable;
+	if (q != &b) unreachable;
+}
+
+function main()
+{
+	test_self_assign(i32);
+	test_self_assign(resource_t);
+	test_self_assign(complex_resource_t);
+	test_self_assign(counting_resource_t);
+	test_self_assign(relocatable_counting_resource_t);
+
+	test_assign(i32);
+	test_assign(resource_t);
+	test_assign(complex_resource_t);
+	test_assign(counting_resource_t);
+	test_assign(relocatable_counting_resource_t);
+
+	if (!counting_resource_is_valid()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}

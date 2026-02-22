@@ -1,0 +1,13 @@
+import counting_resource;
+
+function test()
+{
+	let a = counting_resource_t();
+	let _ = a;
+}
+
+function main() -> i32
+{
+	test();
+	return if (counting_resource_is_valid()) { 0 } else { 1 };
+}

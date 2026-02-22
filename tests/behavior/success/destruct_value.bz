@@ -1,0 +1,25 @@
+import std::libc::stdlib;
+import counting_resource;
+
+function malloc(T: typename) -> *mut T
+{
+	let result = std::libc::malloc(sizeof T);
+	if (result == null) unreachable;
+
+	return __builtin_pointer_cast(*mut T, result.get_value());
+}
+
+function free(p: *mut auto)
+{
+	std::libc::free(p);
+}
+
+function main() -> i32
+{
+	let p = malloc(counting_resource_t);
+	defer free(p);
+	__builtin_inplace_construct(p, counting_resource_t());
+	__builtin_destruct_value(*p);
+
+	return if (counting_resource_is_valid()) { 0 } else { 1 };
+}

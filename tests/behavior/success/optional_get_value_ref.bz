@@ -1,0 +1,19 @@
+function foo()
+{}
+
+function main()
+{
+	let i = 3;
+	let oi: ?i32 = 3;
+	let pi: ?*i32 = &i;
+	let f: ?function() -> void = foo;
+
+	let &r = __builtin_optional_get_value_ref(oi);
+	if (&r as *void != &oi as *void) unreachable;
+
+	let &r = __builtin_optional_get_value_ref(pi);
+	if (&r as *void != &pi as *void) unreachable;
+
+	let &r = __builtin_optional_get_value_ref(f);
+	if (&r as *void != &f as *void) unreachable;
+}

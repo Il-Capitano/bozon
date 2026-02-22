@@ -1,0 +1,22 @@
+import std::libc::stdlib;
+
+export function malloc(T: typename, count: usize) -> *mut T
+{
+	return if (__builtin_is_comptime()) {
+		__builtin_comptime_malloc(T, count)
+	} else {
+		__builtin_pointer_cast(*mut T, std::libc::malloc(count * sizeof T).get_value())
+	};
+}
+
+export function free(p: *mut auto)
+{
+	if (__builtin_is_comptime())
+	{
+		__builtin_comptime_free(p);
+	}
+	else
+	{
+		std::libc::free(p);
+	}
+}

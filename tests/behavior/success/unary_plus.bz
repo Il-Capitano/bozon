@@ -1,0 +1,24 @@
+function main()
+{
+	let i8  = 10i8;
+	let u8  = 10u8;
+	let i16 = 10i16;
+	let u16 = 10u16;
+	let i32 = 10i32;
+	let u32 = 10u32;
+	let i64 = 10i64;
+	let u64 = 10u64;
+	let f32 = 1.3f32;
+	let f64 = 1.3f64;
+
+	if (+i8  != i8) unreachable;
+	if (+u8  != u8) unreachable;
+	if (+i16 != i16) unreachable;
+	if (+u16 != u16) unreachable;
+	if (+i32 != i32) unreachable;
+	if (+u32 != u32) unreachable;
+	if (+i64 != i64) unreachable;
+	if (+u64 != u64) unreachable;
+	if (+f32 != f32) unreachable;
+	if (+f64 != f64) unreachable;
+}

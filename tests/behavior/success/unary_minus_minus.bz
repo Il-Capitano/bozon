@@ -1,0 +1,70 @@
+function main()
+{
+	mut i = 0;
+	if (i != 0) unreachable;
+
+	--i;
+	if (i != -1) unreachable;
+
+	let &i_ref = --i;
+	if (i != -2) unreachable;
+	if (&i != &i_ref) unreachable;
+
+	let arr = [10: i32]();
+	mut p = &arr[1];
+	let p_int_value_before = __builtin_pointer_to_int(p);
+
+	let &p_ref = --p;
+	let p_int_value_after = __builtin_pointer_to_int(p);
+	if (p != &arr[0]) unreachable;
+	if (&p != &p_ref) unreachable;
+	if (p_int_value_before - 4 != p_int_value_after) unreachable;
+
+	let i8_min =  (((1u8  <<  7) as i8));
+	let i16_min = (((1u16 << 15) as i16));
+	let i32_min = (((1u32 << 31) as i32));
+	let i64_min = (((1u64 << 63) as i64));
+	let i8_max =  ((1u8  <<  7) - 1) as i8;
+	let i16_max = ((1u16 << 15) - 1) as i16;
+	let i32_max = ((1u32 << 31) - 1) as i32;
+	let i64_max = ((1u64 << 63) - 1) as i64;
+	if (i8_max <= 0 || i16_max <= 0 || i32_max <= 0 || i64_max <= 0) unreachable;
+	if (i8_min >= 0 || i16_min >= 0 || i32_min >= 0 || i64_min >= 0) unreachable;
+
+	mut i = i8_min;
+	--i;
+	if (i != i8_max) unreachable;
+
+	mut i = i16_min;
+	--i;
+	if (i != i16_max) unreachable;
+
+	mut i = i32_min;
+	--i;
+	if (i != i32_max) unreachable;
+
+	mut i = i64_min;
+	--i;
+	if (i != i64_max) unreachable;
+
+	let u8_max  = ~0u8;
+	let u16_max = ~0u16;
+	let u32_max = ~0u32;
+	let u64_max = ~0u64;
+
+	mut i = 0u8;
+	--i;
+	if (i != u8_max) unreachable;
+
+	mut i = 0u16;
+	--i;
+	if (i != u16_max) unreachable;
+
+	mut i = 0u32;
+	--i;
+	if (i != u32_max) unreachable;
+
+	mut i = 0u64;
+	--i;
+	if (i != u64_max) unreachable;
+}

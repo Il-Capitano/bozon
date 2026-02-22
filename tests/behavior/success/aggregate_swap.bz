@@ -1,0 +1,87 @@
+import resource;
+import counting_resource;
+
+function index_sequence(size: consteval usize) -> [size: usize]
+{
+	mut result = [size: usize]();
+	for (let i in 0..size)
+	{
+		result[i] = i;
+	}
+	return result;
+}
+
+function get_value(T: typename, i: i32) -> T
+{
+	if consteval (__builtin_is_array(T))
+	{
+		return __builtin_create_initialized_array(T, get_value(__builtin_array_value_type(T), i));
+	}
+	else if consteval (T == str)
+	{
+		let strings: [??: str] = ["0", "1"];
+		return strings[i];
+	}
+	else if consteval (T == f32 || T == f64)
+	{
+		return i as T + 0.123 as T;
+	}
+	else
+	{
+		return i as T;
+	}
+}
+
+function test_tuple(Ts: ...typename)
+{
+	let mut a = [...get_value(Ts, 0)];
+	let mut b = [...get_value(Ts, 1)];
+	consteval [...index] = index_sequence(sizeof ...Ts);
+	...(if (a[index] != get_value(Ts, 0)) { unreachable; });
+	...(if (b[index] != get_value(Ts, 1)) { unreachable; });
+	__builtin_swap(a, a);
+	__builtin_swap(b, b);
+	...(if (a[index] != get_value(Ts, 0)) { unreachable; });
+	...(if (b[index] != get_value(Ts, 1)) { unreachable; });
+	__builtin_swap(a, b);
+	...(if (a[index] != get_value(Ts, 1)) { unreachable; });
+	...(if (b[index] != get_value(Ts, 0)) { unreachable; });
+}
+
+function main()
+{
+	test_tuple(i32, str, f32, f64, u64, [10: i32], [100: f32]);
+	{
+		let mut a = [resource_t]();
+		__builtin_swap(a, a);
+		let mut b = [resource_t]();
+		__builtin_swap(a, b);
+		let mut a = [complex_resource_t]();
+		__builtin_swap(a, a);
+		let mut b = [complex_resource_t]();
+		__builtin_swap(a, b);
+		let mut a = [relocatable_counting_resource_t]();
+		__builtin_swap(a, a);
+		let mut b = [relocatable_counting_resource_t]();
+		__builtin_swap(a, b);
+		let mut a = [counting_resource_t]();
+		__builtin_swap(a, a);
+		let mut b = [counting_resource_t]();
+		__builtin_swap(a, b);
+		let mut a = [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]();
+		__builtin_swap(a, a);
+		let mut b = [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]();
+		__builtin_swap(a, b);
+		let mut a = [10: [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]]();
+		__builtin_swap(a, a);
+		let mut b = [10: [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]]();
+		__builtin_swap(a, b);
+		let mut a = [[10: resource_t], [10: complex_resource_t], [10: relocatable_counting_resource_t], [10: counting_resource_t]]();
+		__builtin_swap(a, a);
+		let mut b = [[10: resource_t], [10: complex_resource_t], [10: relocatable_counting_resource_t], [10: counting_resource_t]]();
+		__builtin_swap(a, b);
+	}
+
+	if (!counting_resource_is_valid()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}

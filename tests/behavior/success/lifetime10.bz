@@ -1,0 +1,26 @@
+import counting_resource;
+
+function test(b: bool)
+{
+	let a = counting_resource_t();
+	let _ = if (b) {
+		move a
+	} else {
+		counting_resource_t()
+	};
+}
+
+function main() -> i32
+{
+	test(false);
+	if (!counting_resource_is_valid())
+	{
+		return 1;
+	}
+	test(true);
+	if (!counting_resource_is_valid())
+	{
+		return 1;
+	}
+	return 0;
+}

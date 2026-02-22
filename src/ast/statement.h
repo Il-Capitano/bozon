@@ -226,6 +226,8 @@ struct decl_variable
 		tuple_outer_ref  = bit_at<10>,
 		moved            = bit_at<11>,
 		ever_moved_from  = bit_at<12>,
+		libc_variable    = bit_at<13>,
+		libc_internal    = bit_at<14>,
 	};
 
 	lex::src_tokens src_tokens;
@@ -392,6 +394,12 @@ struct decl_variable
 	bool is_ever_moved_from(void) const noexcept
 	{ return (this->flags & ever_moved_from) != 0; }
 
+	bool is_libc_variable(void) const noexcept
+	{ return (this->flags & libc_variable) != 0; }
+
+	bool is_libc_internal(void) const noexcept
+	{ return (this->flags & libc_internal) != 0; }
+
 	typespec &get_type(void)
 	{
 		return this->id_and_type.var_type;
@@ -474,6 +482,8 @@ struct function_body
 		deleted                     = bit_at<24>,
 		copy_assign_op              = bit_at<25>,
 		move_assign_op              = bit_at<26>,
+		libc_function               = bit_at<27>,
+		libc_macro                  = bit_at<28>,
 	};
 
 	enum : uint16_t
@@ -699,13 +709,13 @@ struct function_body
 		exp2_f32,  exp2_f64,
 		expm1_f32, expm1_f64,
 		log_f32,   log_f64,
-		log10_f32, log10_f64,
 		log2_f32,  log2_f64,
+		log10_f32, log10_f64,
 		log1p_f32, log1p_f64,
 
 		sqrt_f32,  sqrt_f64,
-		pow_f32,   pow_f64,
 		cbrt_f32,  cbrt_f64,
+		pow_f32,   pow_f64,
 		hypot_f32, hypot_f64,
 
 		sin_f32,   sin_f64,
@@ -870,6 +880,7 @@ struct function_body
 	abi::calling_convention     cc = abi::calling_convention::c;
 	uint16_t                    intrinsic_kind = 0;
 	int64_t                     overload_priority = 0;
+	arena_vector<attribute>     attributes;
 
 	type_info *constructor_or_destructor_of;
 
@@ -895,6 +906,7 @@ struct function_body
 		  state          (other.state),
 		  cc             (other.cc),
 		  intrinsic_kind (other.intrinsic_kind),
+		  attributes     (other.attributes),
 		  constructor_or_destructor_of(nullptr),
 		  generic_specializations(),
 		  generic_required_from(other.generic_required_from),
@@ -1012,6 +1024,12 @@ struct function_body
 	bool is_move_assign_op(void) const noexcept
 	{ return (this->flags & move_assign_op) != 0; }
 
+	bool is_libc_function(void) const noexcept
+	{ return (this->flags & libc_function) != 0; }
+
+	bool is_libc_macro(void) const noexcept
+	{ return (this->flags & libc_macro) != 0; }
+
 	bool has_builtin_implementation(void) const noexcept
 	{
 		return (this->is_intrinsic() && this->body.is_null())
@@ -1052,9 +1070,8 @@ struct function_body
 
 struct decl_function
 {
-	identifier              id;
-	function_body           body;
-	arena_vector<attribute> attributes;
+	identifier    id;
+	function_body body;
 
 	decl_function(void) = default;
 
@@ -1069,9 +1086,8 @@ struct decl_function
 
 struct decl_operator
 {
-	lex::token_pos          op;
-	function_body           body;
-	arena_vector<attribute> attributes;
+	lex::token_pos op;
+	function_body  body;
 
 	decl_operator(void) = default;
 
@@ -1195,6 +1211,8 @@ struct type_info
 		trivially_relocatable           = bit_at< 9>,
 		trivial                         = bit_at<10>,
 		module_export                   = bit_at<11>,
+		libc_struct                     = bit_at<12>,
+		libc_internal                   = bit_at<13>,
 	};
 
 	enum : uint8_t
@@ -1356,6 +1374,12 @@ public:
 
 	bool is_module_export(void) const noexcept
 	{ return (this->flags & module_export) != 0; }
+
+	bool is_libc_struct(void) const noexcept
+	{ return (this->flags & libc_struct) != 0; }
+
+	bool is_libc_internal(void) const noexcept
+	{ return (this->flags & libc_internal) != 0; }
 
 	static decl_operator_ptr make_default_op_assign(lex::src_tokens const &src_tokens, type_info &info);
 	static decl_operator_ptr make_default_op_move_assign(lex::src_tokens const &src_tokens, type_info &info);
@@ -2006,19 +2030,19 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::expm1_f64, "__builtin_expm1_f64" },
 		{ function_body::log_f32,   "__builtin_log_f32"   },
 		{ function_body::log_f64,   "__builtin_log_f64"   },
-		{ function_body::log10_f32, "__builtin_log10_f32" },
-		{ function_body::log10_f64, "__builtin_log10_f64" },
 		{ function_body::log2_f32,  "__builtin_log2_f32"  },
 		{ function_body::log2_f64,  "__builtin_log2_f64"  },
+		{ function_body::log10_f32, "__builtin_log10_f32" },
+		{ function_body::log10_f64, "__builtin_log10_f64" },
 		{ function_body::log1p_f32, "__builtin_log1p_f32" },
 		{ function_body::log1p_f64, "__builtin_log1p_f64" },
 
 		{ function_body::sqrt_f32,  "__builtin_sqrt_f32"  },
 		{ function_body::sqrt_f64,  "__builtin_sqrt_f64"  },
-		{ function_body::pow_f32,   "__builtin_pow_f32"   },
-		{ function_body::pow_f64,   "__builtin_pow_f64"   },
 		{ function_body::cbrt_f32,  "__builtin_cbrt_f32"  },
 		{ function_body::cbrt_f64,  "__builtin_cbrt_f64"  },
+		{ function_body::pow_f32,   "__builtin_pow_f32"   },
+		{ function_body::pow_f64,   "__builtin_pow_f64"   },
 		{ function_body::hypot_f32, "__builtin_hypot_f32" },
 		{ function_body::hypot_f64, "__builtin_hypot_f64" },
 
