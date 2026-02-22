@@ -5953,7 +5953,7 @@ ast::expression parse_context::make_member_access_expression(
 	}
 	else if (
 		auto const member_ptr = *it;
-		!this->has_common_global_scope(type_global_scope) && member_ptr->get_unqualified_id_value().starts_with('_')
+		member_ptr->get_unqualified_id_value().starts_with('_') && !this->has_common_global_scope(type_global_scope)
 	)
 	{
 		auto notes = [&]() -> bz::vector<source_highlight> {
