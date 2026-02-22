@@ -500,8 +500,9 @@ constant_value_from_object_result_t constant_value_from_object(
 		else
 		{
 			auto result = constant_value_from_object_result_t();
+			bz::u8string_view const type_name = ts.is_reference() ? "reference" : "pointer";
 			result.reasons.push_back({
-				{}, bz::format("a pointer of type '{}' is not a constant expression", ts)
+				{}, bz::format("a {} of type '{}' is not a constant expression", type_name, ts)
 			});
 			return result;
 		}

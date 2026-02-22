@@ -7575,7 +7575,16 @@ function generate_code_for_expression(ast::expression const &expr, codegen_conte
 
 		auto const result_address = context.create_alloca(expr.src_tokens, get_type(expr_type, context));
 		auto const prev_info = context.push_expression_scope();
-		generate_expr_code(expr, context, result_address);
+		if (expr_type.is_reference())
+		{
+			auto const result = generate_expr_code(expr, context, {});
+			auto const pointer_value = expr_value::get_value(result.get_reference(), context.get_pointer_type());
+			context.create_store(pointer_value, result_address);
+		}
+		else
+		{
+			generate_expr_code(expr, context, result_address);
+		}
 		context.pop_expression_scope(prev_info);
 
 		if (!context.has_terminator())
