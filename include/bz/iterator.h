@@ -53,6 +53,8 @@ public:
 	constexpr pointer operator -> (void) const noexcept
 	{ return this->_data; }
 
+	constexpr reference operator [] (std::integral auto n) const noexcept
+	{ return this->_data[n]; }
 
 	constexpr self_t &operator += (std::integral auto n) noexcept
 	{ this->_data += n; return *this; }
