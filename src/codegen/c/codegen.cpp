@@ -6037,6 +6037,10 @@ static expr_value generate_string_switch(
 			context.end_case();
 		}
 
+		context.begin_default_case();
+		context.create_assignment(case_index_value, bz::format("{}u", default_case_index));
+		context.end_case();
+
 		context.end_switch(size_prev_switch_info);
 	}
 	else
