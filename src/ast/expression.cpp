@@ -706,16 +706,18 @@ bool expression::is_special_top_level(void) const noexcept
 	if (this->is_constant_or_dynamic())
 	{
 		auto &expr = this->get_self_expr();
-		return (expr.is<expr_compound>() && this->paren_level == 0)
-			|| (expr.is<expr_if>()       && this->paren_level == 0)
-			|| (expr.is<expr_switch>()   && this->paren_level == 0);
+		return (expr.is<expr_compound>()     && this->paren_level == 0)
+			|| (expr.is<expr_if>()           && this->paren_level == 0)
+			|| (expr.is<expr_if_consteval>() && this->paren_level == 0)
+			|| (expr.is<expr_switch>()       && this->paren_level == 0);
 	}
 	else if (this->is_unresolved())
 	{
 		auto &expr = this->get_unresolved_expr();
-		return (expr.is<expr_compound>() && this->paren_level == 0)
-			|| (expr.is<expr_if>()       && this->paren_level == 0)
-			|| (expr.is<expr_switch>()   && this->paren_level == 0);
+		return (expr.is<expr_compound>()     && this->paren_level == 0)
+			|| (expr.is<expr_if>()           && this->paren_level == 0)
+			|| (expr.is<expr_if_consteval>() && this->paren_level == 0)
+			|| (expr.is<expr_switch>()       && this->paren_level == 0);
 	}
 	else
 	{

@@ -1,0 +1,9 @@
+function main() -> i32
+{
+	consteval b = true;
+	return if consteval (b) {
+		0
+	} else {
+		unreachable
+	};
+}
