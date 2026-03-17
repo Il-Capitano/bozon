@@ -1,0 +1,10 @@
+function main() -> i32
+{
+	return if consteval (true) {
+		0
+	} else if consteval (false) {
+		unreachable
+	} else {
+		unreachable
+	};
+}

@@ -1,0 +1,12 @@
+function main() -> i32
+{
+	let a = true;
+	let b = false;
+	return if (a) {
+		0
+	} else if (b) {
+		unreachable
+	} else {
+		unreachable
+	};
+}
