@@ -1,0 +1,23 @@
+function test(n: i32) -> i32
+{
+	return switch (n) {
+		0 => 0,
+		1 => 42,
+		42 => 1,
+		-10 => -99,
+		else => n / 2 + 3,
+	};
+}
+
+function main()
+{
+	if (test(0) != 0) unreachable;
+	if (test(1) != 42) unreachable;
+	if (test(42) != 1) unreachable;
+	if (test(-10) != -99) unreachable;
+
+	for (let n in 50..100)
+	{
+		if (test(n) != n / 2 + 3) unreachable;
+	}
+}
