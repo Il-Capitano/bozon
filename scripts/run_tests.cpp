@@ -641,6 +641,7 @@ int main(int argc, char const * const *argv)
 		.error = true,
 	};
 	bz::array_view<bz::u8string_view const> cflags;
+	bool fail_fast = false;
 	for (auto const &[arg, i] : args.enumerate())
 	{
 		if (arg.starts_with("--bozon="))
@@ -693,6 +694,10 @@ int main(int argc, char const * const *argv)
 				}
 				it = comma_it + 1;
 			}
+		}
+		else if (arg == "--fail-fast")
+		{
+			fail_fast = true;
 		}
 		else if (arg == "--")
 		{
@@ -777,6 +782,10 @@ int main(int argc, char const * const *argv)
 				bz::print("{}FAIL{}\n", colors::bright_red, colors::clear);
 				print_test_fail_info(run_result.get());
 				test_fail_infos.push_back(std::move(run_result.get()));
+				if (fail_fast)
+				{
+					break;
+				}
 			}
 			else
 			{
@@ -800,6 +809,11 @@ int main(int argc, char const * const *argv)
 		{
 			bz::print("\n{}FAILED:{} {}:\n", colors::bright_red, colors::clear, info.test_file);
 			print_test_fail_info(info);
+		}
+
+		if (fail_fast && info_passed_count != info_total_count)
+		{
+			break;
 		}
 	}
 
