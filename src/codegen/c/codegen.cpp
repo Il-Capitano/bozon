@@ -5996,7 +5996,10 @@ static expr_value generate_string_switch(
 				auto const value_prev_switch_info = context.begin_switch(string_int_value);
 
 				// this will do at least one iteration, so the outside loop will terminate
-				for (; case_infos[value_index].string_value.size() == current_size; ++value_index)
+				for (;
+					value_index < case_infos.size() && case_infos[value_index].string_value.size() == current_size;
+					++value_index
+				)
 				{
 					auto const &[string_value, case_index] = case_infos[value_index];
 					auto const case_string_int_value = get_string_int_value(string_value, context);
@@ -6016,7 +6019,10 @@ static expr_value generate_string_switch(
 			else
 			{
 				// this will do at least one iteration, so the outside loop will terminate
-				for (; case_infos[value_index].string_value.size() == current_size; ++value_index)
+				for (;
+					value_index < case_infos.size() && case_infos[value_index].string_value.size() == current_size;
+					++value_index
+				)
 				{
 					auto const &[string_value, case_index] = case_infos[value_index];
 					auto const prev_if_info = context.begin_if(are_strings_equal(begin_ptr, string_value, context));
