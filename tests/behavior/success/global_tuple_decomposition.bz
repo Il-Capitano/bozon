@@ -1,0 +1,15 @@
+let mut [global_0, global_1] = [2: i32]();
+
+function main()
+{
+	if (global_0 != 0 || global_1 != 0) unreachable;
+	global_0 = 3;
+	if (global_0 != 3 || global_1 != 0) unreachable;
+
+	if (&global_1 - &global_0 != 1) unreachable;
+
+	consteval [consteval_0, consteval_1] = [2: i32]();
+	if (consteval_0 != 0 || consteval_1 != 0) unreachable;
+
+	if (&consteval_1 - &consteval_0 != 1) unreachable;
+}

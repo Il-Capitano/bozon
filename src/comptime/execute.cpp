@@ -520,84 +520,308 @@ static float32_t execute_cast_f64_to_f32(instructions::cast_f64_to_f32 const &, 
 	return static_cast<float32_t>(value);
 }
 
-static uint8_t execute_cast_f32_to_i8(instructions::cast_f32_to_i8 const &, float32_t value, executor_context &)
+static uint8_t execute_cast_f32_to_i8(instructions::cast_f32_to_i8 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint8_t>(static_cast<int8_t>(value));
+	auto const result = safe_float_to_int_cast<int8_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as i8', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'i8'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint8_t>(result.get());
 }
 
-static uint16_t execute_cast_f32_to_i16(instructions::cast_f32_to_i16 const &, float32_t value, executor_context &)
+static uint16_t execute_cast_f32_to_i16(instructions::cast_f32_to_i16 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint16_t>(static_cast<int16_t>(value));
+	auto const result = safe_float_to_int_cast<int16_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as i16', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'i16'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint16_t>(result.get());
 }
 
-static uint32_t execute_cast_f32_to_i32(instructions::cast_f32_to_i32 const &, float32_t value, executor_context &)
+static uint32_t execute_cast_f32_to_i32(instructions::cast_f32_to_i32 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint32_t>(static_cast<int32_t>(value));
+	auto const result = safe_float_to_int_cast<int32_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as i32', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'i32'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint32_t>(result.get());
 }
 
-static uint64_t execute_cast_f32_to_i64(instructions::cast_f32_to_i64 const &, float32_t value, executor_context &)
+static uint64_t execute_cast_f32_to_i64(instructions::cast_f32_to_i64 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint64_t>(static_cast<int64_t>(value));
+	auto const result = safe_float_to_int_cast<int64_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as i64', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'i64'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint64_t>(result.get());
 }
 
-static uint8_t execute_cast_f32_to_u8(instructions::cast_f32_to_u8 const &, float32_t value, executor_context &)
+static uint8_t execute_cast_f32_to_u8(instructions::cast_f32_to_u8 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint8_t>(value);
+	auto const result = safe_float_to_int_cast<uint8_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as u8', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'u8'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint16_t execute_cast_f32_to_u16(instructions::cast_f32_to_u16 const &, float32_t value, executor_context &)
+static uint16_t execute_cast_f32_to_u16(instructions::cast_f32_to_u16 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint16_t>(value);
+	auto const result = safe_float_to_int_cast<uint16_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as u16', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'u16'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint32_t execute_cast_f32_to_u32(instructions::cast_f32_to_u32 const &, float32_t value, executor_context &)
+static uint32_t execute_cast_f32_to_u32(instructions::cast_f32_to_u32 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint32_t>(value);
+	auto const result = safe_float_to_int_cast<uint32_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as u32', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'u32'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint64_t execute_cast_f32_to_u64(instructions::cast_f32_to_u64 const &, float32_t value, executor_context &)
+static uint64_t execute_cast_f32_to_u64(instructions::cast_f32_to_u64 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint64_t>(value);
+	auto const result = safe_float_to_int_cast<uint64_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as u64', "
+				"floating-point value of type 'f32' is outside the representable range of integer type 'u64'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint8_t execute_cast_f64_to_i8(instructions::cast_f64_to_i8 const &, float64_t value, executor_context &)
+static uint8_t execute_cast_f64_to_i8(instructions::cast_f64_to_i8 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint8_t>(static_cast<int8_t>(value));
+	auto const result = safe_float_to_int_cast<int8_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as i8', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'i8'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint8_t>(result.get());
 }
 
-static uint16_t execute_cast_f64_to_i16(instructions::cast_f64_to_i16 const &, float64_t value, executor_context &)
+static uint16_t execute_cast_f64_to_i16(instructions::cast_f64_to_i16 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint16_t>(static_cast<int16_t>(value));
+	auto const result = safe_float_to_int_cast<int16_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as i16', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'i16'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint16_t>(result.get());
 }
 
-static uint32_t execute_cast_f64_to_i32(instructions::cast_f64_to_i32 const &, float64_t value, executor_context &)
+static uint32_t execute_cast_f64_to_i32(instructions::cast_f64_to_i32 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint32_t>(static_cast<int32_t>(value));
+	auto const result = safe_float_to_int_cast<int32_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as i32', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'i32'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint32_t>(result.get());
 }
 
-static uint64_t execute_cast_f64_to_i64(instructions::cast_f64_to_i64 const &, float64_t value, executor_context &)
+static uint64_t execute_cast_f64_to_i64(instructions::cast_f64_to_i64 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint64_t>(static_cast<int64_t>(value));
+	auto const result = safe_float_to_int_cast<int64_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as i64', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'i64'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint64_t>(result.get());
 }
 
-static uint8_t execute_cast_f64_to_u8(instructions::cast_f64_to_u8 const &, float64_t value, executor_context &)
+static uint8_t execute_cast_f64_to_u8(instructions::cast_f64_to_u8 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint8_t>(value);
+	auto const result = safe_float_to_int_cast<uint8_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as u8', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'u8'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint16_t execute_cast_f64_to_u16(instructions::cast_f64_to_u16 const &, float64_t value, executor_context &)
+static uint16_t execute_cast_f64_to_u16(instructions::cast_f64_to_u16 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint16_t>(value);
+	auto const result = safe_float_to_int_cast<uint16_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as u16', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'u16'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint32_t execute_cast_f64_to_u32(instructions::cast_f64_to_u32 const &, float64_t value, executor_context &)
+static uint32_t execute_cast_f64_to_u32(instructions::cast_f64_to_u32 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint32_t>(value);
+	auto const result = safe_float_to_int_cast<uint32_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as u32', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'u32'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint64_t execute_cast_f64_to_u64(instructions::cast_f64_to_u64 const &, float64_t value, executor_context &)
+static uint64_t execute_cast_f64_to_u64(instructions::cast_f64_to_u64 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint64_t>(value);
+	auto const result = safe_float_to_int_cast<uint64_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as u64', "
+				"floating-point value of type 'f64' is outside the representable range of integer type 'u64'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
 static float32_t execute_cast_i8_to_f32(instructions::cast_i8_to_f32 const &, uint8_t value, executor_context &)
@@ -2981,44 +3205,6 @@ static void execute_log_f64_check(instructions::log_f64_check const &inst, float
 	check_for_negative("log", inst.src_tokens_index, x, result, context);
 }
 
-static float32_t execute_log10_f32(instructions::log10_f32 const &, float32_t x, executor_context &)
-{
-	return std::log10(x);
-}
-
-static float64_t execute_log10_f64(instructions::log10_f64 const &, float64_t x, executor_context &)
-{
-	return std::log10(x);
-}
-
-static void execute_log10_f32_check(instructions::log10_f32_check const &inst, float32_t x, executor_context &context)
-{
-	auto const result = std::log10(x);
-	if (std::isnan(x) || x == 0.0f)
-	{
-		context.report_warning(
-			ctx::warning_kind::math_domain_error,
-			inst.src_tokens_index,
-			bz::format("calling 'log10' with {} results in {}", x, result)
-		);
-	}
-	check_for_negative("log10", inst.src_tokens_index, x, result, context);
-}
-
-static void execute_log10_f64_check(instructions::log10_f64_check const &inst, float64_t x, executor_context &context)
-{
-	auto const result = std::log10(x);
-	if (std::isnan(x) || x == 0.0)
-	{
-		context.report_warning(
-			ctx::warning_kind::math_domain_error,
-			inst.src_tokens_index,
-			bz::format("calling 'log10' with {} results in {}", x, result)
-		);
-	}
-	check_for_negative("log10", inst.src_tokens_index, x, result, context);
-}
-
 static float32_t execute_log2_f32(instructions::log2_f32 const &, float32_t x, executor_context &)
 {
 	return std::log2(x);
@@ -3055,6 +3241,44 @@ static void execute_log2_f64_check(instructions::log2_f64_check const &inst, flo
 		);
 	}
 	check_for_negative("log2", inst.src_tokens_index, x, result, context);
+}
+
+static float32_t execute_log10_f32(instructions::log10_f32 const &, float32_t x, executor_context &)
+{
+	return std::log10(x);
+}
+
+static float64_t execute_log10_f64(instructions::log10_f64 const &, float64_t x, executor_context &)
+{
+	return std::log10(x);
+}
+
+static void execute_log10_f32_check(instructions::log10_f32_check const &inst, float32_t x, executor_context &context)
+{
+	auto const result = std::log10(x);
+	if (std::isnan(x) || x == 0.0f)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log10' with {} results in {}", x, result)
+		);
+	}
+	check_for_negative("log10", inst.src_tokens_index, x, result, context);
+}
+
+static void execute_log10_f64_check(instructions::log10_f64_check const &inst, float64_t x, executor_context &context)
+{
+	auto const result = std::log10(x);
+	if (std::isnan(x) || x == 0.0)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log10' with {} results in {}", x, result)
+		);
+	}
+	check_for_negative("log10", inst.src_tokens_index, x, result, context);
 }
 
 static float32_t execute_log1p_f32(instructions::log1p_f32 const &, float32_t x, executor_context &)
@@ -3115,6 +3339,26 @@ static void execute_sqrt_f64_check(instructions::sqrt_f64_check const &inst, flo
 	auto const result = std::sqrt(x);
 	check_for_nan("sqrt", inst.src_tokens_index, x, context);
 	check_for_negative("sqrt", inst.src_tokens_index, x, result, context);
+}
+
+static float32_t execute_cbrt_f32(instructions::cbrt_f32 const &, float32_t x, executor_context &)
+{
+	return std::cbrt(x);
+}
+
+static float64_t execute_cbrt_f64(instructions::cbrt_f64 const &, float64_t x, executor_context &)
+{
+	return std::cbrt(x);
+}
+
+static void execute_cbrt_f32_check(instructions::cbrt_f32_check const &inst, float32_t x, executor_context &context)
+{
+	check_for_nan("cbrt", inst.src_tokens_index, x, context);
+}
+
+static void execute_cbrt_f64_check(instructions::cbrt_f64_check const &inst, float64_t x, executor_context &context)
+{
+	check_for_nan("cbrt", inst.src_tokens_index, x, context);
 }
 
 static float32_t execute_pow_f32(instructions::pow_f32 const &, float32_t x, float32_t y, executor_context &)
@@ -3183,26 +3427,6 @@ static void execute_pow_f64_check(instructions::pow_f64_check const &inst, float
 			bz::format("calling 'pow' with base {} and exponent {} results in {}", x, y, result)
 		);
 	}
-}
-
-static float32_t execute_cbrt_f32(instructions::cbrt_f32 const &, float32_t x, executor_context &)
-{
-	return std::cbrt(x);
-}
-
-static float64_t execute_cbrt_f64(instructions::cbrt_f64 const &, float64_t x, executor_context &)
-{
-	return std::cbrt(x);
-}
-
-static void execute_cbrt_f32_check(instructions::cbrt_f32_check const &inst, float32_t x, executor_context &context)
-{
-	check_for_nan("cbrt", inst.src_tokens_index, x, context);
-}
-
-static void execute_cbrt_f64_check(instructions::cbrt_f64_check const &inst, float64_t x, executor_context &context)
-{
-	check_for_nan("cbrt", inst.src_tokens_index, x, context);
 }
 
 static float32_t execute_hypot_f32(instructions::hypot_f32 const &, float32_t x, float32_t y, executor_context &)
@@ -5786,18 +6010,6 @@ void execute_current_instruction(executor_context &context)
 	case instruction::log_f64_check:
 		execute<instructions::log_f64_check, &execute_log_f64_check>(context);
 		break;
-	case instruction::log10_f32:
-		execute<instructions::log10_f32, &execute_log10_f32>(context);
-		break;
-	case instruction::log10_f64:
-		execute<instructions::log10_f64, &execute_log10_f64>(context);
-		break;
-	case instruction::log10_f32_check:
-		execute<instructions::log10_f32_check, &execute_log10_f32_check>(context);
-		break;
-	case instruction::log10_f64_check:
-		execute<instructions::log10_f64_check, &execute_log10_f64_check>(context);
-		break;
 	case instruction::log2_f32:
 		execute<instructions::log2_f32, &execute_log2_f32>(context);
 		break;
@@ -5809,6 +6021,18 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::log2_f64_check:
 		execute<instructions::log2_f64_check, &execute_log2_f64_check>(context);
+		break;
+	case instruction::log10_f32:
+		execute<instructions::log10_f32, &execute_log10_f32>(context);
+		break;
+	case instruction::log10_f64:
+		execute<instructions::log10_f64, &execute_log10_f64>(context);
+		break;
+	case instruction::log10_f32_check:
+		execute<instructions::log10_f32_check, &execute_log10_f32_check>(context);
+		break;
+	case instruction::log10_f64_check:
+		execute<instructions::log10_f64_check, &execute_log10_f64_check>(context);
 		break;
 	case instruction::log1p_f32:
 		execute<instructions::log1p_f32, &execute_log1p_f32>(context);
@@ -5834,18 +6058,6 @@ void execute_current_instruction(executor_context &context)
 	case instruction::sqrt_f64_check:
 		execute<instructions::sqrt_f64_check, &execute_sqrt_f64_check>(context);
 		break;
-	case instruction::pow_f32:
-		execute<instructions::pow_f32, &execute_pow_f32>(context);
-		break;
-	case instruction::pow_f64:
-		execute<instructions::pow_f64, &execute_pow_f64>(context);
-		break;
-	case instruction::pow_f32_check:
-		execute<instructions::pow_f32_check, &execute_pow_f32_check>(context);
-		break;
-	case instruction::pow_f64_check:
-		execute<instructions::pow_f64_check, &execute_pow_f64_check>(context);
-		break;
 	case instruction::cbrt_f32:
 		execute<instructions::cbrt_f32, &execute_cbrt_f32>(context);
 		break;
@@ -5857,6 +6069,18 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::cbrt_f64_check:
 		execute<instructions::cbrt_f64_check, &execute_cbrt_f64_check>(context);
+		break;
+	case instruction::pow_f32:
+		execute<instructions::pow_f32, &execute_pow_f32>(context);
+		break;
+	case instruction::pow_f64:
+		execute<instructions::pow_f64, &execute_pow_f64>(context);
+		break;
+	case instruction::pow_f32_check:
+		execute<instructions::pow_f32_check, &execute_pow_f32_check>(context);
+		break;
+	case instruction::pow_f64_check:
+		execute<instructions::pow_f64_check, &execute_pow_f64_check>(context);
 		break;
 	case instruction::hypot_f32:
 		execute<instructions::hypot_f32, &execute_hypot_f32>(context);

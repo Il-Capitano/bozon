@@ -1,0 +1,24 @@
+function size_test(s: str, expected_size: usize)
+{
+	if (__builtin_str_size(s) != expected_size) unreachable;
+}
+
+function main()
+{
+	size_test("", 0);
+	size_test(str(), 0);
+	size_test("hello", 5);
+	size_test("á", 2);
+	size_test("ááá", 6);
+	size_test("á-á", 5);
+	size_test("\uffff\uffff", 6);
+	size_test("\U0010ffff\uffff", 7);
+	size_test("\U0010ffff\uffff\u0020\u0030", 9);
+	size_test("\U0010ffff\u0020\u0030\uffff", 9);
+	size_test("\u0020\U0010ffff\u0030\uffff", 9);
+	size_test("你好世界", 12);
+
+	let s = "this is a long string with úňíčóđďë characters";
+	let size = __builtin_str_end_ptr(s) - __builtin_str_begin_ptr(s);
+	size_test(s, size as usize);
+}

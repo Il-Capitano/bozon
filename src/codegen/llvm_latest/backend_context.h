@@ -1,5 +1,5 @@
-#ifndef CODEGEN_LLVM_LATEST_LLVM_CONTEXT_H
-#define CODEGEN_LLVM_LATEST_LLVM_CONTEXT_H
+#ifndef CODEGEN_LLVM_LATEST_BACKEND_CONTEXT_H
+#define CODEGEN_LLVM_LATEST_BACKEND_CONTEXT_H
 
 #include "core.h"
 #include "config.h"
@@ -89,4 +89,4 @@ struct backend_context : virtual ::codegen::backend_context
 
 } // namespace codegen::llvm_latest
 
-#endif // CODEGEN_LLVM_LATEST_LLVM_CONTEXT_H
+#endif // CODEGEN_LLVM_LATEST_BACKEND_CONTEXT_H

@@ -1,0 +1,38 @@
+import counting_resource;
+
+mut global_value = 0;
+
+struct S
+{
+	.i: i32;
+	.r: &mut i32;
+	.s: str;
+	.c: counting_resource_t;
+}
+
+function get_value() -> S
+{
+	return S[ 42, global_value, "hello", counting_resource_t() ];
+}
+
+function main()
+{
+	let _ = get_value().i;
+	if (!counting_resource_is_valid()) unreachable;
+
+	let _ = get_value().r;
+	if (!counting_resource_is_valid()) unreachable;
+
+	if (global_value != 0) unreachable;
+	get_value().r = 3;
+	if (!counting_resource_is_valid()) unreachable;
+	if (global_value != 3) unreachable;
+
+	let _ = get_value().s;
+	if (!counting_resource_is_valid()) unreachable;
+
+	{
+		let _ = get_value().c;
+	}
+	if (!counting_resource_is_valid()) unreachable;
+}

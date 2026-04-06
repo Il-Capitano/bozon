@@ -1,0 +1,13 @@
+function main() -> i32
+{
+	for (let _ in 0..10)
+	{
+		for (let _ in 0..10)
+		{
+			break;
+			return 1;
+		}
+		return 0;
+	}
+	return 1;
+}

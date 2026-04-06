@@ -1,0 +1,30 @@
+import counting_resource;
+
+mut global_value = 0;
+
+function get_tuple() -> [i32, &mut i32, str, counting_resource_t]
+{
+	return [ 42, global_value, "hello", counting_resource_t() ];
+}
+
+function main()
+{
+	let _ = get_tuple()[0];
+	if (!counting_resource_is_valid()) unreachable;
+
+	let _ = get_tuple()[1];
+	if (!counting_resource_is_valid()) unreachable;
+
+	if (global_value != 0) unreachable;
+	get_tuple()[1] = 3;
+	if (!counting_resource_is_valid()) unreachable;
+	if (global_value != 3) unreachable;
+
+	let _ = get_tuple()[2];
+	if (!counting_resource_is_valid()) unreachable;
+
+	{
+		let _ = get_tuple()[3];
+	}
+	if (!counting_resource_is_valid()) unreachable;
+}

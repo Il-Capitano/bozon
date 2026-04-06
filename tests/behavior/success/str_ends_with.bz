@@ -1,0 +1,28 @@
+function main()
+{
+	let s = "hello";
+	if (!__builtin_str_ends_with(s, "hello")) unreachable;
+	if (!__builtin_str_ends_with(s, "lo")) unreachable;
+	if (!__builtin_str_ends_with(s, "")) unreachable;
+	if (__builtin_str_ends_with(s, "a")) unreachable;
+	if (__builtin_str_ends_with(s, " hello")) unreachable;
+	if (__builtin_str_ends_with(s, "Hello")) unreachable;
+
+	let s = "";
+	if (!__builtin_str_ends_with(s, "")) unreachable;
+	if (__builtin_str_ends_with(s, "a")) unreachable;
+	if (__builtin_str_ends_with(s, " ")) unreachable;
+	if (__builtin_str_ends_with(s, "hello")) unreachable;
+
+	let s = __builtin_str_from_ptrs(null, null);
+	if (!__builtin_str_ends_with(s, "")) unreachable;
+	if (__builtin_str_ends_with(s, "a")) unreachable;
+	if (__builtin_str_ends_with(s, " ")) unreachable;
+	if (__builtin_str_ends_with(s, "hello")) unreachable;
+
+	let s = "úňíčőđě";
+	if (!__builtin_str_ends_with(s, s)) unreachable;
+	if (!__builtin_str_ends_with(s, "őđě")) unreachable;
+	if (__builtin_str_ends_with(s, "e")) unreachable;
+	if (__builtin_str_ends_with(s, "é")) unreachable;
+}

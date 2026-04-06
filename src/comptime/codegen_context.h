@@ -423,7 +423,7 @@ struct codegen_context
 
 	expr_value create_int_cast(expr_value value, type const *dest, bool is_value_signed);
 	expr_value create_float_cast(expr_value value, type const *dest);
-	expr_value create_float_to_int_cast(expr_value value, type const *dest, bool is_dest_signed);
+	expr_value create_float_to_int_cast(lex::src_tokens const &src_tokens, expr_value value, type const *dest, bool is_dest_signed);
 	expr_value create_int_to_float_cast(expr_value value, type const *dest, bool is_value_signed);
 
 	expr_value create_int_cmp_eq(expr_value lhs, expr_value rhs);
@@ -516,18 +516,18 @@ struct codegen_context
 	void create_expm1_check(lex::src_tokens const &src_tokens, expr_value x);
 	expr_value create_log(expr_value x);
 	void create_log_check(lex::src_tokens const &src_tokens, expr_value x);
-	expr_value create_log10(expr_value x);
-	void create_log10_check(lex::src_tokens const &src_tokens, expr_value x);
 	expr_value create_log2(expr_value x);
 	void create_log2_check(lex::src_tokens const &src_tokens, expr_value x);
+	expr_value create_log10(expr_value x);
+	void create_log10_check(lex::src_tokens const &src_tokens, expr_value x);
 	expr_value create_log1p(expr_value x);
 	void create_log1p_check(lex::src_tokens const &src_tokens, expr_value x);
 	expr_value create_sqrt(expr_value x);
 	void create_sqrt_check(lex::src_tokens const &src_tokens, expr_value x);
-	expr_value create_pow(expr_value x, expr_value y);
-	void create_pow_check(lex::src_tokens const &src_tokens, expr_value x, expr_value y);
 	expr_value create_cbrt(expr_value x);
 	void create_cbrt_check(lex::src_tokens const &src_tokens, expr_value x);
+	expr_value create_pow(expr_value x, expr_value y);
+	void create_pow_check(lex::src_tokens const &src_tokens, expr_value x, expr_value y);
 	expr_value create_hypot(expr_value x, expr_value y);
 	void create_hypot_check(lex::src_tokens const &src_tokens, expr_value x, expr_value y);
 	expr_value create_sin(expr_value x);

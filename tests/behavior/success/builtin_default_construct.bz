@@ -1,0 +1,22 @@
+function main()
+{
+	let a = [: i32]();
+	if (a.size() != 0) unreachable;
+	if (a.begin() != null) unreachable;
+	if (a.end() != null) unreachable;
+
+	let a = [: *i32]();
+	if (a.size() != 0) unreachable;
+	if (a.begin() != null) unreachable;
+	if (a.end() != null) unreachable;
+
+	let a = [: [10: i32]]();
+	if (a.size() != 0) unreachable;
+	if (a.begin() != null) unreachable;
+	if (a.end() != null) unreachable;
+
+	let a = [: [i32, f64, str]]();
+	if (a.size() != 0) unreachable;
+	if (a.begin() != null) unreachable;
+	if (a.end() != null) unreachable;
+}

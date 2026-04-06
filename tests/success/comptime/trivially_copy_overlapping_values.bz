@@ -6,6 +6,24 @@ function test()
 		let vals = std::meta::malloc(i32, 10);
 		defer std::meta::free(vals);
 
+		for (let i in 0..10)
+		{
+			__builtin_inplace_construct(vals + i, i);
+		}
+
+		__builtin_trivially_copy_overlapping_values(vals, vals, 10);
+
+		for (let i in 0..10)
+		{
+			if (*(vals + i) != i) unreachable;
+			__builtin_destruct_value(*(vals + i));
+		}
+	});
+
+	(consteval {
+		let vals = std::meta::malloc(i32, 10);
+		defer std::meta::free(vals);
+
 		for (let i in 0..8)
 		{
 			__builtin_inplace_construct(vals + i, i);
@@ -46,5 +64,16 @@ function test()
 			if (*(vals + i) != i) unreachable;
 			__builtin_destruct_value(*(vals + i));
 		}
+	});
+
+	(consteval {
+		mut i = 0;
+		let p = &i;
+		let np = null as ?*mut i32;
+
+		__builtin_trivially_copy_overlapping_values(p, p, 0);
+		__builtin_trivially_copy_overlapping_values(p, np, 0);
+		__builtin_trivially_copy_overlapping_values(np, p, 0);
+		__builtin_trivially_copy_overlapping_values(np, np, 0);
 	});
 }

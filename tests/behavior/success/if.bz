@@ -1,0 +1,25 @@
+function test(a: bool, b: bool) -> i32
+{
+	return if (a) {
+		0
+	} else if (b) {
+		1
+	} else {
+		2
+	};
+}
+
+function main()
+{
+	let n = test(false, false);
+	if (n != 2) unreachable;
+
+	let n = test(false, true);
+	if (n != 1) unreachable;
+
+	let n = test(true, false);
+	if (n != 0) unreachable;
+
+	let n = test(true, true);
+	if (n != 0) unreachable;
+}

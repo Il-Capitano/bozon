@@ -1,0 +1,29 @@
+function foo()
+{}
+
+consteval global: i32 = 3;
+
+function get_ref() -> ?&i32
+{
+	return global;
+}
+
+function main()
+{
+	let i = 3;
+	let oi: ?i32 = 3;
+	let pi: ?*i32 = &i;
+	let f: ?function() -> void = foo;
+
+	let v = __builtin_optional_get_value(oi);
+	if (v != __builtin_optional_get_value_ref(oi)) unreachable;
+
+	let v = __builtin_optional_get_value(pi);
+	if (v != __builtin_optional_get_value_ref(pi)) unreachable;
+
+	let v = __builtin_optional_get_value(f);
+	if (v != __builtin_optional_get_value_ref(f)) unreachable;
+
+	let &r = __builtin_optional_get_value(get_ref());
+	if (&r != &global) unreachable;
+}
