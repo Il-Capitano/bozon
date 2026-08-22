@@ -17,9 +17,9 @@
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
 
-#if LLVM_VERSION_MAJOR != 22
-#error LLVM 22 is required
-#endif // LLVM 22
+#if LLVM_VERSION_MAJOR != 23
+#error LLVM 23 is required
+#endif // LLVM 23
 
 namespace codegen::llvm_latest
 {
@@ -350,7 +350,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	auto const llvm_opt_level = [&]() {
 		if (global_data::size_opt_level != 0)
 		{
-			return global_data::size_opt_level == 1 ? llvm::OptimizationLevel::Os : llvm::OptimizationLevel::Oz;
+			return llvm::OptimizationLevel::O2;
 		}
 		else if (global_data::opt_level != 0)
 		{
@@ -441,7 +441,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	auto const llvm_opt_level = [&]() {
 		if (global_data::size_opt_level != 0)
 		{
-			return global_data::size_opt_level == 1 ? llvm::OptimizationLevel::Os : llvm::OptimizationLevel::Oz;
+			return llvm::OptimizationLevel::O2;
 		}
 		else
 		{
