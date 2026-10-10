@@ -19,7 +19,7 @@ private:
 
 	static constexpr size_t N = sizeof ...(values_variadic);
 	static_assert(N > 0, "at least one value must be provided");
-	static constexpr array<enum_t, N> values = []() {
+	static constexpr array<enum_t, N> values = []() -> array<enum_t, N> {
 		array<enum_t, N> result = { values_variadic... };
 		result.sort();
 		return result;

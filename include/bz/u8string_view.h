@@ -547,7 +547,7 @@ public:
 					}
 				}
 			}
-			return end;
+			return it;
 		}
 	}
 

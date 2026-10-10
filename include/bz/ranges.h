@@ -223,7 +223,7 @@ template<typename Range>
 struct range_base_reduce
 {
 	template<typename T, typename BinOp>
-	constexpr auto reduce(T &&val, BinOp bin_op) const noexcept;
+	constexpr auto reduce(T &&val, BinOp bin_op) const noexcept -> std::decay_t<T>;
 };
 
 template<typename Collection>
@@ -915,12 +915,9 @@ constexpr auto collection_base_member<Collection>::member(void) const noexcept
 	return static_cast<Collection const *>(this)->as_range().template member<MemberPtr>();
 }
 
-template<typename Range>
-template<template<typename ...Ts> typename Vec>
-constexpr auto range_base_collect<Range>::collect(void) const
-{
-	auto const self = static_cast<Range const *>(this);
-	Vec<std::decay_t<decltype(self->operator*())>> result;
+template<typename Vec, typename Range>
+constexpr auto collect_impl(Range const *self) -> Vec {
+	Vec result;
 	if constexpr (internal::has_size<Range>)
 	{
 		result.reserve(self->size());
@@ -932,19 +929,32 @@ constexpr auto range_base_collect<Range>::collect(void) const
 	return result;
 }
 
-template<typename Range>
-template<template<typename ...Ts> typename Vec>
-constexpr auto range_base_collect<Range>::collect(std::size_t reserve) const
-{
-	auto const self = static_cast<Range const *>(this);
-	Vec<std::decay_t<decltype(self->operator*())>> result;
-	static_assert(!internal::has_size<Range>, "use .collect() on a sized range instead");
+template<typename Vec, typename Range>
+constexpr auto collect_impl(Range const *self, std::size_t reserve) -> Vec {
+	Vec result;
 	result.reserve(reserve);
 	for (auto &&it : *self)
 	{
 		result.emplace_back(std::forward<decltype(it)>(it));
 	}
 	return result;
+}
+
+template<typename Range>
+template<template<typename ...Ts> typename Vec>
+constexpr auto range_base_collect<Range>::collect(void) const
+{
+	auto const self = static_cast<Range const *>(this);
+	return collect_impl<Vec<std::decay_t<decltype(self->operator*())>>>(self);
+}
+
+template<typename Range>
+template<template<typename ...Ts> typename Vec>
+constexpr auto range_base_collect<Range>::collect(std::size_t reserve) const
+{
+	auto const self = static_cast<Range const *>(this);
+	static_assert(!internal::has_size<Range>, "use .collect() on a sized range instead");
+	return collect_impl<Vec<std::decay_t<decltype(self->operator*())>>>(self, reserve);
 }
 
 template<typename Range>
@@ -1190,10 +1200,10 @@ constexpr auto collection_base_min<Collection>::min(T &&val, Cmp cmp) const noex
 
 template<typename Range>
 template<typename T, typename BinOp>
-constexpr auto range_base_reduce<Range>::reduce(T &&val, BinOp bin_op) const noexcept
+constexpr auto range_base_reduce<Range>::reduce(T &&val, BinOp bin_op) const noexcept -> std::decay_t<T>
 {
 	auto const self = static_cast<Range const *>(this);
-	auto result = std::forward<T>(val);
+	std::decay_t<T> result = std::forward<T>(val);
 	for (auto &&it : *self)
 	{
 		result = bin_op(std::move(result), std::forward<decltype(it)>(it));

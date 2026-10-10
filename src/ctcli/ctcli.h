@@ -869,7 +869,7 @@ create_multiple_group_element(string_view usage, string_view help, std::initiali
 	internal::check_group_elment_syntax(usage);
 	assert(internal::is_bool_flag(usage));
 	constexpr auto result_size = option_group_max_multiple_size<ID>;
-	auto const indices = [&elements]() {
+	auto const indices = [&elements]() -> array<std::uint32_t, result_size> {
 		assert(elements.size() <= result_size);
 		array<std::uint32_t, result_size> indices{};
 		for (auto &index : indices)
