@@ -1,4 +1,5 @@
 #include "memory_common.h"
+#include <bit>
 
 namespace comptime::memory
 {

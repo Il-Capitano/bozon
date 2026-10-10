@@ -195,56 +195,6 @@ static strict_match_context_t<kind> make_strict_match_context(
 }
 
 template<type_match_function_kind kind>
-static strict_match_context_t<kind> change_inner_dest(
-	strict_match_context_t<kind> const &context,
-	ast::typespec_view new_dest
-)
-{
-	if constexpr (kind == type_match_function_kind::can_match)
-	{
-		return strict_match_context_t<type_match_function_kind::can_match>{
-			.source = context.source,
-			.dest = new_dest,
-			.context = context.context,
-		};
-	}
-	else if constexpr (kind == type_match_function_kind::match_level)
-	{
-		return strict_match_context_t<type_match_function_kind::match_level>{
-			.source = context.source,
-			.dest = new_dest,
-			.reference_match = context.reference_match,
-			.base_type_match = context.base_type_match,
-			.context = context.context,
-		};
-	}
-	else if constexpr (kind == type_match_function_kind::matched_type)
-	{
-		return strict_match_context_t<type_match_function_kind::matched_type>{
-			.source = context.source,
-			.dest = new_dest,
-			.original_dest = context.original_dest,
-			.context = context.context,
-		};
-	}
-	else if constexpr (kind == type_match_function_kind::match_expression)
-	{
-		return strict_match_context_t<type_match_function_kind::match_expression>{
-			.expr = context.expr,
-			.original_dest_container = context.original_dest_container,
-			.dest_container = context.dest_container,
-			.source = context.source,
-			.dest = new_dest,
-			.context = context.context,
-		};
-	}
-	else
-	{
-		static_assert(bz::meta::always_false<strict_match_context_t<kind>>);
-	}
-}
-
-template<type_match_function_kind kind>
 static strict_match_context_t<kind> change_inner_dest_and_source(
 	strict_match_context_t<kind> const &context,
 	ast::typespec_view new_dest,

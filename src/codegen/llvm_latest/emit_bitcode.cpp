@@ -7784,6 +7784,17 @@ static llvm::Function *create_function_from_symbol(
 		fn->addRetAttr(llvm::Attribute::ZExt);
 	}
 
+	switch (global_data::size_opt_level) {
+	case 0:
+		break;
+	case 1:
+		fn->addFnAttr(llvm::Attribute::OptimizeForSize);
+		break;
+	default:
+		fn->addFnAttr(llvm::Attribute::MinSize);
+		break;
+	}
+
 	switch (func_body.cc)
 	{
 	static_assert(static_cast<size_t>(::abi::calling_convention::_last) == 3);

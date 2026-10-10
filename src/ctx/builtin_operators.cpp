@@ -22,33 +22,6 @@ static auto get_base_kinds(
 	};
 };
 
-template<ast::constant_value_kind kind>
-static auto get_constant_expression_values(
-	ast::expression const &lhs,
-	ast::expression const &rhs
-)
-{
-	static_assert(kind != ast::constant_value_kind::aggregate);
-	bz_assert(lhs.is_constant());
-	bz_assert(rhs.is_constant());
-	auto const &lhs_value = lhs.get_constant_value();
-	auto const &rhs_value = rhs.get_constant_value();
-	bz_assert(lhs_value.kind() == kind);
-	bz_assert(rhs_value.kind() == kind);
-
-	if constexpr (kind == ast::constant_value_kind::string)
-	{
-		return std::make_pair(
-			lhs_value.get_string(),
-			rhs_value.get_string()
-		);
-	}
-	else
-	{
-		return std::make_pair(lhs_value.get<kind>(), rhs_value.get<kind>());
-	}
-}
-
 #define undeclared_unary_message(op) "no match for unary operator " op " with type '{}'"
 
 // &val -> *typeof val
