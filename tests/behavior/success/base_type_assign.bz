@@ -1,0 +1,61 @@
+import resource;
+import counting_resource;
+
+struct S
+{
+	.r: counting_resource_t;
+	.i: i32;
+	.x: f64;
+	.s: str;
+}
+
+function main()
+{
+	{
+		let mut a = resource_t();
+		a = a;
+		let mut a = complex_resource_t();
+		a = a;
+		let mut a = counting_resource_t();
+		a = a;
+		let mut a = relocatable_counting_resource_t();
+		a = a;
+		let mut a = S[ counting_resource_t(), 42, 3.14, "hello" ];
+		a = a;
+		if (a.i != 42) unreachable;
+		if (a.x != 3.14) unreachable;
+		if (a.s != "hello") unreachable;
+	}
+
+	{
+		let mut a = resource_t();
+		a = resource_t();
+		let b = resource_t();
+		a = b;
+		let mut a = complex_resource_t();
+		a = complex_resource_t();
+		let b = complex_resource_t();
+		a = b;
+		let mut a = counting_resource_t();
+		a = counting_resource_t();
+		let b = counting_resource_t();
+		a = b;
+		let mut a = relocatable_counting_resource_t();
+		a = relocatable_counting_resource_t();
+		let b = relocatable_counting_resource_t();
+		a = b;
+		let mut a = S[ counting_resource_t(), 42, 3.14, "hello" ];
+		a = S[ counting_resource_t(), -99, 2.71, "there" ];
+		if (a.i != -99) unreachable;
+		if (a.x != 2.71) unreachable;
+		if (a.s != "there") unreachable;
+		let b = S[ counting_resource_t(), 999, 6.28, "hi" ];
+		a = b;
+		if (a.i != 999) unreachable;
+		if (a.x != 6.28) unreachable;
+		if (a.s != "hi") unreachable;
+	}
+
+	if (!counting_resource_is_valid()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}

@@ -851,6 +851,8 @@ struct cast_f32_to_i8
 	static inline constexpr value_type result_type = value_type::i8;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	uint32_t src_tokens_index;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
@@ -859,6 +861,8 @@ struct cast_f32_to_i16
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i16;
 	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
@@ -869,6 +873,8 @@ struct cast_f32_to_i32
 	static inline constexpr value_type result_type = value_type::i32;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	uint32_t src_tokens_index;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
@@ -877,6 +883,8 @@ struct cast_f32_to_i64
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i64;
 	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
@@ -887,6 +895,8 @@ struct cast_f32_to_u8
 	static inline constexpr value_type result_type = value_type::i8;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	uint32_t src_tokens_index;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
@@ -895,6 +905,8 @@ struct cast_f32_to_u16
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i16;
 	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
@@ -905,6 +917,8 @@ struct cast_f32_to_u32
 	static inline constexpr value_type result_type = value_type::i32;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	uint32_t src_tokens_index;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
@@ -913,6 +927,8 @@ struct cast_f32_to_u64
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i64;
 	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
@@ -923,6 +939,8 @@ struct cast_f64_to_i8
 	static inline constexpr value_type result_type = value_type::i8;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	uint32_t src_tokens_index;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
@@ -931,6 +949,8 @@ struct cast_f64_to_i16
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i16;
 	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
@@ -941,6 +961,8 @@ struct cast_f64_to_i32
 	static inline constexpr value_type result_type = value_type::i32;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	uint32_t src_tokens_index;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
@@ -949,6 +971,8 @@ struct cast_f64_to_i64
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i64;
 	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
@@ -959,6 +983,8 @@ struct cast_f64_to_u8
 	static inline constexpr value_type result_type = value_type::i8;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	uint32_t src_tokens_index;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
@@ -967,6 +993,8 @@ struct cast_f64_to_u16
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i16;
 	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
@@ -977,6 +1005,8 @@ struct cast_f64_to_u32
 	static inline constexpr value_type result_type = value_type::i32;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	uint32_t src_tokens_index;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
@@ -985,6 +1015,8 @@ struct cast_f64_to_u64
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i64;
 	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
@@ -3316,46 +3348,6 @@ struct log_f64_check
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
-struct log10_f32
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct log10_f64
-{
-	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct log10_f32_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct log10_f64_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
 struct log2_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
@@ -3386,6 +3378,46 @@ struct log2_f32_check
 };
 
 struct log2_f64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::none;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct log10_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct log10_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct log10_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct log10_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::none;
@@ -3476,46 +3508,6 @@ struct sqrt_f64_check
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
-struct pow_f32
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct pow_f64
-{
-	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct pow_f32_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct pow_f64_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
 struct cbrt_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
@@ -3548,6 +3540,46 @@ struct cbrt_f32_check
 struct cbrt_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::none;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct pow_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct pow_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct pow_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct pow_f64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::none;
 	static inline constexpr bool invalidates_load_cache = false;
 
@@ -5641,14 +5673,14 @@ using instruction_list_t = bz::meta::type_pack<
 	instructions::log_f64,
 	instructions::log_f32_check,
 	instructions::log_f64_check,
-	instructions::log10_f32,
-	instructions::log10_f64,
-	instructions::log10_f32_check,
-	instructions::log10_f64_check,
 	instructions::log2_f32,
 	instructions::log2_f64,
 	instructions::log2_f32_check,
 	instructions::log2_f64_check,
+	instructions::log10_f32,
+	instructions::log10_f64,
+	instructions::log10_f32_check,
+	instructions::log10_f64_check,
 	instructions::log1p_f32,
 	instructions::log1p_f64,
 	instructions::log1p_f32_check,
@@ -5657,14 +5689,14 @@ using instruction_list_t = bz::meta::type_pack<
 	instructions::sqrt_f64,
 	instructions::sqrt_f32_check,
 	instructions::sqrt_f64_check,
-	instructions::pow_f32,
-	instructions::pow_f64,
-	instructions::pow_f32_check,
-	instructions::pow_f64_check,
 	instructions::cbrt_f32,
 	instructions::cbrt_f64,
 	instructions::cbrt_f32_check,
 	instructions::cbrt_f64_check,
+	instructions::pow_f32,
+	instructions::pow_f64,
+	instructions::pow_f32_check,
+	instructions::pow_f64_check,
 	instructions::hypot_f32,
 	instructions::hypot_f64,
 	instructions::hypot_f32_check,
@@ -6198,14 +6230,14 @@ public:
 		log_f64,
 		log_f32_check,
 		log_f64_check,
-		log10_f32,
-		log10_f64,
-		log10_f32_check,
-		log10_f64_check,
 		log2_f32,
 		log2_f64,
 		log2_f32_check,
 		log2_f64_check,
+		log10_f32,
+		log10_f64,
+		log10_f32_check,
+		log10_f64_check,
 		log1p_f32,
 		log1p_f64,
 		log1p_f32_check,
@@ -6214,14 +6246,14 @@ public:
 		sqrt_f64,
 		sqrt_f32_check,
 		sqrt_f64_check,
-		pow_f32,
-		pow_f64,
-		pow_f32_check,
-		pow_f64_check,
 		cbrt_f32,
 		cbrt_f64,
 		cbrt_f32_check,
 		cbrt_f64_check,
+		pow_f32,
+		pow_f64,
+		pow_f32_check,
+		pow_f64_check,
 		hypot_f32,
 		hypot_f64,
 		hypot_f32_check,

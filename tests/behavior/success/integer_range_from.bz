@@ -1,0 +1,57 @@
+function check(r, begin)
+{
+	if (__builtin_integer_range_from_begin_value(r) != begin) unreachable;
+}
+
+function main()
+{
+	let begin = 3i8;
+	let r = __builtin_integer_range_from_i8(begin);
+	check(r, begin);
+	let begin = -33i8;
+	let r = __builtin_integer_range_from_i8(begin);
+	check(r, begin);
+	let begin = 0i8;
+	let r = __builtin_integer_range_from_i8(begin);
+	check(r, begin);
+
+	let begin = 3i16;
+	let r = __builtin_integer_range_from_i16(begin);
+	check(r, begin);
+	let begin = -33i16;
+	let r = __builtin_integer_range_from_i16(begin);
+	check(r, begin);
+	let begin = 0i16;
+	let r = __builtin_integer_range_from_i16(begin);
+	check(r, begin);
+
+	let begin = 3i32;
+	let r = __builtin_integer_range_from_i32(begin);
+	check(r, begin);
+	let begin = -33i32;
+	let r = __builtin_integer_range_from_i32(begin);
+	check(r, begin);
+
+	let begin = 3i64;
+	let r = __builtin_integer_range_from_i64(begin);
+	check(r, begin);
+	let begin = -33i64;
+	let r = __builtin_integer_range_from_i64(begin);
+	check(r, begin);
+
+	let begin = 3u8;
+	let r = __builtin_integer_range_from_u8(begin);
+	check(r, begin);
+
+	let begin = 3u16;
+	let r = __builtin_integer_range_from_u16(begin);
+	check(r, begin);
+
+	let begin = 3u32;
+	let r = __builtin_integer_range_from_u32(begin);
+	check(r, begin);
+
+	let begin = 3u64;
+	let r = __builtin_integer_range_from_u64(begin);
+	check(r, begin);
+}

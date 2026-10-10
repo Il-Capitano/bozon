@@ -814,17 +814,6 @@ function scope_test() -> void
 	@maybe_unused let n = 40 + 2;
 
 	@maybe_unused let n = 0 - -2147483648;
-//	255 / 0;
-//	n / 0;
-//	n /= 0;
-//	n % 0;
-//	n %= 0;
-
-	let u32 = 0u;
-//	u32 % 0u32 + 3u8;
-//	((u32 % 0u32)) * 3u32;
-	1u + ((u32 * 1u % 0u));
-	((u32 * 1u % 0u)) + 1u;
 
 	let n = 1u64;
 	((n << 99u));

@@ -1,0 +1,6 @@
+function main()
+{
+	let a = 1u64;
+	let b = 0u64;
+	let _ = a % b;
+}

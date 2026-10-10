@@ -298,6 +298,93 @@ static bool apply_builtin_assign(
 	}
 }
 
+static bool apply_libc_internal(
+	ast::decl_variable &var_decl,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	var_decl.flags |= ast::decl_variable::libc_internal;
+	return true;
+}
+
+static bool apply_libc_internal(
+	ast::type_info &info,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	info.flags |= ast::type_info::libc_internal;
+	return true;
+}
+
+static bool apply_libc_struct(
+	ast::type_info &info,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	info.flags |= ast::type_info::libc_struct;
+	return true;
+}
+
+static bool apply_libc_variable(
+	ast::decl_variable &var_decl,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	var_decl.flags |= ast::decl_variable::libc_variable;
+	if (!var_decl.is_global())
+	{
+		context.report_error(attribute.name, bz::format("'@{}' cannot be applied to local variables", attribute.name->value));
+		return false;
+	}
+	else
+	{
+		auto const symbol_name = attribute.args[1]
+			.get_constant_value()
+			.get_string();
+
+		var_decl.symbol_name = symbol_name;
+		var_decl.flags |= ast::decl_variable::external_linkage;
+		return true;
+	}
+}
+
+static bool apply_libc_function(
+	ast::function_body &func_body,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	func_body.flags |= ast::function_body::libc_function;
+	func_body.flags |= ast::function_body::external_linkage;
+
+	auto const symbol_name = attribute.args[1]
+		.get_constant_value()
+		.get_string();
+
+	func_body.symbol_name = symbol_name;
+	return true;
+}
+
+static bool apply_libc_macro(
+	ast::function_body &func_body,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	func_body.flags |= ast::function_body::libc_macro;
+
+	auto const symbol_name = attribute.args[1]
+		.get_constant_value()
+		.get_string();
+
+	func_body.symbol_name = symbol_name;
+	return true;
+}
+
 static bool apply_symbol_name(
 	ast::function_body &func_body,
 	ast::attribute &attribute,
@@ -374,7 +461,7 @@ static bool apply_overload_priority(
 
 bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info * const> builtin_type_infos)
 {
-	constexpr size_t N = 3;
+	constexpr size_t N = 8;
 	bz::vector<attribute_info_t> result;
 	result.reserve(N);
 
@@ -383,6 +470,31 @@ bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info 
 	auto const int64_type = ast::make_base_type_typespec({}, builtin_type_infos[ast::type_info::i64_]);
 	auto const str_type = ast::make_base_type_typespec({}, builtin_type_infos[ast::type_info::str_]);
 
+	result.push_back({
+		"__libc_internal",
+		{},
+		{ nullptr, nullptr, nullptr, &apply_libc_internal, nullptr, &apply_libc_internal }
+	});
+	result.push_back({
+		"__libc_struct",
+		{ str_type, str_type },
+		{ nullptr, nullptr, nullptr, nullptr, nullptr, &apply_libc_struct }
+	});
+	result.push_back({
+		"__libc_variable",
+		{ str_type, str_type },
+		{ nullptr, nullptr, nullptr, &apply_libc_variable, nullptr, nullptr }
+	});
+	result.push_back({
+		"__libc_function",
+		{ str_type, str_type },
+		{ nullptr, nullptr, &apply_libc_function, nullptr, nullptr, nullptr }
+	});
+	result.push_back({
+		"__libc_macro",
+		{ str_type, str_type },
+		{ nullptr, nullptr, &apply_libc_macro, nullptr, nullptr, nullptr }
+	});
 	result.push_back({
 		"symbol_name",
 		{ str_type },
@@ -455,7 +567,7 @@ static bool resolve_attribute(
 
 void resolve_attributes(ast::decl_function &func_decl, ctx::parse_context &context)
 {
-	for (auto &attribute : func_decl.attributes)
+	for (auto &attribute : func_decl.body.attributes)
 	{
 		if (attribute.name->value == "__builtin")
 		{
@@ -478,7 +590,7 @@ void resolve_attributes(ast::decl_function &func_decl, ctx::parse_context &conte
 
 void resolve_attributes(ast::decl_operator &op_decl, ctx::parse_context &context)
 {
-	for (auto &attribute : op_decl.attributes)
+	for (auto &attribute : op_decl.body.attributes)
 	{
 		if (attribute.name->value == "__builtin")
 		{

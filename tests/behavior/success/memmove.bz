@@ -1,0 +1,45 @@
+function main()
+{
+	let f = 1.24335f64;
+	consteval expected = __builtin_bit_cast(u64, 1.24335f64);
+	mut n: u64;
+	__builtin_memmove(&n, &f, sizeof n);
+
+	if (n != expected) unreachable;
+
+	__builtin_memmove(&n, &f, 0);
+	__builtin_memmove(null, &f, 0);
+	__builtin_memmove(&n, null, 0);
+	__builtin_memmove(null, null, 0);
+
+	mut a = [10: i32]();
+	for (let i in 0..a.size() as i32)
+	{
+		a[i] = i;
+	}
+
+	__builtin_memmove(a.begin() + 3, a.begin(), 7 * sizeof i32);
+	for (let i in 0..3)
+	{
+		if (a[i] != i) unreachable;
+	}
+	for (let i in 3..10)
+	{
+		if (a[i] != i - 3) unreachable;
+	}
+
+	for (let i in 0..a.size() as i32)
+	{
+		a[i] = i;
+	}
+
+	__builtin_memmove(a.begin(), a.begin() + 3, 7 * sizeof i32);
+	for (let i in 0..7)
+	{
+		if (a[i] != i + 3) unreachable;
+	}
+	for (let i in 7..10)
+	{
+		if (a[i] != i) unreachable;
+	}
+}

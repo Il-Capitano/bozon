@@ -1,0 +1,6 @@
+function main()
+{
+	let a = 1i32;
+	let b = 0i32;
+	let _ = a / b;
+}

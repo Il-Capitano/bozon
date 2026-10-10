@@ -1,0 +1,7 @@
+function main()
+{
+	let n = 2134uz;
+	let p = __builtin_int_to_pointer(*void, n);
+
+	if (__builtin_pointer_to_int(p) != n) unreachable;
+}

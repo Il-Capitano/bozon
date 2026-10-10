@@ -1,0 +1,61 @@
+function get_value(T: typename) -> T
+{
+	if consteval (T == i32)
+	{
+		return 99;
+	}
+	else if consteval (T == f64)
+	{
+		return 1.0;
+	}
+	else if consteval (T == str)
+	{
+		return "hello";
+	}
+	else
+	{
+		unreachable;
+	}
+}
+
+function main()
+{
+	let i = 99;
+	let f = 1.0;
+	let s = "hello";
+
+	[ i, f, s ];
+	[ 99, f, s ];
+	[ 99, 1.0, "hello" ];
+	[ get_value(i32), get_value(f64), get_value(str) ];
+
+	let t = [ i, f, s ];
+	if (t[0] != 99 || t[1] != 1.0 || t[2] != "hello") unreachable;
+
+	let t = [ 99, f, s ];
+	if (t[0] != 99 || t[1] != 1.0 || t[2] != "hello") unreachable;
+
+	let t = [ 99, 1.0, "hello" ];
+	if (t[0] != 99 || t[1] != 1.0 || t[2] != "hello") unreachable;
+
+	let t = [ get_value(i32), get_value(f64), get_value(str) ];
+	if (t[0] != 99 || t[1] != 1.0 || t[2] != "hello") unreachable;
+
+	let a: [3: i32] = [ i, i, i ];
+	if (a[0] != 99 || a[1] != 99 || a[2] != 99) unreachable;
+
+	let a: [3: i32] = [ 99, 99, i ];
+	if (a[0] != 99 || a[1] != 99 || a[2] != 99) unreachable;
+
+	let a: [3: i32] = [ get_value(i32), get_value(i32), get_value(i32) ];
+	if (a[0] != 99 || a[1] != 99 || a[2] != 99) unreachable;
+
+	let a: [3: str] = [ s, s, s ];
+	if (a[0] != "hello" || a[1] != "hello" || a[2] != "hello") unreachable;
+
+	let a: [3: str] = [ "hello", "hello", s ];
+	if (a[0] != "hello" || a[1] != "hello" || a[2] != "hello") unreachable;
+
+	let a: [3: str] = [ get_value(str), get_value(str), get_value(str) ];
+	if (a[0] != "hello" || a[1] != "hello" || a[2] != "hello") unreachable;
+}

@@ -1,0 +1,13 @@
+function main()
+{
+	mut a = [10: u32]();
+	__builtin_memset(&a, 0xab, sizeof a);
+
+	for (let v in a)
+	{
+		if (v != 0xabababab) unreachable;
+	}
+
+	__builtin_memset(&a, 0u8, 0);
+	__builtin_memset(null, 0u8, 0);
+}

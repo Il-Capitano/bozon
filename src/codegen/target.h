@@ -11,6 +11,10 @@ struct target_properties
 {
 	bz::optional<uint32_t> pointer_size;
 	bz::optional<comptime::memory::endianness_kind> endianness;
+	bz::optional<uint32_t> c_short_size;
+	bz::optional<uint32_t> c_int_size;
+	bz::optional<uint32_t> c_long_size;
+	bz::optional<uint32_t> c_long_long_size;
 };
 
 enum class architecture_kind

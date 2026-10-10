@@ -1,0 +1,94 @@
+export struct counting_resource_t
+{
+	.value: i32;
+
+	constructor()
+	{
+		default_constructions += 1;
+		return counting_resource_t[ 0 ];
+	}
+
+	constructor(value: i32)
+	{
+		default_constructions += 1;
+		return counting_resource_t[ value ];
+	}
+
+	constructor(other: &counting_resource_t)
+	{
+		copy_constructions += 1;
+		return counting_resource_t[ other.value ];
+	}
+
+	constructor(other: move counting_resource_t)
+	{
+		move_constructions += 1;
+		return counting_resource_t[ other.value ];
+	}
+
+	destructor(&self)
+	{
+		destructions += 1;
+	}
+
+	destructor(move self)
+	{
+		move_destructions += 1;
+	}
+
+	mut default_constructions = 0uz;
+	mut copy_constructions = 0uz;
+	mut move_constructions = 0uz;
+	mut destructions = 0uz;
+	mut move_destructions = 0uz;
+}
+
+export struct relocatable_counting_resource_t
+{
+	.value: i32;
+
+	constructor()
+	{
+		default_constructions += 1;
+		return relocatable_counting_resource_t[ 0 ];
+	}
+
+	constructor(value: i32)
+	{
+		default_constructions += 1;
+		return relocatable_counting_resource_t[ value ];
+	}
+
+	constructor(other: &relocatable_counting_resource_t)
+	{
+		copy_constructions += 1;
+		return relocatable_counting_resource_t[ other.value ];
+	}
+
+	destructor(&self)
+	{
+		destructions += 1;
+	}
+
+	mut default_constructions = 0uz;
+	mut copy_constructions = 0uz;
+	mut destructions = 0uz;
+}
+
+export function counting_resource_is_valid() -> bool
+{
+	return counting_resource_t.move_constructions == counting_resource_t.move_destructions
+		&& counting_resource_t.default_constructions + counting_resource_t.copy_constructions
+			== counting_resource_t.destructions;
+}
+
+export function relocatable_counting_resource_is_valid() -> bool
+{
+	return relocatable_counting_resource_t.default_constructions + relocatable_counting_resource_t.copy_constructions
+		== relocatable_counting_resource_t.destructions;
+}
+
+export function relocatable_counting_resource_any_copied() -> bool
+{
+	return relocatable_counting_resource_t.copy_constructions != 0;
+}

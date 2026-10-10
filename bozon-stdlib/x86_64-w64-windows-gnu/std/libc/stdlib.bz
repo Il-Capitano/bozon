@@ -1,66 +1,66 @@
 import types;
 import stddef;
-export struct lldiv_t
-{
-	.quot: long_long;
-	.rem: long_long;
-}
-struct _div_t
+@__libc_struct("stdlib.h", "div_t") struct _div_t
 {
 	.quot: int;
 	.rem: int;
 }
-struct _ldiv_t
+@__libc_struct("stdlib.h", "ldiv_t") struct _ldiv_t
 {
 	.quot: long;
 	.rem: long;
 }
+@__libc_struct("stdlib.h", "lldiv_t") export struct lldiv_t
+{
+	.quot: long_long;
+	.rem: long_long;
+}
 export type div_t = _div_t;
 export type ldiv_t = _ldiv_t;
-@symbol_name("_Exit") export function "c" _Exit(: int) -> void;
-@symbol_name("___mb_cur_max_func") function "c" ___mb_cur_max_func() -> int;
-@symbol_name("abort") export function "c" abort() -> void;
-@symbol_name("abs") export function "c" abs(x: int) -> int;
-@symbol_name("atof") export function "c" atof(string: ?*char) -> double;
-@symbol_name("atoi") export function "c" atoi(str: ?*char) -> int;
-@symbol_name("atol") export function "c" atol(str: ?*char) -> long;
-@symbol_name("atoll") export function "c" atoll(: ?*char) -> long_long;
-@symbol_name("calloc") export function "c" calloc(num_of_elements: size_t, size_of_elements: size_t) -> ?*mut void;
-@symbol_name("div") export function "c" div(numerator: int, denominator: int) -> div_t;
-@symbol_name("exit") export function "c" exit(code: int) -> void;
-@symbol_name("free") export function "c" free(memory: ?*mut void) -> void;
-@symbol_name("getenv") export function "c" getenv(var_name: ?*char) -> ?*mut char;
-@symbol_name("labs") export function "c" labs(x: long) -> long;
-@symbol_name("ldiv") export function "c" ldiv(numerator: long, denominator: long) -> ldiv_t;
-@symbol_name("llabs") export function "c" llabs(: long_long) -> long_long;
-@symbol_name("lldiv") export function "c" lldiv(: long_long, : long_long) -> lldiv_t;
-@symbol_name("malloc") export function "c" malloc(size: size_t) -> ?*mut void;
-@symbol_name("mblen") export function "c" mblen(ch: ?*char, max_count: size_t) -> int;
-@symbol_name("mbstowcs") export function "c" mbstowcs(dest: ?*mut wchar_t, source: ?*char, max_count: size_t) -> size_t;
-@symbol_name("mbtowc") export function "c" mbtowc(dst_ch: ?*mut wchar_t, src_ch: ?*char, src_size_in_bytes: size_t) -> int;
-@symbol_name("rand") export function "c" rand() -> int;
-@symbol_name("realloc") export function "c" realloc(memory: ?*mut void, new_size: size_t) -> ?*mut void;
-@symbol_name("srand") export function "c" srand(seed: unsigned_int) -> void;
-@symbol_name("strtol") export function "c" strtol(str: ?*char, end_ptr: ?*mut ?*mut char, radix: int) -> long;
-@symbol_name("strtoll") export function "c" strtoll(: ?*char, : ?*mut ?*mut char, : int) -> long_long;
-@symbol_name("strtoul") export function "c" strtoul(str: ?*char, end_ptr: ?*mut ?*mut char, radix: int) -> unsigned_long;
-@symbol_name("strtoull") export function "c" strtoull(: ?*char, : ?*mut ?*mut char, : int) -> unsigned_long_long;
-@symbol_name("system") export function "c" system(command: ?*char) -> int;
-@symbol_name("wcstombs") export function "c" wcstombs(dest: ?*mut char, source: ?*wchar_t, max_count: size_t) -> size_t;
-@symbol_name("wctomb") export function "c" wctomb(mb_ch: ?*mut char, w_ch: wchar_t) -> int;
-export function EXIT_FAILURE() -> int
+@__libc_function("stdlib.h", "_Exit") export function "c" _Exit(: int) -> void;
+@__libc_function("stdlib.h", "___mb_cur_max_func") function "c" ___mb_cur_max_func() -> int;
+@__libc_function("stdlib.h", "abort") export function "c" abort() -> void;
+@__libc_function("stdlib.h", "abs") export function "c" abs(x: int) -> int;
+@__libc_function("stdlib.h", "atof") export function "c" atof(string: ?*char) -> double;
+@__libc_function("stdlib.h", "atoi") export function "c" atoi(str: ?*char) -> int;
+@__libc_function("stdlib.h", "atol") export function "c" atol(str: ?*char) -> long;
+@__libc_function("stdlib.h", "atoll") export function "c" atoll(: ?*char) -> long_long;
+@__libc_function("stdlib.h", "calloc") export function "c" calloc(num_of_elements: size_t, size_of_elements: size_t) -> ?*mut void;
+@__libc_function("stdlib.h", "div") export function "c" div(numerator: int, denominator: int) -> div_t;
+@__libc_function("stdlib.h", "exit") export function "c" exit(code: int) -> void;
+@__libc_function("stdlib.h", "free") export function "c" free(memory: ?*mut void) -> void;
+@__libc_function("stdlib.h", "getenv") export function "c" getenv(var_name: ?*char) -> ?*mut char;
+@__libc_function("stdlib.h", "labs") export function "c" labs(x: long) -> long;
+@__libc_function("stdlib.h", "ldiv") export function "c" ldiv(numerator: long, denominator: long) -> ldiv_t;
+@__libc_function("stdlib.h", "llabs") export function "c" llabs(: long_long) -> long_long;
+@__libc_function("stdlib.h", "lldiv") export function "c" lldiv(: long_long, : long_long) -> lldiv_t;
+@__libc_function("stdlib.h", "malloc") export function "c" malloc(size: size_t) -> ?*mut void;
+@__libc_function("stdlib.h", "mblen") export function "c" mblen(ch: ?*char, max_count: size_t) -> int;
+@__libc_function("stdlib.h", "mbstowcs") export function "c" mbstowcs(dest: ?*mut wchar_t, source: ?*char, max_count: size_t) -> size_t;
+@__libc_function("stdlib.h", "mbtowc") export function "c" mbtowc(dst_ch: ?*mut wchar_t, src_ch: ?*char, src_size_in_bytes: size_t) -> int;
+@__libc_function("stdlib.h", "rand") export function "c" rand() -> int;
+@__libc_function("stdlib.h", "realloc") export function "c" realloc(memory: ?*mut void, new_size: size_t) -> ?*mut void;
+@__libc_function("stdlib.h", "srand") export function "c" srand(seed: unsigned_int) -> void;
+@__libc_function("stdlib.h", "strtol") export function "c" strtol(str: ?*char, end_ptr: ?*mut ?*mut char, radix: int) -> long;
+@__libc_function("stdlib.h", "strtoll") export function "c" strtoll(: ?*char, : ?*mut ?*mut char, : int) -> long_long;
+@__libc_function("stdlib.h", "strtoul") export function "c" strtoul(str: ?*char, end_ptr: ?*mut ?*mut char, radix: int) -> unsigned_long;
+@__libc_function("stdlib.h", "strtoull") export function "c" strtoull(: ?*char, : ?*mut ?*mut char, : int) -> unsigned_long_long;
+@__libc_function("stdlib.h", "system") export function "c" system(command: ?*char) -> int;
+@__libc_function("stdlib.h", "wcstombs") export function "c" wcstombs(dest: ?*mut char, source: ?*wchar_t, max_count: size_t) -> size_t;
+@__libc_function("stdlib.h", "wctomb") export function "c" wctomb(mb_ch: ?*mut char, w_ch: wchar_t) -> int;
+@__libc_macro("stdlib.h", "EXIT_FAILURE") export function EXIT_FAILURE() -> int
 {
 	return 1;
 }
-export function EXIT_SUCCESS() -> int
+@__libc_macro("stdlib.h", "EXIT_SUCCESS") export function EXIT_SUCCESS() -> int
 {
 	return 0;
 }
-export function MB_CUR_MAX() -> int
+@__libc_macro("stdlib.h", "MB_CUR_MAX") export function MB_CUR_MAX() -> int
 {
 	return ___mb_cur_max_func();
 }
-export function RAND_MAX() -> int
+@__libc_macro("stdlib.h", "RAND_MAX") export function RAND_MAX() -> int
 {
 	return 32767;
 }

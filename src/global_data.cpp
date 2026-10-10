@@ -23,6 +23,10 @@ bz::optional<emit_type> parse_emit_type(bz::u8string_view arg)
 	{
 		return emit_type::llvm_ir;
 	}
+	else if (config::backend_c && arg == "c")
+	{
+		return emit_type::c;
+	}
 	else if (arg == "null")
 	{
 		return emit_type::null;
@@ -36,7 +40,9 @@ bz::optional<emit_type> parse_emit_type(bz::u8string_view arg)
 namespace global_data
 {
 
-emit_type emit_file_type = config::backend_llvm ? emit_type::obj : emit_type::null;
+emit_type emit_file_type = config::backend_llvm ? emit_type::obj
+	: config::backend_c ? emit_type::c
+	: emit_type::null;
 
 } // namespace global_data
 

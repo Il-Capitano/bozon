@@ -1,18 +1,18 @@
 import types;
-@symbol_name("_errno") function "c" _errno() -> ?*mut int;
-export function EDOM() -> int
+@__libc_function("errno.h", "_errno") function "c" _errno() -> ?*mut int;
+@__libc_macro("errno.h", "EDOM") export function EDOM() -> int
 {
 	return 33;
 }
-export function EILSEQ() -> int
+@__libc_macro("errno.h", "EILSEQ") export function EILSEQ() -> int
 {
 	return 42;
 }
-export function ERANGE() -> int
+@__libc_macro("errno.h", "ERANGE") export function ERANGE() -> int
 {
 	return 34;
 }
-export function errno() -> &mut int
+@__libc_macro("errno.h", "errno") export function errno() -> &mut int
 {
 	return (*_errno());
 }

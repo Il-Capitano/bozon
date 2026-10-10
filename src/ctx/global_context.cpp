@@ -245,6 +245,7 @@ ast::decl_operator *global_context::get_builtin_operator(uint32_t op_kind_, uint
 size_t global_context::get_sizeof(ast::typespec_view ts)
 {
 	bz_assert(this->comptime_codegen_context != nullptr);
+	bz_assert(!ts.is_any_reference());
 	return comptime::get_type(ts, *this->comptime_codegen_context)->size;
 }
 
@@ -1168,8 +1169,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	)
 	{
 		this->report_error(bz::format(
-			"inferred and explicitly provided target pointer sizes are different for triple '{}'",
-			this->target_triple.triple
+			"inferred and explicitly provided target pointer sizes of {} and {} are different for triple '{}'",
+			target_properties.pointer_size.get(), global_data::target_pointer_size, this->target_triple.triple
 		));
 		error = true;
 	}
@@ -1199,6 +1200,106 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		this->report_error(bz::format(
 			"inferred and explicitly provided target endianness kinds are different for triple '{}'",
 			this->target_triple.triple
+		));
+		error = true;
+	}
+
+	if (
+		global_data::emit_file_type == emit_type::c
+		&& !target_properties.c_short_size.has_value()
+		&& !ctcli::is_option_set<ctcli::group_element("--code-gen target-c-short-size")>()
+	)
+	{
+		this->report_error(bz::format(
+			"unable to infer the size of 'short' from triple '{}'; provide the command line option '-C target-c-short-size={}'",
+			this->target_triple.triple, "{little|big}" // needed here because it contains '{'
+		));
+		error = true;
+	}
+	else if (
+		target_properties.c_short_size.has_value()
+		&& ctcli::is_option_set<ctcli::group_element("--code-gen target-c-short-size")>()
+		&& target_properties.c_short_size.get() != global_data::target_c_short_size
+	)
+	{
+		this->report_error(bz::format(
+			"inferred and explicitly provided 'short' sizes of {} and {} are different for triple '{}'",
+			target_properties.c_short_size.get(), global_data::target_c_short_size, this->target_triple.triple
+		));
+		error = true;
+	}
+
+	if (
+		global_data::emit_file_type == emit_type::c
+		&& !target_properties.c_int_size.has_value()
+		&& !ctcli::is_option_set<ctcli::group_element("--code-gen target-c-int-size")>()
+	)
+	{
+		this->report_error(bz::format(
+			"unable to infer the size of 'int' from triple '{}'; provide the command line option '-C target-c-int-size={}'",
+			this->target_triple.triple, "{little|big}" // needed here because it contains '{'
+		));
+		error = true;
+	}
+	else if (
+		target_properties.c_int_size.has_value()
+		&& ctcli::is_option_set<ctcli::group_element("--code-gen target-c-int-size")>()
+		&& target_properties.c_int_size.get() != global_data::target_c_int_size
+	)
+	{
+		this->report_error(bz::format(
+			"inferred and explicitly provided 'int' sizes of {} and {} are different for triple '{}'",
+			target_properties.c_int_size.get(), global_data::target_c_int_size, this->target_triple.triple
+		));
+		error = true;
+	}
+
+	if (
+		global_data::emit_file_type == emit_type::c
+		&& !target_properties.c_long_size.has_value()
+		&& !ctcli::is_option_set<ctcli::group_element("--code-gen target-c-long-size")>()
+	)
+	{
+		this->report_error(bz::format(
+			"unable to infer the size of 'long' from triple '{}'; provide the command line option '-C target-c-long-size={}'",
+			this->target_triple.triple, "{little|big}" // needed here because it contains '{'
+		));
+		error = true;
+	}
+	else if (
+		target_properties.c_long_size.has_value()
+		&& ctcli::is_option_set<ctcli::group_element("--code-gen target-c-long-size")>()
+		&& target_properties.c_long_size.get() != global_data::target_c_long_size
+	)
+	{
+		this->report_error(bz::format(
+			"inferred and explicitly provided 'long' sizes of {} and {} are different for triple '{}'",
+			target_properties.c_long_size.get(), global_data::target_c_long_size, this->target_triple.triple
+		));
+		error = true;
+	}
+
+	if (
+		global_data::emit_file_type == emit_type::c
+		&& !target_properties.c_long_long_size.has_value()
+		&& !ctcli::is_option_set<ctcli::group_element("--code-gen target-c-long-long-size")>()
+	)
+	{
+		this->report_error(bz::format(
+			"unable to infer the size of 'long long' from triple '{}'; provide the command line option '-C target-c-long-long-size={}'",
+			this->target_triple.triple, "{little|big}" // needed here because it contains '{'
+		));
+		error = true;
+	}
+	else if (
+		target_properties.c_long_long_size.has_value()
+		&& ctcli::is_option_set<ctcli::group_element("--code-gen target-c-long-long-size")>()
+		&& target_properties.c_long_long_size.get() != global_data::target_c_long_long_size
+	)
+	{
+		this->report_error(bz::format(
+			"inferred and explicitly provided 'long long' sizes of {} and {} are different for triple '{}'",
+			target_properties.c_long_long_size.get(), global_data::target_c_long_long_size, this->target_triple.triple
 		));
 		error = true;
 	}
@@ -1428,7 +1529,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::generate_and_output_code(void)
 {
-	if (global_data::emit_file_type == emit_type::null)
+	if (global_data::emit_file_type == emit_type::null || this->backend_context == nullptr)
 	{
 		return true;
 	}
@@ -1455,6 +1556,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 				return ".bc";
 			case emit_type::llvm_ir:
 				return ".ll";
+			case emit_type::c:
+				return ".c";
 			case emit_type::null:
 				bz_unreachable;
 			}

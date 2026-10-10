@@ -1,0 +1,37 @@
+struct S
+{
+	.i: i32;
+	.x: f64;
+	.a: [7: str];
+	.r: &i32;
+}
+
+struct T
+{
+	.r: &i32;
+}
+
+function check_offset(s: *S, offset: usize, p: *auto) -> bool
+{
+	let s = __builtin_pointer_to_int(s);
+	let p = __builtin_pointer_to_int(p);
+	return s + offset == p;
+}
+
+let global = 0i32;
+function get_t() -> T
+{
+	return T[ global ];
+}
+
+function main()
+{
+	let i = 0i32;
+	let s = S[ 0, 1.0, [7: str](), i ];
+	if (!check_offset(&s, 0, &s.i)) unreachable;
+	if (!check_offset(&s, 8, &s.x)) unreachable;
+	if (!check_offset(&s, 16, &s.a)) unreachable;
+	if (&s.r != &i) unreachable;
+	if (&T[ i ].r != &i) unreachable;
+	if (&get_t().r != &global) unreachable;
+}

@@ -1,0 +1,53 @@
+function test(T: typename)
+{
+	let mut a = 0 as T;
+	if (a != 0 as T) unreachable;
+	a = a;
+	if (a != 0 as T) unreachable;
+
+	a = 1 as T;
+	if (a != 1 as T) unreachable;
+
+	let b = 2 as T;
+	a = b;
+	if (a != b) unreachable;
+	if (a != 2 as T) unreachable;
+}
+
+function index_sequence(size: consteval usize) -> [size: usize]
+{
+	mut result = [size: usize]();
+	for (let i in 0..size)
+	{
+		result[i] = i;
+	}
+	return result;
+}
+
+function test_tuple(Ts: ...typename)
+{
+	let mut a = [...(0 as Ts)];
+	consteval [...index] = index_sequence(sizeof ...Ts);
+	...(if (a[index] != 0 as Ts) { unreachable; });
+	a = a;
+	...(if (a[index] != 0 as Ts) { unreachable; });
+
+	a = [...(1 as Ts)];
+	...(if (a[index] != 1 as Ts) { unreachable; });
+
+	let b = [...(2 as Ts)];
+	a = b;
+	...(if (a[index] != b[index]) { unreachable; });
+	...(if (a[index] != 2 as Ts) { unreachable; });
+}
+
+function main()
+{
+	test(i32);
+	test(u64);
+	test(f32);
+	test(f64);
+
+	test_tuple(i32);
+	test_tuple(i32, u64, f32, f64, i8, u16);
+}

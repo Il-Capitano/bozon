@@ -1,0 +1,39 @@
+import resource;
+import counting_resource;
+
+function test(##value)
+{
+	let _: ?##auto = __forward value;
+}
+
+function foo()
+{}
+
+function main()
+{
+	test(42u8);
+	test(42);
+	test(42i64);
+
+	let i = 0;
+	test(&i);
+
+	test(foo);
+
+	let func = foo;
+	test(func);
+	test(move func);
+
+	let i = 0;
+	test(i);
+	test(move i);
+
+	test(resource_t());
+	test(complex_resource_t());
+
+	test(relocatable_counting_resource_t());
+	test(counting_resource_t());
+
+	if (!counting_resource_is_valid()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}

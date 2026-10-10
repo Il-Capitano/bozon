@@ -1,0 +1,107 @@
+function compare_test(a, b, c)
+{
+	if (!(a < b) || !(a < c) || !(b < c)) unreachable;
+	if (b < a || c < a || c < b) unreachable;
+
+	if (!(b > a) || !(c > a) || !(c > b)) unreachable;
+	if (a > b || a > c || b > c) unreachable;
+
+	if (!(a <= b) || !(a <= c) || !(b <= c) || !(a <= a)) unreachable;
+	if (b <= a || c <= a || c <= b) unreachable;
+
+	if (!(b >= a) || !(c >= a) || !(c >= b) || !(a >= a)) unreachable;
+	if (a >= b || a >= c || b >= c) unreachable;
+
+	if (!(a == a) || !(b == b) || !(c == c)) unreachable;
+	if (a == b || a == c || b == c) unreachable;
+
+	if (a != a || b != b || c != c) unreachable;
+	if (!(a != b) || !(a != c) || !(b != c)) unreachable;
+}
+
+function compare_test_signed(iN: typename)
+{
+	let a: iN = -99;
+	let b: iN = 0;
+	let c: iN = 99;
+
+	compare_test(a, b, c);
+}
+
+function compare_test_unsigned(uN: typename)
+{
+	let a: uN = 0;
+	let b: uN = 99;
+	let c: uN = 199;
+
+	compare_test(a, b, c);
+}
+
+function compare_test_float(fN: typename)
+{
+	compare_test(-24.3 as fN, 0.0 as fN, 3.53e8 as fN);
+
+	let nan = ((0.0 / 0.0)) as fN;
+	let inf = ((1.0 / 0.0)) as fN;
+
+	if (nan < nan) unreachable;
+	if (inf < nan) unreachable;
+	if (3.83532 as fN < nan) unreachable;
+
+	if (nan > nan) unreachable;
+	if (inf > nan) unreachable;
+	if (3.83532 as fN > nan) unreachable;
+
+	if (nan <= nan) unreachable;
+	if (inf <= nan) unreachable;
+	if (3.83532 as fN <= nan) unreachable;
+
+	if (nan >= nan) unreachable;
+	if (inf >= nan) unreachable;
+	if (3.83532 as fN >= nan) unreachable;
+
+	if (nan == nan) unreachable;
+	if (inf == nan) unreachable;
+	if (3.83532 as fN == nan) unreachable;
+
+	if (!(nan != nan)) unreachable;
+	if (!(inf != nan)) unreachable;
+	if (!(3.83532 as fN != nan)) unreachable;
+}
+
+function main()
+{
+	compare_test_signed(i8);
+	compare_test_signed(i16);
+	compare_test_signed(i32);
+	compare_test_signed(i64);
+
+	compare_test_unsigned(u8);
+	compare_test_unsigned(u16);
+	compare_test_unsigned(u32);
+	compare_test_unsigned(u64);
+
+	compare_test('a', 'b', 'c');
+
+	compare_test_float(f32);
+	compare_test_float(f64);
+
+	let a = [10: i32]();
+	compare_test(&a[0], &a[3], &a[9]);
+
+	let a = false;
+	let b = true;
+
+	if (!(a == a)) unreachable;
+	if (!(b == b)) unreachable;
+	if (a == b) unreachable;
+	if (!(a != b)) unreachable;
+
+	if (!(false == a)) unreachable;
+	if (false == b) unreachable;
+	if (!(false != b)) unreachable;
+
+	if (!(true == b)) unreachable;
+	if (a == true) unreachable;
+	if (!(a != true)) unreachable;
+}

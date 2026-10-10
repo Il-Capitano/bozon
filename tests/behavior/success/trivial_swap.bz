@@ -1,0 +1,27 @@
+struct S
+{
+	.i: i32;
+	.x: f64;
+	.s: str;
+}
+
+static_assert(__builtin_is_trivially_relocatable(S));
+
+function main()
+{
+	let mut a = S[ 42, 3.14, "hello" ];
+	__builtin_swap(a, a);
+	if (a.i != 42) unreachable;
+	if (a.x != 3.14) unreachable;
+	if (a.s != "hello") unreachable;
+
+	let mut a = S[ 42, 3.14, "hello" ];
+	let mut b = S[ -99, 2.71, "there" ];
+	__builtin_swap(a, b);
+	if (a.i != -99) unreachable;
+	if (a.x != 2.71) unreachable;
+	if (a.s != "there") unreachable;
+	if (b.i != 42) unreachable;
+	if (b.x != 3.14) unreachable;
+	if (b.s != "hello") unreachable;
+}

@@ -1,0 +1,21 @@
+struct S
+{
+	let mut i = 0;
+	let mut x = 0.0;
+	let mut s = "";
+}
+
+function main()
+{
+	if (S.i != 0) unreachable;
+	if (S.x != 0.0) unreachable;
+	if (S.s != "") unreachable;
+
+	S.i = 42;
+	S.x = 3.14;
+	S.s = "hello";
+
+	if (S.i != 42) unreachable;
+	if (S.x != 3.14) unreachable;
+	if (S.s != "hello") unreachable;
+}

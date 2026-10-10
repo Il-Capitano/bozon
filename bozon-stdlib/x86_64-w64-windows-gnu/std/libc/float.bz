@@ -1,109 +1,109 @@
 import types;
-export function DBL_DECIMAL_DIG() -> int
+@__libc_macro("float.h", "DBL_DECIMAL_DIG") export function DBL_DECIMAL_DIG() -> int
 {
 	return 17;
 }
-export function DBL_DIG() -> int
+@__libc_macro("float.h", "DBL_DIG") export function DBL_DIG() -> int
 {
 	return 15;
 }
-export function DBL_EPSILON() -> double
+@__libc_macro("float.h", "DBL_EPSILON") export function DBL_EPSILON() -> double
 {
 	return 2.2204460492503131E-16f64;
 }
-export function DBL_HAS_SUBNORM() -> int
+@__libc_macro("float.h", "DBL_HAS_SUBNORM") export function DBL_HAS_SUBNORM() -> int
 {
 	return 1;
 }
-export function DBL_MANT_DIG() -> int
+@__libc_macro("float.h", "DBL_MANT_DIG") export function DBL_MANT_DIG() -> int
 {
 	return 53;
 }
-export function DBL_MAX() -> double
+@__libc_macro("float.h", "DBL_MAX") export function DBL_MAX() -> double
 {
 	return 1.7976931348623157E+308f64;
 }
-export function DBL_MAX_10_EXP() -> int
+@__libc_macro("float.h", "DBL_MAX_10_EXP") export function DBL_MAX_10_EXP() -> int
 {
 	return 308;
 }
-export function DBL_MAX_EXP() -> int
+@__libc_macro("float.h", "DBL_MAX_EXP") export function DBL_MAX_EXP() -> int
 {
 	return 1024;
 }
-export function DBL_MIN() -> double
+@__libc_macro("float.h", "DBL_MIN") export function DBL_MIN() -> double
 {
 	return 2.2250738585072014E-308f64;
 }
-export function DBL_MIN_10_EXP() -> int
+@__libc_macro("float.h", "DBL_MIN_10_EXP") export function DBL_MIN_10_EXP() -> int
 {
 	return -307;
 }
-export function DBL_MIN_EXP() -> int
+@__libc_macro("float.h", "DBL_MIN_EXP") export function DBL_MIN_EXP() -> int
 {
 	return -1021;
 }
-export function DBL_TRUE_MIN() -> double
+@__libc_macro("float.h", "DBL_TRUE_MIN") export function DBL_TRUE_MIN() -> double
 {
 	return 4.9406564584124654E-324f64;
 }
-export function DECIMAL_DIG() -> int
+@__libc_macro("float.h", "DECIMAL_DIG") export function DECIMAL_DIG() -> int
 {
 	return 21;
 }
-export function FLT_DECIMAL_DIG() -> int
+@__libc_macro("float.h", "FLT_DECIMAL_DIG") export function FLT_DECIMAL_DIG() -> int
 {
 	return 9;
 }
-export function FLT_DIG() -> int
+@__libc_macro("float.h", "FLT_DIG") export function FLT_DIG() -> int
 {
 	return 6;
 }
-export function FLT_EPSILON() -> float
+@__libc_macro("float.h", "FLT_EPSILON") export function FLT_EPSILON() -> float
 {
 	return 1.1920929E-7f32;
 }
-export function FLT_EVAL_METHOD() -> int
+@__libc_macro("float.h", "FLT_EVAL_METHOD") export function FLT_EVAL_METHOD() -> int
 {
 	return 0;
 }
-export function FLT_HAS_SUBNORM() -> int
+@__libc_macro("float.h", "FLT_HAS_SUBNORM") export function FLT_HAS_SUBNORM() -> int
 {
 	return 1;
 }
-export function FLT_MANT_DIG() -> int
+@__libc_macro("float.h", "FLT_MANT_DIG") export function FLT_MANT_DIG() -> int
 {
 	return 24;
 }
-export function FLT_MAX() -> float
+@__libc_macro("float.h", "FLT_MAX") export function FLT_MAX() -> float
 {
 	return 3.40282347E+38f32;
 }
-export function FLT_MAX_10_EXP() -> int
+@__libc_macro("float.h", "FLT_MAX_10_EXP") export function FLT_MAX_10_EXP() -> int
 {
 	return 38;
 }
-export function FLT_MAX_EXP() -> int
+@__libc_macro("float.h", "FLT_MAX_EXP") export function FLT_MAX_EXP() -> int
 {
 	return 128;
 }
-export function FLT_MIN() -> float
+@__libc_macro("float.h", "FLT_MIN") export function FLT_MIN() -> float
 {
 	return 1.17549435E-38f32;
 }
-export function FLT_MIN_10_EXP() -> int
+@__libc_macro("float.h", "FLT_MIN_10_EXP") export function FLT_MIN_10_EXP() -> int
 {
 	return -37;
 }
-export function FLT_MIN_EXP() -> int
+@__libc_macro("float.h", "FLT_MIN_EXP") export function FLT_MIN_EXP() -> int
 {
 	return -125;
 }
-export function FLT_RADIX() -> int
+@__libc_macro("float.h", "FLT_RADIX") export function FLT_RADIX() -> int
 {
 	return 2;
 }
-export function FLT_TRUE_MIN() -> float
+@__libc_macro("float.h", "FLT_TRUE_MIN") export function FLT_TRUE_MIN() -> float
 {
 	return 1.40129846E-45f32;
 }

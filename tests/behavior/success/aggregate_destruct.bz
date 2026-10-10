@@ -1,0 +1,143 @@
+let mut a_destructed = false;
+struct A
+{
+	destructor(&mut self)
+	{
+		if (a_destructed) unreachable;
+		if (!b_destructed) unreachable;
+		a_destructed = true;
+	}
+}
+
+let mut b_destructed = false;
+struct B
+{
+	destructor(&mut self)
+	{
+		if (b_destructed) unreachable;
+		if (!c_destructed) unreachable;
+		b_destructed = true;
+	}
+}
+
+let mut c_destructed = false;
+struct C
+{
+	destructor(&mut self)
+	{
+		if (c_destructed) unreachable;
+		if (!d_destructed) unreachable;
+		c_destructed = true;
+	}
+}
+
+let mut d_destructed = false;
+struct D
+{
+	destructor(&mut self)
+	{
+		if (d_destructed) unreachable;
+		for (let val in e_destructed)
+		{
+			if (!val) unreachable;
+		}
+		d_destructed = true;
+	}
+}
+
+consteval e_size = 100uz;
+let mut e_destructed = [e_size: bool]();
+struct E
+{
+	.index: usize;
+
+	destructor(&mut self)
+	{
+		if (e_destructed[self.index]) unreachable;
+		if (self.index + 1 < e_size && !e_destructed[self.index + 1]) unreachable;
+		e_destructed[self.index] = true;
+	}
+}
+
+function reset_destruct_markers()
+{
+	a_destructed = false;
+	b_destructed = false;
+	c_destructed = false;
+	d_destructed = false;
+	for (let &mut val in e_destructed)
+	{
+		val = false;
+	}
+}
+
+function any_destructed() -> bool
+{
+	if (a_destructed || b_destructed || c_destructed || d_destructed) {
+		return true;
+	}
+
+	for (let val in e_destructed)
+	{
+		if (val)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function all_destructed() -> bool
+{
+	if (!(a_destructed && b_destructed && c_destructed && d_destructed))
+	{
+		return false;
+	}
+
+	for (let val in e_destructed)
+	{
+		if (!val)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+function main()
+{
+	{
+		reset_destruct_markers();
+		defer {
+			if (!all_destructed()) unreachable;
+		};
+		let mut t = [A, i32, B, f32, C, f64, [10: i64], D, [e_size: E]]();
+		for (let i in 0..e_size)
+		{
+			t[8][i].index = i;
+		}
+		defer {
+			if (any_destructed()) unreachable;
+		};
+	}
+
+	{
+		reset_destruct_markers();
+		defer {
+			if (!all_destructed()) unreachable;
+		};
+
+		let mut t = [A, i32, B, f32, C, f64, [10: i64], D, [e_size: E]]();
+		for (let i in 0..e_size)
+		{
+			t[8][i].index = i;
+		}
+		let _ = move t;
+
+		defer {
+			if (any_destructed()) unreachable;
+		};
+	}
+}

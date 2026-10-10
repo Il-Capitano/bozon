@@ -1,0 +1,82 @@
+function check(intN: typename, r)
+{
+	mut it = __builtin_integer_range_from_begin_iterator(r);
+
+	let initial_value = __builtin_bit_cast(intN, it);
+	for (let i in 1 as intN..=100 as intN)
+	{
+		++it;
+		if (__builtin_bit_cast(intN, it) != initial_value + i) unreachable;
+	}
+}
+
+function main()
+{
+	let begin = 3i8;
+	let r = __builtin_integer_range_from_i8(begin);
+	check(i8, r);
+	let begin = -33i8;
+	let r = __builtin_integer_range_from_i8(begin);
+	check(i8, r);
+	let begin = 0i8;
+	let r = __builtin_integer_range_from_i8(begin);
+	check(i8, r);
+
+	let begin = 3i16;
+	let r = __builtin_integer_range_from_i16(begin);
+	check(i16, r);
+	let begin = -33i16;
+	let r = __builtin_integer_range_from_i16(begin);
+	check(i16, r);
+	let begin = 0i16;
+	let r = __builtin_integer_range_from_i16(begin);
+	check(i16, r);
+
+	let begin = 3i32;
+	let r = __builtin_integer_range_from_i32(begin);
+	check(i32, r);
+	let begin = -33i32;
+	let r = __builtin_integer_range_from_i32(begin);
+	check(i32, r);
+	let begin = 0i32;
+	let r = __builtin_integer_range_from_i32(begin);
+	check(i32, r);
+
+	let begin = 3i64;
+	let r = __builtin_integer_range_from_i64(begin);
+	check(i64, r);
+	let begin = -33i64;
+	let r = __builtin_integer_range_from_i64(begin);
+	check(i64, r);
+	let begin = 0i64;
+	let r = __builtin_integer_range_from_i64(begin);
+	check(i64, r);
+
+	let begin = 3u8;
+	let r = __builtin_integer_range_from_u8(begin);
+	check(u8, r);
+	let begin = 0u8;
+	let r = __builtin_integer_range_from_u8(begin);
+	check(u8, r);
+
+	let begin = 3u16;
+	let r = __builtin_integer_range_from_u16(begin);
+	check(u16, r);
+	let begin = 0u16;
+	let r = __builtin_integer_range_from_u16(begin);
+	check(u16, r);
+
+	let begin = 3u32;
+	let r = __builtin_integer_range_from_u32(begin);
+	check(u32, r);
+	let begin = 0u32;
+	let r = __builtin_integer_range_from_u32(begin);
+	check(u32, r);
+
+	let begin = 3u64;
+	let r = __builtin_integer_range_from_u64(begin);
+	check(u64, r);
+	let begin = 0u64;
+	let r = __builtin_integer_range_from_u64(begin);
+	check(u64, r);
+}

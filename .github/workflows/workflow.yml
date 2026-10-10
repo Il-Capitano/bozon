@@ -46,7 +46,7 @@ jobs:
     - name: Run tests
       run: |
         cppb/bin/cppb run -v --build-config test-no-sanitize
-        cppb/bin/cppb run-rule run-tests
+        cppb/bin/cppb run-rule run-tests-no-sanitize
   windows-gcc:
     runs-on: windows-latest
     defaults:

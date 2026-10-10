@@ -1,0 +1,54 @@
+function test(range, sum)
+{
+	mut range_sum = 0 as typeof sum;
+	for (let v in range)
+	{
+		range_sum += v;
+	}
+	if (range_sum != sum) unreachable;
+}
+
+function main()
+{
+	let sum = 0 + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10;
+
+	test(0i8..11i8, sum as i8);
+	test(0i16..11i16, sum as i16);
+	test(0i32..11i32, sum as i32);
+	test(0i64..11i64, sum as i64);
+
+	test(0u8..11u8, sum as u8);
+	test(0u16..11u16, sum as u16);
+	test(0u32..11u32, sum as u32);
+	test(0u64..11u64, sum as u64);
+
+	test(0i8..=10i8, sum as i8);
+	test(0i16..=10i16, sum as i16);
+	test(0i32..=10i32, sum as i32);
+	test(0i64..=10i64, sum as i64);
+
+	test(0u8..=10u8, sum as u8);
+	test(0u16..=10u16, sum as u16);
+	test(0u32..=10u32, sum as u32);
+	test(0u64..=10u64, sum as u64);
+
+	test(i8.max - 2..i8.max, (((i8.max - 2) + (i8.max - 1))));
+	test(i16.max - 2..i16.max, (((i16.max - 2) + (i16.max - 1))));
+	test(i32.max - 2..i32.max, (((i32.max - 2) + (i32.max - 1))));
+	test(i64.max - 2..i64.max, (((i64.max - 2) + (i64.max - 1))));
+
+	test(u8.max - 2..u8.max, (((u8.max - 2) + (u8.max - 1))));
+	test(u16.max - 2..u16.max, (((u16.max - 2) + (u16.max - 1))));
+	test(u32.max - 2..u32.max, (((u32.max - 2) + (u32.max - 1))));
+	test(u64.max - 2..u64.max, (((u64.max - 2) + (u64.max - 1))));
+
+	test(i8.max - 2..=i8.max, (((((i8.max - 2) + (i8.max - 1))) + i8.max)));
+	test(i16.max - 2..=i16.max, (((((i16.max - 2) + (i16.max - 1))) + i16.max)));
+	test(i32.max - 2..=i32.max, (((((i32.max - 2) + (i32.max - 1))) + i32.max)));
+	test(i64.max - 2..=i64.max, (((((i64.max - 2) + (i64.max - 1))) + i64.max)));
+
+	test(u8.max - 2..=u8.max, (((((u8.max - 2) + (u8.max - 1))) + u8.max)));
+	test(u16.max - 2..=u16.max, (((((u16.max - 2) + (u16.max - 1))) + u16.max)));
+	test(u32.max - 2..=u32.max, (((((u32.max - 2) + (u32.max - 1))) + u32.max)));
+	test(u64.max - 2..=u64.max, (((((u64.max - 2) + (u64.max - 1))) + u64.max)));
+}

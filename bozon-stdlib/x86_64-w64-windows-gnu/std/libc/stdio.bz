@@ -1,6 +1,6 @@
 import types;
 import stddef;
-struct _iobuf
+@__libc_struct("stdio.h", "FILE") struct _iobuf
 {
 	._ptr: ?*mut char;
 	._cnt: int;
@@ -13,95 +13,95 @@ struct _iobuf
 }
 export type FILE = _iobuf;
 export type fpos_t = long_long;
-@symbol_name("__acrt_iob_func") function "c" __acrt_iob_func(index: unsigned_int) -> ?*mut FILE;
-@symbol_name("clearerr") export function "c" clearerr(file: ?*mut FILE) -> void;
-@symbol_name("fclose") export function "c" fclose(file: ?*mut FILE) -> int;
-@symbol_name("feof") export function "c" feof(file: ?*mut FILE) -> int;
-@symbol_name("ferror") export function "c" ferror(file: ?*mut FILE) -> int;
-@symbol_name("fflush") export function "c" fflush(file: ?*mut FILE) -> int;
-@symbol_name("fgetc") export function "c" fgetc(file: ?*mut FILE) -> int;
-@symbol_name("fgetpos") export function "c" fgetpos(file: ?*mut FILE, pos: ?*mut fpos_t) -> int;
-@symbol_name("fgets") export function "c" fgets(buf: ?*mut char, max_count: int, file: ?*mut FILE) -> ?*mut char;
-@symbol_name("fopen") export function "c" fopen(filename: ?*char, mode: ?*char) -> ?*mut FILE;
-@symbol_name("fputc") export function "c" fputc(ch: int, file: ?*mut FILE) -> int;
-@symbol_name("fputs") export function "c" fputs(str: ?*char, file: ?*mut FILE) -> int;
-@symbol_name("fread") export function "c" fread(dst_buf: ?*mut void, element_size: size_t, count: size_t, file: ?*mut FILE) -> unsigned_long_long;
-@symbol_name("freopen") export function "c" freopen(filename: ?*char, mode: ?*char, file: ?*mut FILE) -> ?*mut FILE;
-@symbol_name("fseek") export function "c" fseek(file: ?*mut FILE, offset: long, origin: int) -> int;
-@symbol_name("fsetpos") export function "c" fsetpos(file: ?*mut FILE, pos: ?*fpos_t) -> int;
-@symbol_name("ftell") export function "c" ftell(file: ?*mut FILE) -> long;
-@symbol_name("fwrite") export function "c" fwrite(str: ?*void, size: size_t, count: size_t, file: ?*mut FILE) -> unsigned_long_long;
-@symbol_name("getc") export function "c" getc(file: ?*mut FILE) -> int;
-@symbol_name("getchar") export function "c" getchar() -> int;
-@symbol_name("perror") export function "c" perror(err_msg: ?*char) -> void;
-@symbol_name("putc") export function "c" putc(ch: int, file: ?*mut FILE) -> int;
-@symbol_name("putchar") export function "c" putchar(ch: int) -> int;
-@symbol_name("puts") export function "c" puts(str: ?*char) -> int;
-@symbol_name("remove") export function "c" remove(filename: ?*char) -> int;
-@symbol_name("rename") export function "c" rename(old_filename: ?*char, new_filename: ?*char) -> int;
-@symbol_name("rewind") export function "c" rewind(file: ?*mut FILE) -> void;
-@symbol_name("setbuf") export function "c" setbuf(file: ?*mut FILE, buffer: ?*mut char) -> void;
-@symbol_name("setvbuf") export function "c" setvbuf(file: ?*mut FILE, buf: ?*mut char, mode: int, size: size_t) -> int;
-@symbol_name("tmpfile") export function "c" tmpfile() -> ?*mut FILE;
-@symbol_name("tmpnam") export function "c" tmpnam(buffer: ?*mut char) -> ?*mut char;
-@symbol_name("ungetc") export function "c" ungetc(ch: int, file: ?*mut FILE) -> int;
-export function BUFSIZ() -> int
+@__libc_function("stdio.h", "__acrt_iob_func") function "c" __acrt_iob_func(index: unsigned_int) -> ?*mut FILE;
+@__libc_function("stdio.h", "clearerr") export function "c" clearerr(file: ?*mut FILE) -> void;
+@__libc_function("stdio.h", "fclose") export function "c" fclose(file: ?*mut FILE) -> int;
+@__libc_function("stdio.h", "feof") export function "c" feof(file: ?*mut FILE) -> int;
+@__libc_function("stdio.h", "ferror") export function "c" ferror(file: ?*mut FILE) -> int;
+@__libc_function("stdio.h", "fflush") export function "c" fflush(file: ?*mut FILE) -> int;
+@__libc_function("stdio.h", "fgetc") export function "c" fgetc(file: ?*mut FILE) -> int;
+@__libc_function("stdio.h", "fgetpos") export function "c" fgetpos(file: ?*mut FILE, pos: ?*mut fpos_t) -> int;
+@__libc_function("stdio.h", "fgets") export function "c" fgets(buf: ?*mut char, max_count: int, file: ?*mut FILE) -> ?*mut char;
+@__libc_function("stdio.h", "fopen") export function "c" fopen(filename: ?*char, mode: ?*char) -> ?*mut FILE;
+@__libc_function("stdio.h", "fputc") export function "c" fputc(ch: int, file: ?*mut FILE) -> int;
+@__libc_function("stdio.h", "fputs") export function "c" fputs(str: ?*char, file: ?*mut FILE) -> int;
+@__libc_function("stdio.h", "fread") export function "c" fread(dst_buf: ?*mut void, element_size: size_t, count: size_t, file: ?*mut FILE) -> unsigned_long_long;
+@__libc_function("stdio.h", "freopen") export function "c" freopen(filename: ?*char, mode: ?*char, file: ?*mut FILE) -> ?*mut FILE;
+@__libc_function("stdio.h", "fseek") export function "c" fseek(file: ?*mut FILE, offset: long, origin: int) -> int;
+@__libc_function("stdio.h", "fsetpos") export function "c" fsetpos(file: ?*mut FILE, pos: ?*fpos_t) -> int;
+@__libc_function("stdio.h", "ftell") export function "c" ftell(file: ?*mut FILE) -> long;
+@__libc_function("stdio.h", "fwrite") export function "c" fwrite(str: ?*void, size: size_t, count: size_t, file: ?*mut FILE) -> unsigned_long_long;
+@__libc_function("stdio.h", "getc") export function "c" getc(file: ?*mut FILE) -> int;
+@__libc_function("stdio.h", "getchar") export function "c" getchar() -> int;
+@__libc_function("stdio.h", "perror") export function "c" perror(err_msg: ?*char) -> void;
+@__libc_function("stdio.h", "putc") export function "c" putc(ch: int, file: ?*mut FILE) -> int;
+@__libc_function("stdio.h", "putchar") export function "c" putchar(ch: int) -> int;
+@__libc_function("stdio.h", "puts") export function "c" puts(str: ?*char) -> int;
+@__libc_function("stdio.h", "remove") export function "c" remove(filename: ?*char) -> int;
+@__libc_function("stdio.h", "rename") export function "c" rename(old_filename: ?*char, new_filename: ?*char) -> int;
+@__libc_function("stdio.h", "rewind") export function "c" rewind(file: ?*mut FILE) -> void;
+@__libc_function("stdio.h", "setbuf") export function "c" setbuf(file: ?*mut FILE, buffer: ?*mut char) -> void;
+@__libc_function("stdio.h", "setvbuf") export function "c" setvbuf(file: ?*mut FILE, buf: ?*mut char, mode: int, size: size_t) -> int;
+@__libc_function("stdio.h", "tmpfile") export function "c" tmpfile() -> ?*mut FILE;
+@__libc_function("stdio.h", "tmpnam") export function "c" tmpnam(buffer: ?*mut char) -> ?*mut char;
+@__libc_function("stdio.h", "ungetc") export function "c" ungetc(ch: int, file: ?*mut FILE) -> int;
+@__libc_macro("stdio.h", "BUFSIZ") export function BUFSIZ() -> int
 {
 	return 512;
 }
-export function EOF() -> int
+@__libc_macro("stdio.h", "EOF") export function EOF() -> int
 {
 	return -1;
 }
-export function FILENAME_MAX() -> int
+@__libc_macro("stdio.h", "FILENAME_MAX") export function FILENAME_MAX() -> int
 {
 	return 260;
 }
-export function FOPEN_MAX() -> int
+@__libc_macro("stdio.h", "FOPEN_MAX") export function FOPEN_MAX() -> int
 {
 	return 20;
 }
-export function L_tmpnam() -> unsigned_long_long
+@__libc_macro("stdio.h", "L_tmpnam") export function L_tmpnam() -> unsigned_long_long
 {
 	return 14;
 }
-export function SEEK_CUR() -> int
+@__libc_macro("stdio.h", "SEEK_CUR") export function SEEK_CUR() -> int
 {
 	return 1;
 }
-export function SEEK_END() -> int
+@__libc_macro("stdio.h", "SEEK_END") export function SEEK_END() -> int
 {
 	return 2;
 }
-export function SEEK_SET() -> int
+@__libc_macro("stdio.h", "SEEK_SET") export function SEEK_SET() -> int
 {
 	return 0;
 }
-export function TMP_MAX() -> int
+@__libc_macro("stdio.h", "TMP_MAX") export function TMP_MAX() -> int
 {
 	return 32767;
 }
-export function _IOFBF() -> int
+@__libc_macro("stdio.h", "_IOFBF") export function _IOFBF() -> int
 {
 	return 0;
 }
-export function _IOLBF() -> int
+@__libc_macro("stdio.h", "_IOLBF") export function _IOLBF() -> int
 {
 	return 64;
 }
-export function _IONBF() -> int
+@__libc_macro("stdio.h", "_IONBF") export function _IONBF() -> int
 {
 	return 4;
 }
-export function stderr() -> ?*mut FILE
+@__libc_macro("stdio.h", "stderr") export function stderr() -> ?*mut FILE
 {
 	return (__acrt_iob_func(2));
 }
-export function stdin() -> ?*mut FILE
+@__libc_macro("stdio.h", "stdin") export function stdin() -> ?*mut FILE
 {
 	return (__acrt_iob_func(0));
 }
-export function stdout() -> ?*mut FILE
+@__libc_macro("stdio.h", "stdout") export function stdout() -> ?*mut FILE
 {
 	return (__acrt_iob_func(1));
 }

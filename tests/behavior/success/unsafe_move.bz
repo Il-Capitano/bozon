@@ -1,0 +1,17 @@
+import std::libc::stdlib;
+import counting_resource;
+
+function main() -> i32
+{
+	{
+		let p = std::libc::malloc(sizeof counting_resource_t);
+		if (p == null) unreachable;
+		let p = __builtin_pointer_cast(*mut counting_resource_t, p.get_value());
+		defer std::libc::free(p);
+
+		__builtin_inplace_construct(p, counting_resource_t());
+		let _ = __move__ *p;
+	}
+
+	return if (counting_resource_is_valid()) { 0 } else { 1 };
+}

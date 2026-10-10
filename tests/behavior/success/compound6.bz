@@ -1,0 +1,23 @@
+import counting_resource;
+
+function make_resource() -> counting_resource_t
+{
+	return {
+		let _ = counting_resource_t();
+		counting_resource_t()
+	};
+}
+
+function test()
+{
+	let _ = {
+		let _ = counting_resource_t();
+		make_resource()
+	};
+}
+
+function main() -> i32
+{
+	test();
+	return if (counting_resource_is_valid()) { 0 } else { 1 };
+}

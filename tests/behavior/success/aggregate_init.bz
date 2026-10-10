@@ -1,0 +1,86 @@
+import resource;
+import counting_resource;
+
+struct S
+{
+	.i: i32;
+	.s: str;
+	.res1: resource_t;
+	.res2: complex_resource_t;
+	.res3: relocatable_counting_resource_t;
+	.res4: counting_resource_t;
+
+	.ref1: &i32;
+	.ref2: &mut i32;
+	.ref3: &mut i32;
+	.ref4: &relocatable_counting_resource_t;
+	.ref5: &counting_resource_t;
+}
+
+function test(: move auto)
+{}
+
+mut global_i = 0;
+
+function get_ref() -> &mut i32
+{
+	return global_i;
+}
+
+function main()
+{
+	{
+		let i = 0;
+		mut j = 0;
+		let res1 = relocatable_counting_resource_t();
+		let res2 = counting_resource_t();
+		let _ = S[
+			0,
+			"test",
+			resource_t(),
+			complex_resource_t(),
+			relocatable_counting_resource_t(),
+			counting_resource_t(),
+			i,
+			j,
+			get_ref(),
+			res1,
+			res2,
+		];
+	}
+
+	{
+		mut i = 0;
+		let res1 = relocatable_counting_resource_t();
+		let res2 = counting_resource_t();
+		S[
+			0,
+			"test",
+			resource_t(),
+			complex_resource_t(),
+			relocatable_counting_resource_t(),
+			counting_resource_t(),
+			i,
+			i,
+			get_ref(),
+			res1,
+			res2,
+		];
+		test(S[
+			0,
+			"test",
+			resource_t(),
+			complex_resource_t(),
+			relocatable_counting_resource_t(),
+			counting_resource_t(),
+			i,
+			i,
+			get_ref(),
+			res1,
+			res2,
+		]);
+	}
+
+	if (!counting_resource_is_valid()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}

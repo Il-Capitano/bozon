@@ -1,0 +1,4 @@
+function main()
+{
+	let &_ = i32.max;
+}

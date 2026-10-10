@@ -1,0 +1,28 @@
+function test(s: str) -> i32
+{
+	return switch (s) {
+		"" => 0,
+		"hello" => 42,
+		"there" => 1,
+		"this is a very long string that is quite long" => -99,
+		else => 3 * s.size() as i32 + 9,
+	};
+}
+
+function main()
+{
+	if (test("") != 0) unreachable;
+	if (test("hello") != 42) unreachable;
+	if (test("there") != 1) unreachable;
+	if (test("this is a very long string that is quite long") != -99) unreachable;
+
+	let tests: [??: str] = [
+		"test",
+		"some other very long string that is even longer than the previous long string",
+		" ",
+	];
+	for (let s in tests)
+	{
+		if (test(s) != 3 * s.size() as i32 + 9) unreachable;
+	}
+}

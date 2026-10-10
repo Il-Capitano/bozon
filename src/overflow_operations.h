@@ -115,4 +115,26 @@ operation_result_t<Result> div_overflow(uint64_t a, uint64_t b)
 	return { static_cast<Result>(result), result > static_cast<uint64_t>(std::numeric_limits<Result>::max()) };
 }
 
+template<typename Int, typename Float>
+bz::optional<Int> safe_float_to_int_cast(Float value)
+{
+	constexpr size_t bit_width = std::is_signed_v<Int> ? (8 * sizeof (Int) - 1) : (8 * sizeof (Int));
+	constexpr Float max_value = static_cast<Float>(2.0) * static_cast<Float>(1ull << (bit_width - 1));
+	constexpr Float min_value = std::is_signed_v<Int> ? -max_value : static_cast<Float>(0.0);
+	// doubles can exactly represent only 53-bit integers, so for 64-bit or larger integers we have to be careful,
+	// because simply adding 1.0 may not actually change the value
+	auto const upper_bound_value = max_value;
+	auto const lower_bound_value = min_value - static_cast<Float>(1.0) == min_value
+		? std::nextafter(min_value, -std::numeric_limits<Float>::infinity())
+		: min_value - static_cast<Float>(1.0);
+	if (std::isnan(value) || value <= lower_bound_value || value >= upper_bound_value)
+	{
+		return {};
+	}
+	else
+	{
+		return static_cast<Int>(value);
+	}
+}
+
 #endif // OVERFLOW_OPERATIONS_H

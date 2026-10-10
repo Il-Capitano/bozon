@@ -15,10 +15,10 @@ export function expm1 = __builtin_expm1_f32;
 export function expm1 = __builtin_expm1_f64;
 export function log   = __builtin_log_f32;
 export function log   = __builtin_log_f64;
-export function log10 = __builtin_log10_f32;
-export function log10 = __builtin_log10_f64;
 export function log2  = __builtin_log2_f32;
 export function log2  = __builtin_log2_f64;
+export function log10 = __builtin_log10_f32;
+export function log10 = __builtin_log10_f64;
 export function log1p = __builtin_log1p_f32;
 export function log1p = __builtin_log1p_f64;
 

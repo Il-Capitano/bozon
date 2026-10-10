@@ -1,0 +1,13 @@
+// error: invalid call to '__builtin_trivially_copy_values'
+// note: while evaluating expression at compile time
+// note: destination and source ranges overlap
+// note: destination and source addresses point into this stack object with offsets of 0 and 0, and a total range size of 40
+// error: failed to evaluate expression at compile time
+function test()
+{
+	(consteval {
+		mut a = [10: i32]();
+
+		__builtin_trivially_copy_values(a.begin(), a.begin(), a.size());
+	});
+}

@@ -1,0 +1,23 @@
+function main()
+{
+	mut a = [10: i32]();
+	let end = __builtin_array_end_ptr(a);
+	if (__builtin_pointer_to_int(end) != __builtin_pointer_to_int(&a) + sizeof a) unreachable;
+
+	let end = __builtin_array_end_mut_ptr(a);
+	if (__builtin_pointer_to_int(end) != __builtin_pointer_to_int(&a) + sizeof a) unreachable;
+
+	mut a = [10: i8]();
+	let end = __builtin_array_end_ptr(a);
+	if (__builtin_pointer_to_int(end) != __builtin_pointer_to_int(&a) + sizeof a) unreachable;
+
+	let end = __builtin_array_end_mut_ptr(a);
+	if (__builtin_pointer_to_int(end) != __builtin_pointer_to_int(&a) + sizeof a) unreachable;
+
+	mut a = [10, 3, 2: [i32, str, f64, [2: u16]]]();
+	let end = __builtin_array_end_ptr(a);
+	if (__builtin_pointer_to_int(end) != __builtin_pointer_to_int(&a) + sizeof a) unreachable;
+
+	let end = __builtin_array_end_mut_ptr(a);
+	if (__builtin_pointer_to_int(end) != __builtin_pointer_to_int(&a) + sizeof a) unreachable;
+}

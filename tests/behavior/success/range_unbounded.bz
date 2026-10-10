@@ -1,0 +1,4 @@
+function main()
+{
+	let _ = __builtin_range_unbounded();
+}

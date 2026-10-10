@@ -1,0 +1,15 @@
+mut v = 42;
+
+function set_v()
+{
+	v = 20;
+}
+
+function main()
+{
+	if (v != 42) unreachable;
+	v = 10;
+	if (v != 10) unreachable;
+	set_v();
+	if (v != 20) unreachable;
+}

@@ -3324,17 +3324,6 @@ static expr_value generate_intrinsic_function_call_code(
 		}
 		return value_or_result_address(context.create_log(x), result_address, context);
 	}
-	case ast::function_body::log10_f32:
-	case ast::function_body::log10_f64:
-	{
-		bz_assert(func_call.params.size() == 1);
-		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level < 2)
-		{
-			context.create_log10_check(original_expression.src_tokens, x);
-		}
-		return value_or_result_address(context.create_log10(x), result_address, context);
-	}
 	case ast::function_body::log2_f32:
 	case ast::function_body::log2_f64:
 	{
@@ -3345,6 +3334,17 @@ static expr_value generate_intrinsic_function_call_code(
 			context.create_log2_check(original_expression.src_tokens, x);
 		}
 		return value_or_result_address(context.create_log2(x), result_address, context);
+	}
+	case ast::function_body::log10_f32:
+	case ast::function_body::log10_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level < 2)
+		{
+			context.create_log10_check(original_expression.src_tokens, x);
+		}
+		return value_or_result_address(context.create_log10(x), result_address, context);
 	}
 	case ast::function_body::log1p_f32:
 	case ast::function_body::log1p_f64:
@@ -3368,6 +3368,17 @@ static expr_value generate_intrinsic_function_call_code(
 		}
 		return value_or_result_address(context.create_sqrt(x), result_address, context);
 	}
+	case ast::function_body::cbrt_f32:
+	case ast::function_body::cbrt_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level < 2)
+		{
+			context.create_cbrt_check(original_expression.src_tokens, x);
+		}
+		return value_or_result_address(context.create_cbrt(x), result_address, context);
+	}
 	case ast::function_body::pow_f32:
 	case ast::function_body::pow_f64:
 	{
@@ -3379,17 +3390,6 @@ static expr_value generate_intrinsic_function_call_code(
 			context.create_pow_check(original_expression.src_tokens, x, y);
 		}
 		return value_or_result_address(context.create_pow(x, y), result_address, context);
-	}
-	case ast::function_body::cbrt_f32:
-	case ast::function_body::cbrt_f64:
-	{
-		bz_assert(func_call.params.size() == 1);
-		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level < 2)
-		{
-			context.create_cbrt_check(original_expression.src_tokens, x);
-		}
-		return value_or_result_address(context.create_cbrt(x), result_address, context);
 	}
 	case ast::function_body::hypot_f32:
 	case ast::function_body::hypot_f64:
@@ -4093,7 +4093,12 @@ static expr_value generate_expr_code(
 		else if (ast::is_floating_point_kind(expr_kind))
 		{
 			bz_assert(ast::is_integer_kind(dest_kind));
-			auto const result_value = context.create_float_to_int_cast(expr, dest_type, ast::is_signed_integer_kind(dest_kind));
+			auto const result_value = context.create_float_to_int_cast(
+				original_expression.src_tokens,
+				expr,
+				dest_type,
+				ast::is_signed_integer_kind(dest_kind)
+			);
 			return value_or_result_address(result_value, result_address, context);
 		}
 		else if (ast::is_integer_kind(expr_kind) && ast::is_floating_point_kind(dest_kind))

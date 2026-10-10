@@ -1,0 +1,4 @@
+function main()
+{
+	if (__builtin_is_comptime()) unreachable;
+}

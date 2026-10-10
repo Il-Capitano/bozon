@@ -1,0 +1,10 @@
+// error: invalid cast in expression '256.0 as u8', floating-point value of type 'f32' is outside the representable range of integer type 'u8'
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
+function test()
+{
+	(consteval {
+		let x = 256.0f32;
+		let _ = x as u8;
+	});
+}

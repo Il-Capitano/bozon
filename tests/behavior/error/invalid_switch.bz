@@ -1,0 +1,15 @@
+enum E: i32
+{
+	a = 0,
+	b = 1,
+}
+
+function main()
+{
+	mut e = E.a;
+	let i: i32 = 2;
+	__builtin_memcpy(&e, &i, sizeof e);
+	let _ = switch (e) {
+		.a, .b => 0,
+	};
+}

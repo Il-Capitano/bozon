@@ -1,3 +1,5 @@
+// warning: unused variable 'i' [-W unused-variable]
+// note: prefix variable name with an underscore to suppress this warning
 function main()
 {
 	let i = 0;

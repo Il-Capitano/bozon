@@ -1,57 +1,57 @@
 import types;
-export struct fenv_t
+@__libc_struct("fenv.h", "fenv_t") export struct fenv_t
 {
 	._: [8: i32]; // struct contains bit fields
 }
 export type fexcept_t = unsigned_short;
-@symbol_name("feclearexcept") export function "c" feclearexcept(excepts: int) -> int;
-@symbol_name("fegetenv") export function "c" fegetenv(envp: ?*mut fenv_t) -> int;
-@symbol_name("fegetexceptflag") export function "c" fegetexceptflag(flagp: ?*mut fexcept_t, excepts: int) -> int;
-@symbol_name("fegetround") export function "c" fegetround() -> int;
-@symbol_name("feholdexcept") export function "c" feholdexcept(envp: ?*mut fenv_t) -> int;
-@symbol_name("feraiseexcept") export function "c" feraiseexcept(excepts: int) -> int;
-@symbol_name("fesetenv") export function "c" fesetenv(envp: ?*fenv_t) -> int;
-@symbol_name("fesetexceptflag") export function "c" fesetexceptflag(flagp: ?*fexcept_t, excepts: int) -> int;
-@symbol_name("fesetround") export function "c" fesetround(rounding_direction: int) -> int;
-@symbol_name("fetestexcept") export function "c" fetestexcept(excepts: int) -> int;
-@symbol_name("feupdateenv") export function "c" feupdateenv(envp: ?*fenv_t) -> int;
-export function FE_ALL_EXCEPT() -> int
+@__libc_function("fenv.h", "feclearexcept") export function "c" feclearexcept(excepts: int) -> int;
+@__libc_function("fenv.h", "fegetenv") export function "c" fegetenv(envp: ?*mut fenv_t) -> int;
+@__libc_function("fenv.h", "fegetexceptflag") export function "c" fegetexceptflag(flagp: ?*mut fexcept_t, excepts: int) -> int;
+@__libc_function("fenv.h", "fegetround") export function "c" fegetround() -> int;
+@__libc_function("fenv.h", "feholdexcept") export function "c" feholdexcept(envp: ?*mut fenv_t) -> int;
+@__libc_function("fenv.h", "feraiseexcept") export function "c" feraiseexcept(excepts: int) -> int;
+@__libc_function("fenv.h", "fesetenv") export function "c" fesetenv(envp: ?*fenv_t) -> int;
+@__libc_function("fenv.h", "fesetexceptflag") export function "c" fesetexceptflag(flagp: ?*fexcept_t, excepts: int) -> int;
+@__libc_function("fenv.h", "fesetround") export function "c" fesetround(rounding_direction: int) -> int;
+@__libc_function("fenv.h", "fetestexcept") export function "c" fetestexcept(excepts: int) -> int;
+@__libc_function("fenv.h", "feupdateenv") export function "c" feupdateenv(envp: ?*fenv_t) -> int;
+@__libc_macro("fenv.h", "FE_ALL_EXCEPT") export function FE_ALL_EXCEPT() -> int
 {
 	return 61;
 }
-export function FE_DIVBYZERO() -> int
+@__libc_macro("fenv.h", "FE_DIVBYZERO") export function FE_DIVBYZERO() -> int
 {
 	return 4;
 }
-export function FE_DOWNWARD() -> int
+@__libc_macro("fenv.h", "FE_DOWNWARD") export function FE_DOWNWARD() -> int
 {
 	return 1024;
 }
-export function FE_INEXACT() -> int
+@__libc_macro("fenv.h", "FE_INEXACT") export function FE_INEXACT() -> int
 {
 	return 32;
 }
-export function FE_INVALID() -> int
+@__libc_macro("fenv.h", "FE_INVALID") export function FE_INVALID() -> int
 {
 	return 1;
 }
-export function FE_OVERFLOW() -> int
+@__libc_macro("fenv.h", "FE_OVERFLOW") export function FE_OVERFLOW() -> int
 {
 	return 8;
 }
-export function FE_TONEAREST() -> int
+@__libc_macro("fenv.h", "FE_TONEAREST") export function FE_TONEAREST() -> int
 {
 	return 0;
 }
-export function FE_TOWARDZERO() -> int
+@__libc_macro("fenv.h", "FE_TOWARDZERO") export function FE_TOWARDZERO() -> int
 {
 	return 3072;
 }
-export function FE_UNDERFLOW() -> int
+@__libc_macro("fenv.h", "FE_UNDERFLOW") export function FE_UNDERFLOW() -> int
 {
 	return 16;
 }
-export function FE_UPWARD() -> int
+@__libc_macro("fenv.h", "FE_UPWARD") export function FE_UPWARD() -> int
 {
 	return 2048;
 }

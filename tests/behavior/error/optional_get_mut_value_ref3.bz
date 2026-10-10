@@ -1,0 +1,6 @@
+function main()
+{
+	mut f: ?function() -> void = null;
+
+	__builtin_optional_get_mut_value_ref(f);
+}

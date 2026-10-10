@@ -1,0 +1,6 @@
+function main()
+{
+	let a = 1u16;
+	let b = 0u16;
+	let _ = a / b;
+}

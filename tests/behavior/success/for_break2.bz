@@ -1,0 +1,14 @@
+function main() -> i32
+{
+	let i = 0;
+	for (let _ in 0..10)
+	{
+		switch (i)
+		{
+			0 => break,
+			else => {},
+		}
+		return 1;
+	}
+	return 0;
+}
