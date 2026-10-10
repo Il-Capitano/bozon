@@ -2,6 +2,7 @@
 #include "ast/statement.h"
 #include "overflow_operations.h"
 #include "global_data.h"
+#include <bit>
 
 namespace comptime::memory
 {
